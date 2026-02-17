@@ -1,0 +1,82 @@
+/**
+ * List of all dashboard routes: path (without leading slash) and page key.
+ * Add new pages here and in the PAGES object in routes.tsx.
+ */
+import { ROUTES } from "./config"
+
+export const toChildPath = (r: string) => r.replace(/^\//, "")
+
+export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] = [
+  { index: true, page: "Dashboard" },
+  // Registration
+  { path: toChildPath(ROUTES.PRE_REGISTRATION), page: "PreRegistration" },
+  { path: toChildPath(ROUTES.WALK_IN_REGISTRATION), page: "WalkInRegistration" },
+  { path: toChildPath(ROUTES.STREAMED_UPLOAD), page: "StreamedUpload" },
+  { path: toChildPath(ROUTES.PHOTO_CAPTURE), page: "PhotoCapture" },
+  { path: toChildPath(ROUTES.QR_CODE_GENERATION), page: "QRCodeGeneration" },
+  { path: toChildPath(ROUTES.APPOINTMENT_SCHEDULING), page: "AppointmentScheduling" },
+  { path: toChildPath(ROUTES.TIME_SLOT_BOOKING), page: "TimeSlotBooking" },
+  { path: toChildPath(ROUTES.HOST_SELECTION), page: "HostSelection" },
+  { path: toChildPath(ROUTES.VISIT_PURPOSE), page: "VisitPurpose" },
+  { path: toChildPath(ROUTES.CALENDAR_VIEW), page: "CalendarView" },
+  // Warehouse
+  { path: toChildPath(ROUTES.WAREHOUSE_SETUP), page: "WarehouseSetup" },
+  { path: toChildPath(ROUTES.ZONE_LOCATION_MANAGEMENT), page: "ZoneLocationManagement" },
+  { path: toChildPath(ROUTES.STORAGE_ALLOCATION), page: "StorageAllocation" },
+  { path: toChildPath(ROUTES.INVENTORY_TRACKING), page: "InventoryTracking" },
+  { path: toChildPath(ROUTES.STOCK_RECONCILIATION), page: "StockReconciliation" },
+  // Cameras & operations
+  { path: toChildPath(ROUTES.CAMERA_INTEGRATION), page: "CameraIntegration" },
+  { path: toChildPath(ROUTES.OPERATIONS_DASHBOARD), page: "OperationsDashboard" },
+  { path: toChildPath(ROUTES.ANALYTICS_DASHBOARD), page: "AnalyticsDashboard" },
+  { path: toChildPath(ROUTES.LIVE_MONITORING), page: "LiveMonitoring" },
+  // Seizures
+  { path: toChildPath(ROUTES.NEW_SEIZURE_ENTRY), page: "NewSeizureEntry" },
+  { path: toChildPath(ROUTES.JCP_TOLL_PLAZA_ENTRY), page: "JcpTollPlazaEntry" },
+  { path: toChildPath(ROUTES.GOODS_RECEIPT_HANDOVER), page: "GoodsReceiptHandover" },
+  { path: toChildPath(ROUTES.AI_ITEM_CATALOGING), page: "AiItemCataloging" },
+  { path: toChildPath(ROUTES.SEIZURE_REGISTER), page: "SeizureRegister" },
+  { path: toChildPath(ROUTES.FIR_REGISTRATION), page: "FirRegistration" },
+  { path: toChildPath(ROUTES.CASE_FILE_CREATION), page: "CaseFileCreation" },
+  { path: toChildPath(ROUTES.COURT_PROCEEDINGS), page: "CourtProceedings" },
+  { path: toChildPath(ROUTES.LEGAL_DOCUMENTS), page: "LegalDocuments" },
+  { path: toChildPath(ROUTES.CASE_STATUS_TRACKING), page: "CaseStatusTracking" },
+  // Transfers
+  { path: toChildPath(ROUTES.INTER_COLLECTORATE_TRANSFER), page: "InterCollectorateTransfer" },
+  { path: toChildPath(ROUTES.INTERNAL_MOVEMENT), page: "InternalMovement" },
+  { path: toChildPath(ROUTES.HANDOVER_REQUESTS), page: "HandoverRequests" },
+  { path: toChildPath(ROUTES.DOUBLE_AUTHENTICATION), page: "DoubleAuthentication" },
+  { path: toChildPath(ROUTES.TRANSFER_TRACKING), page: "TransferTracking" },
+  // Inventory
+  { path: toChildPath(ROUTES.PERISHABLE_REGISTER), page: "PerishableRegister" },
+  { path: toChildPath(ROUTES.EXPIRY_TRACKING), page: "ExpiryTracking" },
+  { path: toChildPath(ROUTES.PRIORITY_DISPOSAL_QUEUE), page: "PriorityDisposalQueue" },
+  { path: toChildPath(ROUTES.DESTRUCTION_ORDERS), page: "DestructionOrders" },
+  { path: toChildPath(ROUTES.LOT_CREATION), page: "LotCreation" },
+  { path: toChildPath(ROUTES.ITEM_VALUATION), page: "ItemValuation" },
+  // Auction
+  { path: toChildPath(ROUTES.ASO_PORTAL_SYNC), page: "AsoPortalSync" },
+  { path: toChildPath(ROUTES.BIDDING_MANAGEMENT), page: "BiddingManagement" },
+  { path: toChildPath(ROUTES.SALE_COMPLETION), page: "SaleCompletion" },
+  { path: toChildPath(ROUTES.REVENUE_REPORTS), page: "RevenueReports" },
+  { path: toChildPath(ROUTES.CAMERA_MANAGEMENT), page: "CameraManagement" },
+  { path: toChildPath(ROUTES.OBJECT_DETECTION), page: "ObjectDetection" },
+  { path: toChildPath(ROUTES.ANPR_SETTINGS), page: "AnprSettings" },
+  { path: toChildPath(ROUTES.ANOMALY_DETECTION), page: "AnomalyDetection" },
+  // Reports
+  { path: toChildPath(ROUTES.REPORTS), page: "Reports" },
+  { path: toChildPath(ROUTES.PREDICTIVE_INSIGHTS), page: "PredictiveInsights" },
+  { path: toChildPath(ROUTES.DATA_VISUALIZATION), page: "DataVisualization" },
+  // HR
+  { path: toChildPath(ROUTES.EMPLOYEES), page: "Employees" },
+  { path: toChildPath(ROUTES.ATTENDANCE), page: "Attendance" },
+  { path: toChildPath(ROUTES.LEAVE_MANAGEMENT), page: "LeaveManagement" },
+  { path: toChildPath(ROUTES.PAYROLL), page: "Payroll" },
+  { path: toChildPath(ROUTES.RECRUITMENT), page: "Recruitment" },
+  // Settings
+  { path: toChildPath(ROUTES.GENERAL_SETTINGS), page: "GeneralSettings" },
+  { path: toChildPath(ROUTES.USER_ROLE_MANAGEMENT), page: "UserRoleManagement" },
+  { path: toChildPath(ROUTES.INTEGRATIONS), page: "Integrations" },
+  { path: toChildPath(ROUTES.NOTIFICATIONS), page: "Notifications" },
+  { path: toChildPath(ROUTES.SECURITY_ACCESS), page: "SecurityAccess" },
+]
