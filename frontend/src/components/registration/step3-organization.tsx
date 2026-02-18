@@ -25,11 +25,16 @@ interface Step3Props {
 export function Step3Organization({ formData, updateFormData }: Step3Props) {
   return (
     <div className="space-y-6">
-      <h3 className="text-base font-medium text-foreground">
-        Organization & Information
-      </h3>
-
-      <div className="grid grid-cols-2 gap-6">
+      <div>
+        <h3 className="text-base font-semibold text-foreground tracking-tight">
+          Organization & Information
+        </h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Company or employer details (optional)
+        </p>
+      </div>
+      <div className="rounded-lg border border-border bg-muted/30 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label
             htmlFor="organizationName"
@@ -131,6 +136,7 @@ export function Step3Organization({ formData, updateFormData }: Step3Props) {
           />
           <p className="text-xs text-muted-foreground">Organization Address</p>
         </div>
+      </div>
       </div>
     </div>
   );

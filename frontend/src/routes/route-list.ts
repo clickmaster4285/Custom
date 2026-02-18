@@ -19,6 +19,8 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.HOST_SELECTION), page: "HostSelection" },
   { path: toChildPath(ROUTES.VISIT_PURPOSE), page: "VisitPurpose" },
   { path: toChildPath(ROUTES.CALENDAR_VIEW), page: "CalendarView" },
+  { path: "visitors/:id/edit", page: "VisitorEdit" },
+  { path: "visitors/:id", page: "VisitorDetail" },
   // Warehouse
   { path: toChildPath(ROUTES.WAREHOUSE_SETUP), page: "WarehouseSetup" },
   { path: toChildPath(ROUTES.ZONE_LOCATION_MANAGEMENT), page: "ZoneLocationManagement" },

@@ -3,9 +3,10 @@ from django.db import models
 
 class Visitor(models.Model):
     VISITOR_TYPE_CHOICES = [
-        ("individual", "individual"),
-        ("company", "company"),
-        ("contractor", "contractor"),
+        ('general', 'General'),
+        ('employee', 'Employee'),
+        ('vip', 'VIP'),
+        ('contractor', 'Contractor'),
     ]
 
     GENDER_CHOICES = [
@@ -118,6 +119,16 @@ class Visitor(models.Model):
         ("system", "system"),
         ("admin", "admin"),
         ("operator", "operator"),
+    ]
+
+    # Flow stage: tracks visitor through the end-to-end pipeline
+    FLOW_STAGE_CHOICES = [
+        ("arrived", "Arrived"),           # Visitor at premises
+        ("registered", "Registered"),     # Help desk completed registration
+        ("face_captured", "Face Captured"),  # Arc Face capture done
+        ("qr_printed", "QR Printed"),     # QR generated and printed
+        ("zone_checked_in", "Zone Checked In"),  # First zone scan (entry)
+        ("exited", "Exited"),             # Exit scan or visit ended
     ]
 
     # Step 1: Personal Info
@@ -233,7 +244,16 @@ class Visitor(models.Model):
         max_length=20, choices=GENERATED_BY_CHOICES, blank=True
     )
 
+    # Pipeline: current stage in the end-to-end flow
+    flow_stage = models.CharField(
+        max_length=30,
+        choices=FLOW_STAGE_CHOICES,
+        default="arrived",
+        db_index=True,
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -241,6 +261,90 @@ class Visitor(models.Model):
         if is_new and not self.qr_code_id:
             self.qr_code_id = f"QR-{self.pk}"
             Visitor.objects.filter(pk=self.pk).update(qr_code_id=self.qr_code_id)
+        if is_new and self.flow_stage == "arrived":
+            Visitor.objects.filter(pk=self.pk).update(flow_stage="registered")
 
     def __str__(self):
         return f"{self.full_name} ({self.cnic_number or self.passport_number})"
+
+
+class ZoneAccessLog(models.Model):
+    """
+    Logs every zone/gate scan (QR scan at zone). Used for zone access check
+    and for security audit trail.
+    """
+    SCAN_TYPE_CHOICES = [
+        ("entry", "Entry"),
+        ("exit", "Exit"),
+    ]
+
+    visitor = models.ForeignKey(
+        Visitor,
+        on_delete=models.CASCADE,
+        related_name="zone_access_logs",
+    )
+    zone = models.CharField(max_length=50)   
+    gate = models.CharField(max_length=50, blank=True)  
+    scan_type = models.CharField(
+        max_length=10,
+        choices=SCAN_TYPE_CHOICES,
+        default="entry",
+    )
+    allowed = models.BooleanField(default=True) 
+    message = models.CharField(max_length=255, blank=True)  
+    scanned_at = models.DateTimeField(auto_now_add=True)
+    # Optional: device or terminal that performed the scan
+    scanner_id = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ["-scanned_at"]
+
+    def __str__(self):
+        return f"{self.visitor.full_name} @ {self.zone} ({self.scan_type})"
+
+
+class SecurityAlert(models.Model):
+    """
+    Real-time alerts for the security dashboard: unauthorized zone access,
+    expired QR, watchlist hit, duplicate scan, etc.
+    """
+    SEVERITY_CHOICES = [
+        ("low", "Low"),
+        ("medium", "Medium"),
+        ("high", "High"),
+        ("critical", "Critical"),
+    ]
+
+    ALERT_TYPE_CHOICES = [
+        ("unauthorized_zone", "Unauthorized Zone Access"),
+        ("expired_qr", "Expired QR Code"),
+        ("invalid_qr", "Invalid / Unknown QR"),
+        ("watchlist_hit", "Watchlist Hit"),
+        ("duplicate_entry", "Duplicate Entry"),
+        ("mismatch_zone", "Zone Not Allowed"),
+        ("face_mismatch", "Face Mismatch"),
+        ("other", "Other"),
+    ]
+
+    visitor = models.ForeignKey(
+        Visitor,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="security_alerts",
+    )
+    alert_type = models.CharField(max_length=50, choices=ALERT_TYPE_CHOICES)
+    severity = models.CharField(max_length=20, choices=SEVERITY_CHOICES, default="medium")
+    message = models.TextField()
+    zone = models.CharField(max_length=50, blank=True)
+    gate = models.CharField(max_length=50, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    acknowledged = models.BooleanField(default=False)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    acknowledged_by = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_alert_type_display()} - {self.message[:50]}"

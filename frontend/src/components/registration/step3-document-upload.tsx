@@ -56,9 +56,13 @@ export function Step3DocumentUpload({ formData, updateFormData }: Step3DocumentU
 
   return (
     <div className="space-y-8">
-      {/* Identity Documents */}
       <div>
-        <h3 className="text-base font-medium text-foreground mb-4">Identity Documents</h3>
+        <h3 className="text-base font-semibold text-foreground tracking-tight">Document Upload</h3>
+        <p className="text-sm text-muted-foreground mt-1">Identity document and supporting papers (CNIC, passport, application letter)</p>
+      </div>
+      {/* Identity Documents */}
+      <div className="rounded-lg border border-border bg-muted/30 p-6">
+        <h4 className="text-sm font-medium text-foreground mb-4">Identity Documents</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="text-sm text-muted-foreground">Document Type</Label>
@@ -138,8 +142,8 @@ export function Step3DocumentUpload({ formData, updateFormData }: Step3DocumentU
       </div>
 
       {/* Supporting Documents */}
-      <div>
-        <h3 className="text-base font-medium text-foreground mb-4">Supporting Documents</h3>
+      <div className="rounded-lg border border-border bg-muted/30 p-6">
+        <h4 className="text-sm font-medium text-foreground mb-4">Supporting Documents</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="text-sm text-muted-foreground">Document Type</Label>
