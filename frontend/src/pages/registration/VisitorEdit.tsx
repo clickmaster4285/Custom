@@ -104,7 +104,7 @@ export default function VisitorEditPage() {
 
   if (!isValidId) {
     return (
-      <div className="w-full max-w-[800px] mx-auto space-y-6">
+      <div className="w-full max-w-200 mx-auto space-y-6">
         <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
@@ -117,7 +117,7 @@ export default function VisitorEditPage() {
   }
 
   return (
-    <div className="w-full max-w-[800px] mx-auto">
+    <div className="w-full max-w-200 mx-auto">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <nav className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1" aria-label="Breadcrumb">
           <Link to="/" className="hover:text-foreground transition-colors">Home</Link>

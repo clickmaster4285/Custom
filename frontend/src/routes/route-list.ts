@@ -11,6 +11,13 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   // Registration
   { path: toChildPath(ROUTES.PRE_REGISTRATION), page: "PreRegistration" },
   { path: toChildPath(ROUTES.WALK_IN_REGISTRATION), page: "WalkInRegistration" },
+  { path: toChildPath(ROUTES.ACTIVE_VISITORS), page: "ActiveVisitors" },
+  { path: toChildPath(ROUTES.APPROVAL_WORKFLOW), page: "ApprovalWorkflow" },
+  { path: toChildPath(ROUTES.CHECK_IN_OUT), page: "CheckInOut" },
+  { path: toChildPath(ROUTES.SECURITY_SCREENING), page: "SecurityScreening" },
+  { path: toChildPath(ROUTES.VEHICLE_CONTRACTOR), page: "VehicleContractor" },
+  { path: toChildPath(ROUTES.VMS_REPORTS_ANALYTICS), page: "VmsReportsAnalytics" },
+  { path: toChildPath(ROUTES.COMMUNICATION), page: "Communication" },
   { path: toChildPath(ROUTES.STREAMED_UPLOAD), page: "StreamedUpload" },
   { path: toChildPath(ROUTES.PHOTO_CAPTURE), page: "PhotoCapture" },
   { path: toChildPath(ROUTES.QR_CODE_GENERATION), page: "QRCodeGeneration" },

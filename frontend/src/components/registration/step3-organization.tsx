@@ -132,7 +132,7 @@ export function Step3Organization({ formData, updateFormData }: Step3Props) {
             placeholder="e.g. Office #, Building Name, Area, City"
             value={formData.officeAddress}
             onChange={(e) => updateFormData({ officeAddress: e.target.value })}
-            className="min-h-[80px] resize-none"
+            className="min-h-20 resize-none"
           />
           <p className="text-xs text-muted-foreground">Organization Address</p>
         </div>

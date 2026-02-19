@@ -268,7 +268,7 @@ export default function PreRegistrationPage() {
   };
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto">
+    <div className="w-full max-w-350 mx-auto">
       {/* Breadcrumb */}
       <nav className="text-sm text-muted-foreground mb-6 flex flex-wrap items-center gap-x-2 gap-y-1" aria-label="Breadcrumb">
         <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
@@ -312,7 +312,7 @@ export default function PreRegistrationPage() {
               <p className="text-xs text-muted-foreground mt-0.5">Click a row to view details or use the menu for actions.</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px]">
+              <table className="w-full min-w-160">
                 <thead>
                   <tr className="border-b border-border bg-muted/20">
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visitor Name</th>
@@ -320,7 +320,7 @@ export default function PreRegistrationPage() {
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Department</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Time</th>
-                    <th className="text-right px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[72px]">Action</th>
+                    <th className="text-right px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-18">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -564,7 +564,7 @@ export default function PreRegistrationPage() {
                 variant="outline"
                 onClick={handlePrevious}
                 disabled={currentStep === 1}
-                className="min-w-[100px] border-[#3b82f6] text-[#3b82f6] hover:bg-[#3b82f6]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="min-w-25 border-[#3b82f6] text-[#3b82f6] hover:bg-[#3b82f6]/10 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous
@@ -572,7 +572,7 @@ export default function PreRegistrationPage() {
               {currentStep < 7 ? (
                 <Button
                   onClick={handleNext}
-                  className="min-w-[100px] bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+                  className="min-w-25 bg-[#3b82f6] hover:bg-[#2563eb] text-white"
                 >
                   Next
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -581,7 +581,7 @@ export default function PreRegistrationPage() {
                 <Button
                   onClick={handleSubmit}
                   disabled={createVisitorMutation.isPending}
-                  className="min-w-[120px] bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+                  className="min-w-30 bg-[#3b82f6] hover:bg-[#2563eb] text-white"
                 >
                   {createVisitorMutation.isPending ? "Submitting…" : "Submit"}
                   <ChevronRight className="w-4 h-4 ml-1" />

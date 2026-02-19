@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API = `${API_BASE_URL}/api`;
 const VISITOR_LIST = `${API}/visitors/list/`;
 const VISITOR_CREATE = `${API}/visitors/create/`;
@@ -14,6 +14,8 @@ export type VisitorRecord = {
   cnic_number: string;
   passport_number: string;
   created_at: string;
+  flow_stage?: string;
+  approval_status?: string;
 };
 
 /** Full visitor detail as returned by GET /api/visitors/:id/read/ */
@@ -86,6 +88,12 @@ export type VisitorDetail = VisitorRecord & {
   scan_count?: number;
   generated_on?: string | null;
   generated_by?: string;
+  approval_status?: string;
+  approved_at?: string | null;
+  approved_by?: string;
+  rejection_reason?: string;
+  host_notified_at?: string | null;
+  host_notification_sent?: boolean;
 };
 
 function getErrorMessage(response: Response, body: unknown): string {

@@ -9,9 +9,16 @@ export const ROUTES = {
   // Dashboard (home)
   DASHBOARD: "/",
 
-  // Registration (VMS)
+  // VMS (Visitor Management) - distinct modules only; Walk-in captures personal info, ID docs, visit purpose, host
   PRE_REGISTRATION: "/pre-registration",
   WALK_IN_REGISTRATION: "/walk-in-registration",
+  ACTIVE_VISITORS: "/active-visitors",
+  APPROVAL_WORKFLOW: "/approval-workflow",
+  CHECK_IN_OUT: "/check-in-out",
+  SECURITY_SCREENING: "/security-screening",
+  VEHICLE_CONTRACTOR: "/vehicle-contractor",
+  VMS_REPORTS_ANALYTICS: "/vms-reports-analytics",
+  COMMUNICATION: "/communication",
   STREAMED_UPLOAD: "/streamed-upload",
   PHOTO_CAPTURE: "/photo-capture",
   QR_CODE_GENERATION: "/qr-code-generation",
@@ -129,8 +136,13 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
         children: [
           { label: "Pre-Registration", href: ROUTES.PRE_REGISTRATION },
           { label: "Walk-In Registration", href: ROUTES.WALK_IN_REGISTRATION },
-          { label: "Appointment Scheduling", href: ROUTES.APPOINTMENT_SCHEDULING },
-          { label: "Calendar View", href: ROUTES.CALENDAR_VIEW },
+          { label: "Active Visitors", href: ROUTES.ACTIVE_VISITORS },
+          { label: "Approval Workflow", href: ROUTES.APPROVAL_WORKFLOW },
+          { label: "Check-in / Check-out", href: ROUTES.CHECK_IN_OUT },
+          { label: "Security & Screening", href: ROUTES.SECURITY_SCREENING },
+          { label: "Vehicle & Contractor", href: ROUTES.VEHICLE_CONTRACTOR },
+          { label: "Reports & Analytics", href: ROUTES.VMS_REPORTS_ANALYTICS },
+          { label: "Communication", href: ROUTES.COMMUNICATION },
         ],
       },
       {

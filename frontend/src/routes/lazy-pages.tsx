@@ -18,6 +18,13 @@ const TimeSlotBooking = lazy(() => import("@/pages/registration/TimeSlotBooking"
 const HostSelection = lazy(() => import("@/pages/registration/HostSelection").then((m) => ({ default: m.default })))
 const VisitPurpose = lazy(() => import("@/pages/registration/VisitPurpose").then((m) => ({ default: m.default })))
 const CalendarView = lazy(() => import("@/pages/registration/CalendarView").then((m) => ({ default: m.default })))
+const ActiveVisitors = lazy(() => import("@/pages/vms/ActiveVisitors").then((m) => ({ default: m.default })))
+const ApprovalWorkflow = lazy(() => import("@/pages/vms/ApprovalWorkflow").then((m) => ({ default: m.default })))
+const CheckInOut = lazy(() => import("@/pages/vms/CheckInOut").then((m) => ({ default: m.default })))
+const SecurityScreening = lazy(() => import("@/pages/vms/SecurityScreening").then((m) => ({ default: m.default })))
+const VehicleContractor = lazy(() => import("@/pages/vms/VehicleContractor").then((m) => ({ default: m.default })))
+const VmsReportsAnalytics = lazy(() => import("@/pages/vms/VmsReportsAnalytics").then((m) => ({ default: m.default })))
+const Communication = lazy(() => import("@/pages/vms/Communication").then((m) => ({ default: m.default })))
 const WarehouseSetup = lazy(() => import("@/pages/warehouse/WarehouseSetup").then((m) => ({ default: m.default })))
 const ZoneLocationManagement = lazy(() => import("@/pages/warehouse/ZoneLocationManagement").then((m) => ({ default: m.default })))
 const StorageAllocation = lazy(() => import("@/pages/warehouse/StorageAllocation").then((m) => ({ default: m.default })))
@@ -87,6 +94,13 @@ export const PAGES = {
   HostSelection,
   VisitPurpose,
   CalendarView,
+  ActiveVisitors,
+  ApprovalWorkflow,
+  CheckInOut,
+  SecurityScreening,
+  VehicleContractor,
+  VmsReportsAnalytics,
+  Communication,
   WarehouseSetup,
   ZoneLocationManagement,
   StorageAllocation,

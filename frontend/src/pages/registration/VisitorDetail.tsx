@@ -53,7 +53,7 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   return (
     <div className="flex flex-col gap-1 py-2">
       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-      <span className="text-sm text-foreground break-words font-medium">{value}</span>
+      <span className="text-sm text-foreground wrap-break-word font-medium">{value}</span>
     </div>
   )
 }
@@ -67,7 +67,7 @@ function ImageBlock({ src, alt, label }: { src?: string; alt: string; label: str
     return (
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-        <div className="rounded-xl border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center py-10 px-4 min-h-[140px]">
+        <div className="rounded-xl border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center py-10 px-4 min-h-35">
           <ImageIcon className="h-10 w-10 text-muted-foreground/60 mb-2" strokeWidth={1.5} />
           <span className="text-sm text-muted-foreground">No image uploaded</span>
         </div>
@@ -78,7 +78,7 @@ function ImageBlock({ src, alt, label }: { src?: string; alt: string; label: str
     <div className="flex flex-col gap-2">
       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
       <div className="rounded-xl border border-border bg-muted/10 overflow-hidden shadow-sm">
-        <img src={src} alt={alt} className="w-full max-h-[280px] object-contain" />
+        <img src={src} alt={alt} className="w-full max-h-70 object-contain" />
       </div>
     </div>
   )
@@ -89,7 +89,7 @@ function DocumentBlock({ content, label }: { content?: string; label: string }) 
     return (
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-        <div className="rounded-xl border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center py-8 px-4 min-h-[120px]">
+        <div className="rounded-xl border border-dashed border-border bg-muted/30 flex flex-col items-center justify-center py-8 px-4 min-h-30">
           <FileText className="h-9 w-9 text-muted-foreground/60 mb-2" strokeWidth={1.5} />
           <span className="text-sm text-muted-foreground text-center">No document</span>
         </div>
@@ -101,7 +101,7 @@ function DocumentBlock({ content, label }: { content?: string; label: string }) 
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
         <div className="rounded-xl border border-border bg-muted/10 overflow-hidden shadow-sm">
-          <img src={content} alt={label} className="w-full max-h-[320px] object-contain" />
+          <img src={content} alt={label} className="w-full max-h-80 object-contain" />
         </div>
       </div>
     )
@@ -110,7 +110,7 @@ function DocumentBlock({ content, label }: { content?: string; label: string }) 
     <div className="flex flex-col gap-2">
       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
       <div className="rounded-xl border border-border bg-muted/10 p-4">
-        <p className="text-sm text-foreground break-words whitespace-pre-wrap leading-relaxed">{content}</p>
+        <p className="text-sm text-foreground wrap-break-word whitespace-pre-wrap leading-relaxed">{content}</p>
       </div>
     </div>
   )
@@ -172,7 +172,7 @@ export default function VisitorDetailPage() {
 
   if (!isValidId) {
     return (
-      <div className="w-full max-w-[1200px] mx-auto space-y-6">
+      <div className="w-full max-w-300 mx-auto space-y-6">
         <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="border-border">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
@@ -186,7 +186,7 @@ export default function VisitorDetailPage() {
   }
 
   return (
-    <div className="min-h-0 flex flex-col w-full max-w-[1200px] mx-auto">
+    <div className="min-h-0 flex flex-col w-full max-w-300 mx-auto">
       {/* Breadcrumb + Back */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <nav className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1" aria-label="Breadcrumb">

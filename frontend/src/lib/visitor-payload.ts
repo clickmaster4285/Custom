@@ -281,7 +281,13 @@ export function buildWalkInPayload(formData: Record<string, unknown>): VisitorCr
     american: "usa",
     british: "uk",
     indian: "other",
+    uae: "uae",
     other: "other",
+  }
+  const visitorTypeMap: Record<string, string> = {
+    individual: "general",
+    "company-rep": "general",
+    contractor: "contractor",
   }
   const departmentMap: Record<string, string> = {
     hr: "hr",
@@ -307,18 +313,20 @@ export function buildWalkInPayload(formData: Record<string, unknown>): VisitorCr
     departmentMap[toStr(formData.department)] ||
     departmentMap[toStr(formData.departmentForSlot)] ||
     "admin"
+  const visitorType = visitorTypeMap[toStr(formData.visitorType)] || "general"
+  const cnic = toStr(formData.cnicNumber) || toStr(formData.cnicPassport)
 
   const raw = {
-    visitor_type: "general",
+    visitor_type: visitorType,
     full_name: toStr(formData.fullName),
-    gender: "",
-    cnic_number: toStr(formData.cnicPassport),
-    passport_number: "",
+    gender: toStr(formData.gender),
+    cnic_number: cnic,
+    passport_number: toStr(formData.passportNumber),
     nationality: nationalityMap[toStr(formData.nationality)] || "other",
-    date_of_birth: null,
+    date_of_birth: formData.dateOfBirth ?? null,
     mobile_number: toStr(formData.mobileNumber),
-    email_address: "",
-    residential_address: "",
+    email_address: toStr(formData.emailAddress),
+    residential_address: toStr(formData.residentialAddress),
     visit_purpose: normalizedVisitPurpose,
     visit_description:
       toStr(formData.visitPurposeDescription) || toStr(formData.visitPurpose) || "",
@@ -355,7 +363,7 @@ export function buildWalkInPayload(formData: Record<string, unknown>): VisitorCr
     generated_on: formData.generatedOn,
     generated_by: toStr(formData.generatedBy),
     registration_type: toStr(formData.registrationType) || "walk-in",
-    cnic_passport: toStr(formData.cnicPassport),
+    cnic_passport: cnic,
     visit_purpose_description: toStr(formData.visitPurposeDescription),
     visit_type: toStr(formData.visitType),
     reference_number: toStr(formData.referenceNumber),
@@ -378,11 +386,11 @@ export function buildWalkInPayload(formData: Record<string, unknown>): VisitorCr
     photo_quality_score: "",
     face_match_status: "",
     captured_photo: toStr(formData.photoCapture),
-    organization_name: "",
-    organization_type: "",
-    ntn_registration_no: "",
-    designation: "",
-    office_address: "",
+    organization_name: toStr(formData.organizationName),
+    organization_type: toStr(formData.organizationType),
+    ntn_registration_no: toStr(formData.ntnRegistrationNo),
+    designation: toStr(formData.designation),
+    office_address: toStr(formData.officeAddress),
   }
   return createPayloadSchema.parse(raw) as VisitorCreatePayload
 }

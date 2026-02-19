@@ -2,13 +2,11 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { WalkInStepIndicator } from "@/components/walk-in/step-indicator"
-import { WalkInStep1BasicInfo } from "@/components/walk-in/step1-basic-info"
-import { Step3DocumentUpload } from "@/components/registration/step3-document-upload"
-import { Step5QRCodeGeneration, buildQRPayload, buildQRPayloadFromVisitor } from "@/components/registration/step5-qr-code-generation"
-import { WalkInStep4TimeSlot } from "@/components/walk-in/step4-time-slot"
-import { WalkInStep5HostSelection } from "@/components/walk-in/step5-host-selection"
-import { WalkInStep6VisitPurpose } from "@/components/walk-in/step6-visit-purpose"
-import { WalkInStep2Security } from "@/components/walk-in/step2-security"
+import { WalkInStep1VisitorDetails } from "@/components/walk-in/step1-visitor-details"
+import { WalkInStep2DocumentsUpload } from "@/components/walk-in/step2-documents-upload"
+import { WalkInStep4QRCodeGeneration } from "@/components/walk-in/step4-qr-code-generation"
+import { buildQRPayload, buildQRPayloadFromVisitor } from "@/components/registration/step5-qr-code-generation"
+import { WalkInStep3VisitDetails } from "@/components/walk-in/step3-visit-details"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
@@ -89,10 +87,30 @@ function getStatusStyle(status: string) {
 
 const initialFormData = {
   registrationType: "walk-in",
+  visitorCategory: "new",
+  visitorSearch: "",
+  visitorType: "individual",
   fullName: "",
   cnicPassport: "",
+  cnicNumber: "",
+  gender: "",
+  passportNumber: "",
   nationality: "",
+  dateOfBirth: "",
   mobileNumber: "",
+  emailAddress: "",
+  residentialAddress: "",
+  organizationName: "",
+  organizationType: "",
+  ntnRegistrationNo: "",
+  designation: "",
+  officeAddress: "",
+  vehicleType: "",
+  vehicleNumber: "",
+  vehicleRegistrationNo: "",
+  licenseNo: "",
+  licenseIssueDate: "",
+  licenseExpiryDate: "",
   photoCapture: "",
   visitPurpose: "",
   department: "",
@@ -110,6 +128,14 @@ const initialFormData = {
   additionalDocument: "",
   uploadProcedure: "",
   qrCodeId: "",
+  qrCodeIdItem2: "",
+  qrCodeIdItem3: "",
+  securityLevel: "",
+  maxVisitDuration: "",
+  allowedDepartments: "",
+  allowedZones: "",
+  additionalRemarks: "",
+  escortMandatory: "yes",
   visitorRefNumber: "",
   visitDate: "",
   timeValidityStart: "",
@@ -128,6 +154,9 @@ const initialFormData = {
   hostFullName: "",
   hostDesignation: "",
   hostDepartment: "",
+  hostEmail: "",
+  hostContactNumber: "",
+  priorityLevel: "normal",
   visitType: "",
   visitPurposeDescription: "",
   referenceNumber: "",
@@ -167,7 +196,7 @@ export default function WalkInRegistrationPage() {
   }
 
   const nextStep = () => {
-    if (currentStep < 7) setCurrentStep(currentStep + 1)
+    if (currentStep < 4) setCurrentStep(currentStep + 1)
   }
 
   const prevStep = () => {
@@ -185,7 +214,7 @@ export default function WalkInRegistrationPage() {
       setShowForm(false)
       setCurrentStep(1)
       setFormData({ ...initialFormData })
-      const step5Data = { ...formData, cnicNumber: formData.cnicPassport }
+      const step5Data = { ...formData, cnicNumber: formData.cnicNumber || formData.cnicPassport }
       const qrPayload = buildQRPayload(step5Data)
       if (qrPayload && qrPayload !== "{}") {
         const validFrom = (data?.time_validity_start ?? variables?.time_validity_start ?? (formData.timeValidityStart || "00:00")).trim() || "00:00"
@@ -239,9 +268,9 @@ export default function WalkInRegistrationPage() {
   }
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto">
+    <div className="w-full px-4 sm:px-6">
       {/* Breadcrumb */}
-      <nav className="text-sm text-muted-foreground mb-6 flex flex-wrap items-center gap-x-2 gap-y-1" aria-label="Breadcrumb">
+      <nav className="text-base text-muted-foreground mb-6 flex flex-wrap items-center gap-x-2 gap-y-1" aria-label="Breadcrumb">
         <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
         <span aria-hidden className="text-muted-foreground/70">/</span>
         <Link to="/walk-in-registration" className="hover:text-foreground transition-colors">Visitor Registration</Link>
@@ -256,8 +285,8 @@ export default function WalkInRegistrationPage() {
           {/* Page header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-2xl">Walk-In Registration</h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h1 className="text-[22px] font-bold tracking-tight text-foreground">Walk-In Registration</h1>
+              <p className="text-base text-muted-foreground mt-1">
                 View and manage walk-in registrations. Add a new visitor to start.
               </p>
             </div>
@@ -277,11 +306,11 @@ export default function WalkInRegistrationPage() {
           {/* Recent registrations */}
           <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
             <div className="px-4 sm:px-6 py-4 border-b border-border bg-muted/30">
-              <h2 className="text-base font-semibold text-foreground">Recent Registrations</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Click a row to view details or use the menu for actions.</p>
+              <h2 className="text-[22px] font-bold text-foreground">Recent Registrations</h2>
+              <p className="text-base text-muted-foreground mt-0.5">Click a row to view details or use the menu for actions.</p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px]">
+              <table className="w-full min-w-160">
                     <thead>
                       <tr className="border-b border-border bg-muted/20">
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visitor Name</th>
@@ -289,7 +318,7 @@ export default function WalkInRegistrationPage() {
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Department</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Time</th>
-                        <th className="text-right px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[72px]">Action</th>
+                        <th className="text-right px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-18">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -451,9 +480,9 @@ export default function WalkInRegistrationPage() {
           {showForm ? (
             <>
               <div className="mb-6">
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground">New Walk-In Registration</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Complete the walk-in registration fields to schedule a visit.
+                <h1 className="text-[22px] font-bold tracking-tight text-foreground">Walk-in Registration</h1>
+                <p className="text-base text-muted-foreground mt-1">
+                  Complete the registration fields for a new visit.
                 </p>
               </div>
 
@@ -461,50 +490,106 @@ export default function WalkInRegistrationPage() {
 
               <div className="bg-card rounded-xl border border-border shadow-sm p-4 sm:p-6 mt-6">
                 {currentStep === 1 && (
-                  <WalkInStep1BasicInfo formData={formData} updateFormData={updateFormData} />
+                  <WalkInStep1VisitorDetails
+                    formData={{
+                      visitorCategory: formData.visitorCategory,
+                      visitorSearch: formData.visitorSearch,
+                      visitorType: formData.visitorType,
+                      fullName: formData.fullName,
+                      gender: formData.gender,
+                      cnicNumber: formData.cnicNumber || formData.cnicPassport,
+                      passportNumber: formData.passportNumber,
+                      nationality: formData.nationality,
+                      dateOfBirth: formData.dateOfBirth,
+                      mobileNumber: formData.mobileNumber,
+                      emailAddress: formData.emailAddress,
+                      residentialAddress: formData.residentialAddress,
+                      organizationName: formData.organizationName,
+                      organizationType: formData.organizationType,
+                      ntnRegistrationNo: formData.ntnRegistrationNo,
+                      designation: formData.designation,
+                      officeAddress: formData.officeAddress,
+                      vehicleType: formData.vehicleType,
+                      vehicleNumber: formData.vehicleNumber,
+                      vehicleRegistrationNo: formData.vehicleRegistrationNo,
+                      licenseNo: formData.licenseNo,
+                      licenseIssueDate: formData.licenseIssueDate,
+                      licenseExpiryDate: formData.licenseExpiryDate,
+                    }}
+                    updateFormData={(data) => {
+                      updateFormData({
+                        ...data,
+                        ...(data.cnicNumber !== undefined && { cnicPassport: data.cnicNumber }),
+                      })
+                    }}
+                    onCancel={handleCancelForm}
+                    onReset={() => setFormData({ ...initialFormData })}
+                    onSaveAndContinue={nextStep}
+                  />
                 )}
                 {currentStep === 2 && (
-                  <Step3DocumentUpload formData={formData} updateFormData={updateFormData} />
+                  <WalkInStep2DocumentsUpload
+                    formData={{
+                      frontImage: formData.frontImage,
+                      backImage: formData.backImage,
+                      applicationLetter: formData.applicationLetter,
+                      additionalDocument: formData.additionalDocument,
+                    }}
+                    updateFormData={(data) => updateFormData(data)}
+                    onCancel={handleCancelForm}
+                    onReset={() => setFormData({ ...initialFormData })}
+                    onPrevious={prevStep}
+                    onSaveAndContinue={nextStep}
+                  />
                 )}
                 {currentStep === 3 && (
-                  <WalkInStep4TimeSlot formData={formData} updateFormData={updateFormData} />
+                  <WalkInStep3VisitDetails
+                    formData={{
+                      visitPurpose: formData.visitPurpose,
+                      visitPurposeDescription: formData.visitPurposeDescription,
+                      department: formData.department,
+                      departmentForSlot: formData.departmentForSlot,
+                      hostFullName: formData.hostFullName,
+                      hostDesignation: formData.hostDesignation,
+                      hostDepartment: formData.hostDepartment,
+                      hostEmail: formData.hostEmail,
+                      hostContactNumber: formData.hostContactNumber,
+                      preferredDate: formData.preferredDate,
+                      preferredTimeSlot: formData.preferredTimeSlot,
+                      slotDuration: formData.slotDuration,
+                      priorityLevel: formData.priorityLevel,
+                    }}
+                    updateFormData={(data) => updateFormData(data)}
+                    onCancel={handleCancelForm}
+                    onReset={() => setFormData({ ...initialFormData })}
+                    onPrevious={prevStep}
+                    onSaveAndContinue={nextStep}
+                  />
                 )}
                 {currentStep === 4 && (
-                  <WalkInStep5HostSelection formData={formData} updateFormData={updateFormData} />
-                )}
-                {currentStep === 5 && (
-                  <WalkInStep6VisitPurpose formData={formData} updateFormData={updateFormData} />
-                )}
-                {currentStep === 6 && (
-                  <WalkInStep2Security formData={formData} updateFormData={updateFormData} />
-                )}
-                {currentStep === 7 && (
-                  <Step5QRCodeGeneration formData={formData} updateFormData={updateFormData} />
+                  <WalkInStep4QRCodeGeneration
+                    formData={{
+                      ...formData,
+                      cnicNumber: formData.cnicNumber || formData.cnicPassport,
+                    }}
+                    updateFormData={(data) => updateFormData(data)}
+                    onCancel={handleCancelForm}
+                    onReset={() => setFormData({ ...initialFormData })}
+                    onPrevious={prevStep}
+                    onFinish={handleSubmit}
+                  />
                 )}
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 mt-6 pt-6 border-t border-border">
-                <div className="flex items-center gap-3">
-                  <Button variant="outline" className="border-border" onClick={handleCancelForm}>
-                    Back to list
-                  </Button>
-                  <button className="text-[#3b82f6] text-sm font-medium hover:underline hidden sm:inline">
-                    Save &amp; Continue
-                  </button>
-                </div>
-                <div className="flex items-center justify-end gap-2 sm:gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={prevStep}
-                    disabled={currentStep === 1}
-                    className={`shrink-0 ${currentStep === 1 ? "opacity-50 cursor-not-allowed" : "border-[#3b82f6] text-[#3b82f6] hover:bg-[#3b82f6]/10"}`}
-                  >
+              {currentStep > 1 && currentStep !== 2 && currentStep !== 3 && currentStep !== 4 && (
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-4 mt-6 pt-6 border-t border-border">
+                  <Button variant="outline" onClick={prevStep} className="border-border shrink-0">
                     <ChevronLeft className="w-4 h-4 sm:mr-1" />
-                    <span className="hidden sm:inline">Previous</span>
+                    Previous
                   </Button>
-                  {currentStep < 7 ? (
+                  {currentStep < 4 ? (
                     <Button onClick={nextStep} className="bg-[#3b82f6] hover:bg-[#2563eb] text-white shrink-0">
-                      <span className="hidden sm:inline">Next</span>
+                      Next
                       <ChevronRight className="w-4 h-4 sm:ml-1" />
                     </Button>
                   ) : (
@@ -518,7 +603,7 @@ export default function WalkInRegistrationPage() {
                     </Button>
                   )}
                 </div>
-              </div>
+              )}
             </>
           ) : null}
     </div>

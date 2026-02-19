@@ -94,7 +94,7 @@ export default function CalendarViewPage() {
                   </span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className="w-16 h-[2px] bg-gray-200 mx-4">
+                  <div className="w-16 h-0.5 bg-gray-200 mx-4">
                     <div
                       className={`h-full bg-[#3b82f6] transition-all ${
                         currentStep > step.number ? "w-full" : "w-0"
