@@ -128,8 +128,6 @@ const initialFormData = {
   additionalDocument: "",
   uploadProcedure: "",
   qrCodeId: "",
-  qrCodeIdItem2: "",
-  qrCodeIdItem3: "",
   securityLevel: "",
   maxVisitDuration: "",
   allowedDepartments: "",
@@ -195,8 +193,46 @@ export default function WalkInRegistrationPage() {
     setFormData((prev) => ({ ...prev, ...data }))
   }
 
+  const validateStep = (step: number) => {
+    switch (step) {
+      case 1: {
+        if (!formData.fullName.trim()) throw new Error("Full name is required")
+        if (!formData.mobileNumber.trim()) throw new Error("Mobile number is required")
+        // require either CNIC or passport
+        if (!(formData.cnicNumber.trim() || formData.passportNumber.trim()))
+          throw new Error("Either CNIC or passport number must be provided")
+        break
+      }
+      case 2: {
+        // No strict validation for documents, optional
+        break
+      }
+      case 3: {
+        if (!formData.visitPurpose.trim()) throw new Error("Visit purpose is required")
+        if (!formData.department.trim() && !formData.departmentForSlot.trim())
+          throw new Error("Department to visit is required")
+        break
+      }
+      case 4: {
+        if (!formData.accessZone.trim()) throw new Error("Access zone is required")
+        if (!formData.timeValidityStart.trim() || !formData.timeValidityEnd.trim())
+          throw new Error("Time validity start and end are required")
+        break
+      }
+    }
+  }
+
   const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1)
+    try {
+      validateStep(currentStep)
+      if (currentStep < 4) setCurrentStep(currentStep + 1)
+    } catch (e) {
+      toast({
+        title: "Validation failed",
+        description: e instanceof Error ? e.message : "Please complete the form.",
+        variant: "destructive",
+      })
+    }
   }
 
   const prevStep = () => {
@@ -215,17 +251,31 @@ export default function WalkInRegistrationPage() {
       setCurrentStep(1)
       setFormData({ ...initialFormData })
       const step5Data = { ...formData, cnicNumber: formData.cnicNumber || formData.cnicPassport }
-      const qrPayload = buildQRPayload(step5Data)
+      const hasBackendQR =
+        data &&
+        ((data as { cnic_number?: string }).cnic_number ||
+          (data as { passport_number?: string }).passport_number)
+      const qrPayload = hasBackendQR
+        ? buildQRPayloadFromVisitor(data as Parameters<typeof buildQRPayloadFromVisitor>[0])
+        : buildQRPayload(step5Data)
       if (qrPayload && qrPayload !== "{}") {
-        const validFrom = (data?.time_validity_start ?? variables?.time_validity_start ?? (formData.timeValidityStart || "00:00")).trim() || "00:00"
-        const validTo = (data?.time_validity_end ?? variables?.time_validity_end ?? (formData.timeValidityEnd || "23:59")).trim() || "23:59"
+        const validFrom =
+          (data?.time_validity_start ?? variables?.time_validity_start ?? formData.timeValidityStart ?? "00:00").trim() ||
+          "00:00"
+        const validTo =
+          (data?.time_validity_end ?? variables?.time_validity_end ?? formData.timeValidityEnd ?? "23:59").trim() ||
+          "23:59"
         setPrintQRData({
           qrPayload,
-          visitorName: formData.fullName || data?.full_name || "Visitor",
-          visitorCNIC: formData.cnicPassport || data?.cnic_number || "CNIC Number",
+          visitorName: formData.fullName || (data?.full_name as string) || "Visitor",
+          visitorCNIC:
+            formData.cnicPassport ||
+            (data?.cnic_number as string) ||
+            (data?.cnic_passport as string) ||
+            "CNIC Number",
           validFrom,
           validTo,
-          qrCodeId: data?.qr_code_id || formData.qrCodeId,
+          qrCodeId: (data?.qr_code_id as string) || formData.qrCodeId,
         })
       }
     },

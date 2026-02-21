@@ -310,7 +310,7 @@ export function PrintQROnSave({ qrPayload, visitorName, visitorCNIC, validFrom, 
     }
 
     printQR()
-  }, [qrPayload, visitorName, qrCodeId, onDone])
+  }, [qrPayload, visitorName, qrCodeId, onDone, validFrom, validTo])
 
   return (
     <div

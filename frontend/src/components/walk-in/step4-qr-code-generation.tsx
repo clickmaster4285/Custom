@@ -18,8 +18,6 @@ import { buildQRPayload } from "@/components/registration/step5-qr-code-generati
 
 export interface WalkInStep4QRCodeFormData {
   qrCodeId: string
-  qrCodeIdItem2: string
-  qrCodeIdItem3: string
   accessZone: string
   entryGate: string
   timeValidityStart: string
@@ -74,7 +72,10 @@ export function WalkInStep4QRCodeGeneration({
     formData.timeValidityEnd,
   ])
   const hasQRData =
-    (formData.cnicNumber ?? "").trim() && (formData.accessZone ?? "").trim()
+    (formData.cnicNumber ?? "").trim() &&
+    (formData.accessZone ?? "").trim() &&
+    (formData.timeValidityStart ?? "").trim() &&
+    (formData.timeValidityEnd ?? "").trim()
 
   return (
     <div className="space-y-8">
@@ -88,13 +89,13 @@ export function WalkInStep4QRCodeGeneration({
             <QrCode className="h-8 w-8 text-[#3366FF]" />
           </div>
           <p className="text-base font-normal text-foreground text-center">
-            Scan the item(s) to generate QR Code
+            Scan visitor CNIC/passport to populate QR data
           </p>
           <button
             type="button"
             className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
           >
-            Scan Item(s)
+            Scan ID
           </button>
         </div>
         <div className="flex-1 rounded-lg border-2 border-dashed border-[#93c5fd] bg-white p-6 flex flex-col items-center justify-center min-h-[200px]">
@@ -110,23 +111,17 @@ export function WalkInStep4QRCodeGeneration({
         </div>
       </div>
 
-      {/* QR Code ID (Item 1, 2, 3) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          { key: "qrCodeId" as const, label: "QR Code ID (Item 1)" },
-          { key: "qrCodeIdItem2" as const, label: "QR Code ID (Item 2)" },
-          { key: "qrCodeIdItem3" as const, label: "QR Code ID (Item 3)" },
-        ].map(({ key, label }) => (
-          <div key={key} className="space-y-2">
-            <Label className="text-base text-foreground">{label}</Label>
+      {/* QR Code ID */}
+      <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-2">
+            <Label className="text-base text-foreground">QR Code ID</Label>
             <Input
               placeholder="123-345-6678"
-              value={formData[key]}
-              onChange={(e) => updateFormData({ [key]: e.target.value })}
+              value={formData.qrCodeId}
+              onChange={(e) => updateFormData({ qrCodeId: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
-          </div>
-        ))}
+      </div>
       </div>
 
       {/* Security Clearance */}

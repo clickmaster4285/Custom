@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const _env = (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env;
+const API_BASE_URL = (_env?.VITE_API_BASE_URL?.trim()) || "http://localhost:8000";
 const API = `${API_BASE_URL}/api`;
 const VISITOR_LIST = `${API}/visitors/list/`;
 const VISITOR_CREATE = `${API}/visitors/create/`;

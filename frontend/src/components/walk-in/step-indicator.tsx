@@ -1,5 +1,3 @@
-import React from "react";
-
 const steps = [
   { number: 1, labelLines: ["Visitor", "Details"] },
   { number: 2, labelLines: ["Document", "Upload"] },
@@ -116,53 +114,6 @@ export function WalkInStepIndicator({ currentStep = 1 }) {
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-// Preview with all step states
-export default function App() {
-  const [currentStep, setCurrentStep] = React.useState(1);
-
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#e9ecef",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 32,
-        padding: 32,
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      }}
-    >
-      <WalkInStepIndicator currentStep={currentStep} />
-
-      {/* Step controls */}
-      <div style={{ display: "flex", gap: 8 }}>
-        {steps.map((step) => (
-          <button
-            key={step.number}
-            onClick={() => setCurrentStep(step.number)}
-            style={{
-              padding: "8px 20px",
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 600,
-              background: currentStep === step.number ? ACTIVE_BLUE : "#fff",
-              color: currentStep === step.number ? "#fff" : "#6c757d",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              transition: "all 0.15s",
-            }}
-          >
-            Step {step.number}
-          </button>
-        ))}
       </div>
     </div>
   );
