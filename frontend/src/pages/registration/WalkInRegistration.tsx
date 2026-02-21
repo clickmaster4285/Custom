@@ -243,22 +243,25 @@ export default function WalkInRegistrationPage() {
   })
 
   const handleSubmit = () => {
-    try {
-      const payload = buildWalkInPayload(formData as Record<string, unknown>)
-      createVisitorMutation.mutate(payload)
-    } catch (err) {
-      const message =
-        err instanceof z.ZodError
-          ? err.errors[0]?.message ?? "Please fix the form errors."
-          : err instanceof Error
-            ? err.message
-            : "Validation failed."
-      toast({
-        title: "Validation failed",
-        description: message,
-        variant: "destructive",
-      })
-    }
+    // Defer so the click handler returns quickly (avoids slow handler violation)
+    setTimeout(() => {
+      try {
+        const payload = buildWalkInPayload(formData as Record<string, unknown>)
+        createVisitorMutation.mutate(payload)
+      } catch (err) {
+        const message =
+          err instanceof z.ZodError
+            ? err.errors[0]?.message ?? "Please fix the form errors."
+            : err instanceof Error
+              ? err.message
+              : "Validation failed."
+        toast({
+          title: "Validation failed",
+          description: message,
+          variant: "destructive",
+        })
+      }
+    }, 0)
   }
 
   const handleCancelForm = () => {

@@ -20,7 +20,16 @@ def _env_list(key: str, default: str = "") -> list[str]:
 # -----------------------------
 # Security Settings
 # -----------------------------
-SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret-key")
+_SECRET_KEY = os.getenv("SECRET_KEY")
+if not _SECRET_KEY and os.getenv("DEBUG", "False").lower() in ("true", "1", "yes"):
+    # Allow a dev-only default only when DEBUG is explicitly enabled
+    _SECRET_KEY = "dev-secret-key-do-not-use-in-production"
+if not _SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY environment variable is required. "
+        "Set it in .env or export SECRET_KEY=your-secret-key (never use the dev default in production)."
+    )
+SECRET_KEY = _SECRET_KEY
 DEBUG = os.getenv("DEBUG", "False") == "True"
 ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 

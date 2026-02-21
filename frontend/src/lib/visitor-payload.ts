@@ -49,6 +49,7 @@ const departmentEnum = z.enum([
   "operations",
   "marketing",
   "admin",
+  "enforcement",
 ])
 const hostDesignationEnum = z.enum([
   "manager",
@@ -160,6 +161,8 @@ const createPayloadSchema = z.object({
   host_full_name: optionalString(150),
   host_designation: z.string().optional().default(""),
   host_department: z.string().optional().default(""),
+  host_email: z.string().optional().default(""),
+  host_contact_number: z.string().optional().default(""),
   watchlist_check_status: z.string().optional().default(""),
   approver_required: z.string().optional().default(""),
   temporary_access_granted: z.string().optional().default(""),
@@ -266,6 +269,8 @@ export function buildPreRegistrationPayload(formData: Record<string, unknown>): 
     host_full_name: toStr(formData.hostOfficerName),
     host_designation: toStr(formData.hostOfficerDesignation),
     host_department: toStr(formData.departmentToVisit),
+    host_email: "",
+    host_contact_number: "",
     watchlist_check_status: "",
     approver_required: "",
     temporary_access_granted: "",
@@ -296,6 +301,7 @@ export function buildWalkInPayload(formData: Record<string, unknown>): VisitorCr
     marketing: "marketing",
     engineering: "it",
     sales: "marketing",
+    enforcement: "enforcement",
   }
   const allowedVisitPurpose = new Set([
     "meeting",
@@ -375,6 +381,8 @@ export function buildWalkInPayload(formData: Record<string, unknown>): VisitorCr
     host_full_name: toStr(formData.hostFullName),
     host_designation: toStr(formData.hostDesignation),
     host_department: toStr(formData.hostDepartment),
+    host_email: toStr(formData.hostEmail),
+    host_contact_number: toStr(formData.hostContactNumber),
     watchlist_check_status: toStr(formData.watchlistCheckStatus),
     approver_required: toStr(formData.approverRequired),
     temporary_access_granted: toStr(formData.temporaryAccessGranted),

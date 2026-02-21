@@ -4,10 +4,10 @@ import { StepIndicator } from "@/components/registration/step-indicator"
 import { Step1PersonalInfo } from "@/components/registration/step1-personal-info";
 import { Step2VisitDetails } from "@/components/registration/step2-visit-details";
 import { Step3DocumentUpload } from "@/components/registration/step3-document-upload";
-import { Step4PhotoCapture } from "@/components/registration/step4-consent";
+import { Step4PhotoCapture } from "@/components/registration/step4-photo-capture";
 import { Step5QRCodeGeneration, buildQRPayload, buildQRPayloadFromVisitor } from "@/components/registration/step5-qr-code-generation";
 import { Step3Organization } from "@/components/registration/step3-organization";
-import { Step4Consent } from "@/components/registration/step4-photo-capture";
+import { Step4Consent } from "@/components/registration/step4-consent";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";

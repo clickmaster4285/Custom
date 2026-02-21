@@ -73,6 +73,8 @@ export type VisitorDetail = VisitorRecord & {
   host_full_name?: string;
   host_designation?: string;
   host_department?: string;
+  host_email?: string;
+  host_contact_number?: string;
   watchlist_check_status?: string;
   approver_required?: string;
   temporary_access_granted?: string;

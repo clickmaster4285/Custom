@@ -79,6 +79,8 @@ class VisitorSerializer(serializers.ModelSerializer):
             "host_full_name",
             "host_designation",
             "host_department",
+            "host_email",
+            "host_contact_number",
             "watchlist_check_status",
             "approver_required",
             "temporary_access_granted",
@@ -99,6 +101,26 @@ class VisitorSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {
+            # Allow blank for all optional choice fields (walk-in sends many empty strings)
+            "visitor_type": {"allow_blank": False},
+            "gender": {"allow_blank": True},
+            "nationality": {"allow_blank": False},
+            "visit_purpose": {"allow_blank": False},
+            "department_to_visit": {"allow_blank": False},
+            "host_officer_designation": {"allow_blank": True},
+            "preferred_time_slot": {"allow_blank": True},
+            "expected_duration": {"allow_blank": True},
+            "preferred_view_visit": {"allow_blank": True},
+            "document_type": {"allow_blank": True},
+            "issuing_authority": {"allow_blank": True},
+            "support_doc_type": {"allow_blank": True},
+            "upload_procedure": {"allow_blank": True},
+            "access_zone": {"allow_blank": True},
+            "entry_gate": {"allow_blank": True},
+            "expiry_status": {"allow_blank": True},
+            "generated_by": {"allow_blank": True},
+        }
 
 
 class FaceCaptureSerializer(serializers.Serializer):

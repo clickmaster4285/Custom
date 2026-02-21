@@ -266,6 +266,7 @@ class Visitor(models.Model):
             Visitor.objects.filter(pk=self.pk).update(qr_code_id=self.qr_code_id)
         if is_new and self.flow_stage == "arrived":
             Visitor.objects.filter(pk=self.pk).update(flow_stage="registered")
+            self.flow_stage = "registered"
 
     def __str__(self):
         return f"{self.full_name} ({self.cnic_number or self.passport_number})"
