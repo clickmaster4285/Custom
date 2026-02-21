@@ -25,6 +25,16 @@ const SecurityScreening = lazy(() => import("@/pages/vms/SecurityScreening").the
 const VehicleContractor = lazy(() => import("@/pages/vms/VehicleContractor").then((m) => ({ default: m.default })))
 const VmsReportsAnalytics = lazy(() => import("@/pages/vms/VmsReportsAnalytics").then((m) => ({ default: m.default })))
 const Communication = lazy(() => import("@/pages/vms/Communication").then((m) => ({ default: m.default })))
+const WatchlistScreening = lazy(() => import("@/pages/vms/WatchlistScreening").then((m) => ({ default: m.default })))
+const BlacklistManagement = lazy(() => import("@/pages/vms/BlacklistManagement").then((m) => ({ default: m.default })))
+const FlaggedVisitorAlerts = lazy(() => import("@/pages/vms/FlaggedVisitorAlerts").then((m) => ({ default: m.default })))
+const ZoneRestrictions = lazy(() => import("@/pages/vms/ZoneRestrictions").then((m) => ({ default: m.default })))
+const GateIntegration = lazy(() => import("@/pages/vms/GateIntegration").then((m) => ({ default: m.default })))
+const EscortRequirement = lazy(() => import("@/pages/vms/EscortRequirement").then((m) => ({ default: m.default })))
+const VisitorNotifications = lazy(() => import("@/pages/vms/VisitorNotifications").then((m) => ({ default: m.default })))
+const UpcomingVisits = lazy(() => import("@/pages/vms/UpcomingVisits").then((m) => ({ default: m.default })))
+const VisitorHistory = lazy(() => import("@/pages/vms/VisitorHistory").then((m) => ({ default: m.default })))
+const GuardReceptionPanel = lazy(() => import("@/pages/vms/GuardReceptionPanel").then((m) => ({ default: m.default })))
 const WarehouseSetup = lazy(() => import("@/pages/warehouse/WarehouseSetup").then((m) => ({ default: m.default })))
 const ZoneLocationManagement = lazy(() => import("@/pages/warehouse/ZoneLocationManagement").then((m) => ({ default: m.default })))
 const StorageAllocation = lazy(() => import("@/pages/warehouse/StorageAllocation").then((m) => ({ default: m.default })))
@@ -101,6 +111,16 @@ export const PAGES = {
   VehicleContractor,
   VmsReportsAnalytics,
   Communication,
+  WatchlistScreening,
+  BlacklistManagement,
+  FlaggedVisitorAlerts,
+  ZoneRestrictions,
+  GateIntegration,
+  EscortRequirement,
+  VisitorNotifications,
+  UpcomingVisits,
+  VisitorHistory,
+  GuardReceptionPanel,
   WarehouseSetup,
   ZoneLocationManagement,
   StorageAllocation,

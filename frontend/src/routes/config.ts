@@ -27,6 +27,16 @@ export const ROUTES = {
   HOST_SELECTION: "/host-selection",
   VISIT_PURPOSE: "/visit-purpose",
   CALENDAR_VIEW: "/calendar-view",
+  WATCHLIST_SCREENING: "/watchlist-screening",
+  BLACKLIST_MANAGEMENT: "/blacklist-management",
+  FLAGGED_VISITOR_ALERTS: "/flagged-visitor-alerts",
+  ZONE_RESTRICTIONS: "/zone-restrictions",
+  GATE_INTEGRATION: "/gate-integration",
+  ESCORT_REQUIREMENT: "/escort-requirement",
+  VISITOR_NOTIFICATIONS: "/visitor-notifications",
+  UPCOMING_VISITS: "/upcoming-visits",
+  VISITOR_HISTORY: "/visitor-history",
+  GUARD_RECEPTION_PANEL: "/guard-reception-panel",
 
   // Warehouse
   WAREHOUSE_SETUP: "/warehouse-setup",
@@ -119,34 +129,65 @@ export interface NavItem {
   href: RoutePath
 }
 
-/** Nav group for sidebar (with children) */
+/** Nav group for sidebar (with children); children can be nested groups or items */
 export interface NavGroup {
   label: string
-  children: NavItem[]
+  children: (NavItem | NavGroup)[]
 }
 
-/** Sidebar navigation sections: each has a title and list of groups or items */
-export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = [
+/** Separator between nav sections */
+export interface NavSeparator {
+  type: "separator"
+}
+
+/** Sidebar navigation sections: each has a title and list of groups, items, or separator */
+export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup | NavSeparator)[] }[] = [
   {
     title: "MAIN MODULES",
     items: [
       { label: "Dashboard", href: ROUTES.DASHBOARD },
       {
-        label: "VMS",
+        label: "Visitor Management System",
         children: [
-          { label: "Pre-Registration", href: ROUTES.PRE_REGISTRATION },
-          { label: "Walk-In Registration", href: ROUTES.WALK_IN_REGISTRATION },
-          { label: "Active Visitors", href: ROUTES.ACTIVE_VISITORS },
-          { label: "Approval Workflow", href: ROUTES.APPROVAL_WORKFLOW },
-          { label: "Check-in / Check-out", href: ROUTES.CHECK_IN_OUT },
-          { label: "Security & Screening", href: ROUTES.SECURITY_SCREENING },
-          { label: "Vehicle & Contractor", href: ROUTES.VEHICLE_CONTRACTOR },
-          { label: "Reports & Analytics", href: ROUTES.VMS_REPORTS_ANALYTICS },
-          { label: "Communication", href: ROUTES.COMMUNICATION },
+          {
+            label: "Visitor Registration",
+            children: [
+              { label: "Pre-Registration", href: ROUTES.PRE_REGISTRATION },
+              { label: "Walk-In Registration", href: ROUTES.WALK_IN_REGISTRATION },
+              { label: "Calendar View", href: ROUTES.CALENDAR_VIEW },
+            ],
+          },
+          {
+            label: "Security & Screening",
+            children: [
+              { label: "Watchlist Screening", href: ROUTES.WATCHLIST_SCREENING },
+              { label: "Blacklist Management", href: ROUTES.BLACKLIST_MANAGEMENT },
+              { label: "Flagged Visitor Alerts", href: ROUTES.FLAGGED_VISITOR_ALERTS },
+            ],
+          },
+          {
+            label: "Access Control",
+            children: [
+              { label: "Zone Restrictions", href: ROUTES.ZONE_RESTRICTIONS },
+              { label: "Gate Integration", href: ROUTES.GATE_INTEGRATION },
+              { label: "Escort Requirement", href: ROUTES.ESCORT_REQUIREMENT },
+            ],
+          },
+          {
+            label: "Host & Department Dashboard",
+            children: [
+              { label: "Visitor Notifications", href: ROUTES.VISITOR_NOTIFICATIONS },
+              { label: "Upcoming Visits", href: ROUTES.UPCOMING_VISITS },
+              { label: "Visitor History", href: ROUTES.VISITOR_HISTORY },
+            ],
+          },
+          { label: "Guard & Reception Panel", href: ROUTES.GUARD_RECEPTION_PANEL },
+          { label: "Vehicle & Contractor Management", href: ROUTES.VEHICLE_CONTRACTOR },
         ],
       },
+      { type: "separator" },
       {
-        label: "WMS",
+        label: "Warehouse Management System",
         children: [
           { label: "Executive Dashboard", href: ROUTES.DASHBOARD },
           { label: "Operations Dashboard", href: ROUTES.OPERATIONS_DASHBOARD },
@@ -191,7 +232,7 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
         ],
       },
       {
-        label: "AI Analytics",
+        label: "AI Analytics System",
         children: [
           { label: "Analytics Dashboard", href: ROUTES.ANALYTICS_DASHBOARD },
           { label: "Reports", href: ROUTES.REPORTS },
@@ -200,7 +241,7 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
         ],
       },
       {
-        label: "HR",
+        label: "Human Resource Management",
         children: [
           { label: "Employees", href: ROUTES.EMPLOYEES },
           { label: "Attendance", href: ROUTES.ATTENDANCE },
@@ -210,7 +251,7 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
         ],
       },
       {
-        label: "System configuration",
+        label: "System Configuration",
         children: [
           { label: "General Settings", href: ROUTES.GENERAL_SETTINGS },
           { label: "User & Role Management", href: ROUTES.USER_ROLE_MANAGEMENT },
@@ -223,14 +264,33 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
   },
 ]
 
-/** Map pathname to parent menu label (for sidebar expand state). Returns null for top-level items like Dashboard. */
-export function getParentMenuForPath(pathname: string): string | null {
+/** Collect all ancestor group labels that contain this path (for nested expand state). */
+export function getExpandedLabelsForPath(pathname: string): string[] {
+  const out: string[] = []
+  function findInGroup(g: NavGroup): boolean {
+    for (const child of g.children) {
+      if ("href" in child && child.href === pathname) return true
+      if ("children" in child && findInGroup(child as NavGroup)) {
+        out.unshift((child as NavGroup).label)
+        return true
+      }
+    }
+    return false
+  }
   for (const section of NAV_SECTIONS) {
     for (const item of section.items) {
-      if ("children" in item && item.children.some((c) => c.href === pathname)) {
-        return item.label
+      if (item && typeof item === "object" && "type" in item && item.type === "separator") continue
+      if ("children" in item && findInGroup(item as NavGroup)) {
+        out.unshift(item.label)
+        return out
       }
     }
   }
-  return null
+  return out
+}
+
+/** Map pathname to parent menu label (for sidebar expand state). Returns null for top-level items like Dashboard. */
+export function getParentMenuForPath(pathname: string): string | null {
+  const expanded = getExpandedLabelsForPath(pathname)
+  return expanded.length > 0 ? expanded[expanded.length - 1]! : null
 }

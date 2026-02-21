@@ -39,6 +39,7 @@ class Visitor(models.Model):
         ("operations", "operations"),
         ("marketing", "marketing"),
         ("admin", "admin"),
+        ("enforcement", "enforcement"),
     ]
 
     HOST_DESIGNATION_CHOICES = [
@@ -218,6 +219,8 @@ class Visitor(models.Model):
     host_full_name = models.CharField(max_length=150, blank=True)
     host_designation = models.CharField(max_length=100, blank=True)
     host_department = models.CharField(max_length=100, blank=True)
+    host_email = models.CharField(max_length=254, blank=True)
+    host_contact_number = models.CharField(max_length=30, blank=True)
     watchlist_check_status = models.CharField(max_length=50, blank=True)
     approver_required = models.CharField(max_length=50, blank=True)
     temporary_access_granted = models.CharField(max_length=50, blank=True)
