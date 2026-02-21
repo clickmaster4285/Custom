@@ -13,8 +13,6 @@ import {
   Lock,
   Bell,
   Building2,
-  Cloud,
-  LogIn,
   Truck,
   Package,
   Brain,

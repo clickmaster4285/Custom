@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Visitor(models.Model):
@@ -239,7 +240,7 @@ class Visitor(models.Model):
         max_length=20, choices=ENTRY_GATE_CHOICES, blank=True
     )
     expiry_status = models.CharField(
-        max_length=20, choices=EXPIRY_STATUS_CHOICES, blank=True
+        max_length=20, choices=EXPIRY_STATUS_CHOICES, default="active", blank=True
     )
     scan_count = models.PositiveIntegerField(default=0)
     generated_on = models.DateField(blank=True, null=True)
@@ -263,7 +264,13 @@ class Visitor(models.Model):
         super().save(*args, **kwargs)
         if is_new and not self.qr_code_id:
             self.qr_code_id = f"QR-{self.pk}"
-            Visitor.objects.filter(pk=self.pk).update(qr_code_id=self.qr_code_id)
+            update_fields = {"qr_code_id": self.qr_code_id}
+            if not self.generated_on:
+                self.generated_on = timezone.now().date()
+                self.generated_by = "system"
+                update_fields["generated_on"] = self.generated_on
+                update_fields["generated_by"] = self.generated_by
+            Visitor.objects.filter(pk=self.pk).update(**update_fields)
         if is_new and self.flow_stage == "arrived":
             Visitor.objects.filter(pk=self.pk).update(flow_stage="registered")
             self.flow_stage = "registered"

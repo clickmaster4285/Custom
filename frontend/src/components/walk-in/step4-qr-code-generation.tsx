@@ -30,7 +30,6 @@ export interface WalkInStep4QRCodeFormData {
   securityLevel: string
   maxVisitDuration: string
   allowedDepartments: string
-  allowedZones: string
   additionalRemarks: string
   escortMandatory: string
 }
@@ -178,13 +177,13 @@ export function WalkInStep4QRCodeGeneration({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Allowed Zones</Label>
+            <Label className="text-base text-foreground">Access Zone</Label>
             <Select
-              value={formData.allowedZones || undefined}
-              onValueChange={(v) => updateFormData({ allowedZones: v })}
+              value={formData.accessZone || undefined}
+              onValueChange={(v) => updateFormData({ accessZone: v })}
             >
               <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-                <SelectValue placeholder="Select zone(s)" />
+                <SelectValue placeholder="Select zone" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="zone-a">Zone A</SelectItem>
