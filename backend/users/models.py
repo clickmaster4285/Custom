@@ -30,7 +30,7 @@ class Staff(models.Model):
     full_name = models.CharField(max_length=150)
     cnic = models.CharField(max_length=15, unique=True)
     address = models.TextField()
-    date_of_birth = models.DateField()
+    date_of_birth = models.DateField(null=True, blank=True)
     joining_date = models.DateField(default=timezone.now)
     department = models.CharField(max_length=100)
     designation = models.CharField(max_length=100)

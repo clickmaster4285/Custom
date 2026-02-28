@@ -1,9 +1,23 @@
-
-import { Package, TrendingUp, AlertTriangle, RotateCcw } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Package, TrendingUp, AlertTriangle, RotateCcw, Plus } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -14,7 +28,80 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
+const STORAGE_KEY = "wms_inventory_tracking"
+
+type InventoryRow = {
+  id: string
+  sku: string
+  product: string
+  wh: string
+  loc: string
+  qty: number
+  status: string
+}
+
+const defaultRows: InventoryRow[] = [
+  { id: "1", sku: "SKU-7821", product: "Electronics - Category A", wh: "WH-001", loc: "Z-C03-A-12-04", qty: 450, status: "In Stock" },
+  { id: "2", sku: "SKU-9103", product: "Textiles - Bulk", wh: "WH-001", loc: "Z-B02-B-08-01", qty: 1200, status: "In Stock" },
+  { id: "3", sku: "SKU-4452", product: "Pharma - Temp Control", wh: "WH-005", loc: "Z-CLD-01-02", qty: 85, status: "Low Stock" },
+  { id: "4", sku: "SKU-2298", product: "General Merchandise", wh: "WH-002", loc: "Z-A01-N-05-03", qty: 320, status: "In Stock" },
+  { id: "5", sku: "SKU-6671", product: "Automotive Parts", wh: "WH-001", loc: "Z-B02-C-15-02", qty: 12, status: "Reorder" },
+]
+
+function loadRows(): InventoryRow[] {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
+  } catch {}
+  return defaultRows
+}
+
+function saveRows(rows: InventoryRow[]) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
+}
+
+const STATUSES = ["In Stock", "Low Stock", "Reorder"]
+
 export default function InventoryTrackingPage() {
+  const [rows, setRows] = useState<InventoryRow[]>([])
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({ sku: "", product: "", wh: "WH-001", loc: "", qty: 0, status: "In Stock" })
+
+  useEffect(() => {
+    setRows(loadRows())
+  }, [])
+
+  useEffect(() => {
+    if (rows.length > 0) saveRows(rows)
+  }, [rows])
+
+  const openAdd = () => {
+    setForm({ sku: "", product: "", wh: "WH-001", loc: "", qty: 0, status: "In Stock" })
+    setOpen(true)
+  }
+
+  const onSave = () => {
+    if (!form.sku.trim() || !form.product.trim() || !form.loc.trim()) return
+    const newRow: InventoryRow = {
+      id: `inv-${Date.now()}`,
+      sku: form.sku.trim(),
+      product: form.product.trim(),
+      wh: form.wh,
+      loc: form.loc.trim(),
+      qty: form.qty || 0,
+      status: form.status,
+    }
+    setRows((prev) => [newRow, ...prev])
+    setOpen(false)
+  }
+
+  const totalSkus = rows.length
+  const totalUnits = rows.reduce((s, r) => s + r.qty, 0)
+  const lowStock = rows.filter((r) => r.status === "Low Stock" || r.status === "Reorder").length
+
   return (
     <ModulePageLayout
       title="Inventory Tracking"
@@ -25,65 +112,59 @@ export default function InventoryTrackingPage() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total SKUs
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total SKUs</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">2,847</div>
+              <div className="text-2xl font-bold">{totalSkus}</div>
               <p className="text-xs text-muted-foreground mt-1">Active products</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Units
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Units</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">156,420</div>
+              <div className="text-2xl font-bold">{totalUnits.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground mt-1">In stock</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Low Stock
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Low Stock</CardTitle>
               <AlertTriangle className="h-4 w-4 text-amber-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">42</div>
+              <div className="text-2xl font-bold">{lowStock}</div>
               <p className="text-xs text-muted-foreground mt-1">Below reorder point</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Movements Today
-              </CardTitle>
-              <RotateCcw className="h-4 w-4 text-[#3b82f6]" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Movements Today</CardTitle>
+              <RotateCcw className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">384</div>
+              <div className="text-2xl font-bold">—</div>
               <p className="text-xs text-muted-foreground mt-1">In / Out / Transfer</p>
             </CardContent>
           </Card>
         </div>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-4 flex-wrap">
             <div>
               <CardTitle>Inventory by Location</CardTitle>
-              <CardDescription>Current stock levels per warehouse and zone</CardDescription>
+              <CardDescription>Current stock levels per warehouse and zone. Data in localStorage.</CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Input placeholder="Search SKU or product..." className="w-64" />
+            <div className="flex gap-2 flex-shrink-0">
+              <Input placeholder="Search SKU or product..." className="w-48" />
               <Button variant="outline">Export</Button>
-              <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white">
-                Refresh
+              <Button variant="outline">Refresh</Button>
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={openAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
               </Button>
             </div>
           </CardHeader>
@@ -100,14 +181,8 @@ export default function InventoryTrackingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[
-                  { sku: "SKU-7821", product: "Electronics - Category A", wh: "WH-001", loc: "Z-C03-A-12-04", qty: 450, status: "In Stock" },
-                  { sku: "SKU-9103", product: "Textiles - Bulk", wh: "WH-001", loc: "Z-B02-B-08-01", qty: 1200, status: "In Stock" },
-                  { sku: "SKU-4452", product: "Pharma - Temp Control", wh: "WH-005", loc: "Z-CLD-01-02", qty: 85, status: "Low Stock" },
-                  { sku: "SKU-2298", product: "General Merchandise", wh: "WH-002", loc: "Z-A01-N-05-03", qty: 320, status: "In Stock" },
-                  { sku: "SKU-6671", product: "Automotive Parts", wh: "WH-001", loc: "Z-B02-C-15-02", qty: 12, status: "Reorder" },
-                ].map((row) => (
-                  <TableRow key={row.sku}>
+                {rows.map((row) => (
+                  <TableRow key={row.id}>
                     <TableCell className="font-medium">{row.sku}</TableCell>
                     <TableCell>{row.product}</TableCell>
                     <TableCell>{row.wh}</TableCell>
@@ -133,6 +208,56 @@ export default function InventoryTrackingPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Inventory Item</DialogTitle>
+            <p className="text-sm text-muted-foreground">New item. Stored in localStorage.</p>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>SKU</Label>
+              <Input value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} placeholder="e.g. SKU-1234" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Product</Label>
+              <Input value={form.product} onChange={(e) => setForm((f) => ({ ...f, product: e.target.value }))} placeholder="Product name" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Warehouse</Label>
+              <Input value={form.wh} onChange={(e) => setForm((f) => ({ ...f, wh: e.target.value }))} placeholder="WH-001" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Location</Label>
+              <Input value={form.loc} onChange={(e) => setForm((f) => ({ ...f, loc: e.target.value }))} placeholder="e.g. Z-C03-A-12-04" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Quantity</Label>
+              <Input
+                type="number"
+                min={0}
+                value={form.qty || ""}
+                onChange={(e) => setForm((f) => ({ ...f, qty: parseInt(e.target.value, 10) || 0 }))}
+                placeholder="0"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={onSave}>Save</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </ModulePageLayout>
   )
 }

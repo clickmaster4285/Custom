@@ -47,8 +47,8 @@ function mapVisitor(visitor: VisitorRecord): Registration {
 
 export function RecentRegistrations() {
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["visitors"],
-    queryFn: fetchVisitors,
+    queryKey: ["visitors", "pre-registration"],
+    queryFn: () => fetchVisitors("pre-registration"),
   })
 
   const registrations = (data ?? []).map(mapVisitor).slice(0, 6)

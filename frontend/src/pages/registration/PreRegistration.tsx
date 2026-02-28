@@ -141,8 +141,8 @@ export default function PreRegistrationPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["visitors"],
-    queryFn: fetchVisitors,
+    queryKey: ["visitors", "pre-registration"],
+    queryFn: () => fetchVisitors("pre-registration"),
   });
   const registrations = (data ?? []).map(mapVisitorToRegistration);
   const [showForm, setShowForm] = useState(false);
@@ -166,9 +166,9 @@ export default function PreRegistrationPage() {
   };
 
   const createVisitorMutation = useMutation({
-    mutationFn: createVisitor,
+    mutationFn: (payload: Record<string, unknown>) => createVisitor(payload, "pre-registration"),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["visitors"] });
+      await queryClient.invalidateQueries({ queryKey: ["visitors", "pre-registration"] });
       toast({
         title: "Pre-Registration saved",
         description: "Visitor has been added to the list.",

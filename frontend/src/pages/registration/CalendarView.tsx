@@ -1,354 +1,275 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { ChevronLeft, ChevronRight, Check } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 import { ROUTES } from "@/routes/config"
 
-const steps = [
-  { number: 1, label: "Calendar Configuration" },
-  { number: 2, label: "Calendar Event" },
-  { number: 3, label: "Calendar Actions" },
+type RegistrationType = "pre" | "walk-in"
+
+type CalendarEvent = {
+  id: string
+  visitorName: string
+  type: RegistrationType
+  date: string // YYYY-MM-DD
+  time: string
+  host: string
+  department: string
+  status: "Scheduled" | "Checked-In" | "Pending"
+}
+
+// Frontend-only dummy data (no backend integration)
+const DUMMY_EVENTS: CalendarEvent[] = [
+  {
+    id: "PR-1001",
+    visitorName: "Ali Hassan",
+    type: "pre",
+    date: "2026-02-10",
+    time: "10:00 AM",
+    host: "Syed Muhammad Ali",
+    department: "HR",
+    status: "Scheduled",
+  },
+  {
+    id: "WR-2001",
+    visitorName: "Fatima Noor",
+    type: "walk-in",
+    date: "2026-02-10",
+    time: "11:30 AM",
+    host: "Ahmad Raza",
+    department: "Operations",
+    status: "Checked-In",
+  },
+  {
+    id: "PR-1002",
+    visitorName: "Hamza Khan",
+    type: "pre",
+    date: "2026-02-12",
+    time: "02:15 PM",
+    host: "Usman Tariq",
+    department: "Finance",
+    status: "Pending",
+  },
+  {
+    id: "WR-2002",
+    visitorName: "Sara Iqbal",
+    type: "walk-in",
+    date: "2026-02-15",
+    time: "09:20 AM",
+    host: "Bilal Saeed",
+    department: "Admin",
+    status: "Scheduled",
+  },
+  {
+    id: "PR-1003",
+    visitorName: "Zain Ali",
+    type: "pre",
+    date: "2026-02-18",
+    time: "01:00 PM",
+    host: "Hira Qureshi",
+    department: "IT",
+    status: "Scheduled",
+  },
+  {
+    id: "WR-2003",
+    visitorName: "Ayesha Malik",
+    type: "walk-in",
+    date: "2026-02-21",
+    time: "03:45 PM",
+    host: "Kashif Mehmood",
+    department: "Security",
+    status: "Pending",
+  },
 ]
 
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+function toDateKey(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
 export default function CalendarViewPage() {
-  const [currentStep, setCurrentStep] = useState(1)
-  const [formData, setFormData] = useState({
-    // Step 1
-    calendarViewType: "",
-    calendarScope: "",
-    timeZone: "",
-    colorCoding: "",
-    accessRole: "",
-    // Step 2
-    eventId: "G-214-M8",
-    bookingId: "B-2025-12",
-    visitorName: "Ali Hassan",
-    visitorType: "",
-    department: "Human Resources (HR)",
-    hostName: "Syed Muhammad Ali",
-    eventStartTime: "10:00 AM",
-    eventEndTime: "11:00 AM",
-    entryGate: "Gate 4",
-    eventStatus: "",
-    approvalStatus: "",
-    securityLevel: "",
-    escortAssigned: "yes",
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date(2026, 1, 1)) // Feb 2026
+  const [selectedDate, setSelectedDate] = useState<string>("2026-02-10")
+
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>()
+    for (const event of DUMMY_EVENTS) {
+      const bucket = map.get(event.date) ?? []
+      bucket.push(event)
+      map.set(event.date, bucket)
+    }
+    return map
+  }, [])
+
+  const monthLabel = currentMonth.toLocaleString("en-US", {
+    month: "long",
+    year: "numeric",
   })
 
-  const handleNext = () => {
-    if (currentStep < 3) setCurrentStep(currentStep + 1)
-  }
+  const calendarCells = useMemo(() => {
+    const startOfMonth = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      1
+    )
+    const startDay = startOfMonth.getDay()
+    const gridStart = new Date(startOfMonth)
+    gridStart.setDate(startOfMonth.getDate() - startDay)
 
-  const handlePrevious = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1)
-  }
+    return Array.from({ length: 42 }, (_, i) => {
+      const d = new Date(gridStart)
+      d.setDate(gridStart.getDate() + i)
+      return d
+    })
+  }, [currentMonth])
+
+  const selectedEvents = eventsByDate.get(selectedDate) ?? []
+
+  const prevMonth = () =>
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+  const nextMonth = () =>
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
 
   return (
     <>
-      {/* Breadcrumb */}
-          <div className="mb-2">
-            <nav className="text-sm text-muted-foreground">
-              <Link to={ROUTES.DASHBOARD} className="hover:text-foreground">Home</Link>
-              <span className="mx-2">/</span>
-              <Link to={ROUTES.APPOINTMENT_SCHEDULING} className="hover:text-foreground">Appointment Scheduling</Link>
-              <span className="mx-2">/</span>
-              <span className="text-[#3b82f6]">Calendar View</span>
-            </nav>
+      <div className="mb-2">
+        <nav className="text-sm text-muted-foreground">
+          <Link to={ROUTES.DASHBOARD} className="hover:text-foreground">Home</Link>
+          <span className="mx-2">/</span>
+          <Link to={ROUTES.PRE_REGISTRATION} className="hover:text-foreground">Visitor Registration</Link>
+          <span className="mx-2">/</span>
+          <span className="text-[#3b82f6]">Calendar View</span>
+        </nav>
+      </div>
+
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">Calendar View</h1>
+        <p className="text-sm text-muted-foreground">
+          Frontend calendar showing Pre-Registration and Walk-In Registration with dummy data.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <Button variant="outline" onClick={prevMonth}>
+              <ChevronLeft size={16} className="mr-1" />
+              Previous
+            </Button>
+            <h2 className="text-lg font-semibold">{monthLabel}</h2>
+            <Button variant="outline" onClick={nextMonth}>
+              Next
+              <ChevronRight size={16} className="ml-1" />
+            </Button>
           </div>
 
-          {/* Page Title */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-foreground">Calendar View</h1>
-            <p className="text-sm text-muted-foreground">Check department wise and official wise calendar to search event for your visit.</p>
-          </div>
-
-          {/* Step Indicator */}
-          <div className="flex items-center justify-center gap-4 mb-8">
-            {steps.map((step, index) => (
-              <div key={step.number} className="flex items-center">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      currentStep > step.number
-                        ? "bg-[#3b82f6] text-white"
-                        : currentStep === step.number
-                        ? "bg-[#3b82f6] text-white"
-                        : "bg-gray-200 text-gray-500"
-                    }`}
-                  >
-                    {currentStep > step.number ? <Check size={16} /> : step.number}
-                  </div>
-                  <span
-                    className={`text-sm whitespace-nowrap ${
-                      currentStep >= step.number ? "text-[#3b82f6] font-medium" : "text-gray-500"
-                    }`}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-                {index < steps.length - 1 && (
-                  <div className="w-16 h-[2px] bg-gray-200 mx-4">
-                    <div
-                      className={`h-full bg-[#3b82f6] transition-all ${
-                        currentStep > step.number ? "w-full" : "w-0"
-                      }`}
-                    />
-                  </div>
-                )}
+          <div className="grid grid-cols-7 gap-2 mb-2">
+            {DAYS.map((day) => (
+              <div key={day} className="text-xs font-semibold text-muted-foreground text-center py-2">
+                {day}
               </div>
             ))}
           </div>
 
-          {/* Form Card */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            {currentStep === 1 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-6">Calendar Configuration</h2>
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Calendar View Type</label>
-                    <Select value={formData.calendarViewType} onValueChange={(v) => setFormData({ ...formData, calendarViewType: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="day">Day View</SelectItem>
-                        <SelectItem value="week">Week View</SelectItem>
-                        <SelectItem value="month">Month View</SelectItem>
-                        <SelectItem value="agenda">Agenda View</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Calendar Scope</label>
-                    <Select value={formData.calendarScope} onValueChange={(v) => setFormData({ ...formData, calendarScope: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select scope" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="personal">Personal</SelectItem>
-                        <SelectItem value="department">Department</SelectItem>
-                        <SelectItem value="organization">Organization</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Time Zone</label>
-                    <Select value={formData.timeZone} onValueChange={(v) => setFormData({ ...formData, timeZone: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select time zone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pkt">PKT (Pakistan Standard Time)</SelectItem>
-                        <SelectItem value="utc">UTC</SelectItem>
-                        <SelectItem value="gmt">GMT</SelectItem>
-                        <SelectItem value="est">EST (Eastern Standard Time)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Color Coding</label>
-                    <Select value={formData.colorCoding} onValueChange={(v) => setFormData({ ...formData, colorCoding: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select color coding" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="status">By Status</SelectItem>
-                        <SelectItem value="type">By Visit Type</SelectItem>
-                        <SelectItem value="department">By Department</SelectItem>
-                        <SelectItem value="priority">By Priority</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Access Role</label>
-                    <Select value={formData.accessRole} onValueChange={(v) => setFormData({ ...formData, accessRole: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select who can access" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin Only</SelectItem>
-                        <SelectItem value="manager">Managers</SelectItem>
-                        <SelectItem value="all">All Users</SelectItem>
-                        <SelectItem value="custom">Custom Roles</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            )}
+          <div className="grid grid-cols-7 gap-2">
+            {calendarCells.map((dateObj) => {
+              const dateKey = toDateKey(dateObj)
+              const dayEvents = eventsByDate.get(dateKey) ?? []
+              const isCurrentMonth = dateObj.getMonth() === currentMonth.getMonth()
+              const isSelected = selectedDate === dateKey
 
-            {currentStep === 2 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-6">Calendar Event</h2>
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Event ID</label>
-                    <Input
-                      value={formData.eventId}
-                      onChange={(e) => setFormData({ ...formData, eventId: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Booking ID</label>
-                    <Input
-                      value={formData.bookingId}
-                      onChange={(e) => setFormData({ ...formData, bookingId: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Visitor Name</label>
-                    <Input
-                      value={formData.visitorName}
-                      onChange={(e) => setFormData({ ...formData, visitorName: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Visitor Type</label>
-                    <Select value={formData.visitorType} onValueChange={(v) => setFormData({ ...formData, visitorType: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Official" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="official">Official</SelectItem>
-                        <SelectItem value="vendor">Vendor</SelectItem>
-                        <SelectItem value="contractor">Contractor</SelectItem>
-                        <SelectItem value="interview">Interview</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Department</label>
-                    <Input
-                      value={formData.department}
-                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Host Name</label>
-                    <Input
-                      value={formData.hostName}
-                      onChange={(e) => setFormData({ ...formData, hostName: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Event Start Time</label>
-                    <Input
-                      value={formData.eventStartTime}
-                      onChange={(e) => setFormData({ ...formData, eventStartTime: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Event End Time</label>
-                    <Input
-                      value={formData.eventEndTime}
-                      onChange={(e) => setFormData({ ...formData, eventEndTime: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Entry Gate</label>
-                    <Input
-                      value={formData.entryGate}
-                      onChange={(e) => setFormData({ ...formData, entryGate: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Event Status</label>
-                    <Input
-                      placeholder="Scheduled"
-                      value={formData.eventStatus}
-                      onChange={(e) => setFormData({ ...formData, eventStatus: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Approval Status</label>
-                    <Input
-                      placeholder="Approved"
-                      value={formData.approvalStatus}
-                      onChange={(e) => setFormData({ ...formData, approvalStatus: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Security Level</label>
-                    <Input
-                      placeholder="Standard"
-                      value={formData.securityLevel}
-                      onChange={(e) => setFormData({ ...formData, securityLevel: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-2">Escort Assigned</label>
-                    <div className="flex items-center gap-6">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="escortAssigned"
-                          checked={formData.escortAssigned === "yes"}
-                          onChange={() => setFormData({ ...formData, escortAssigned: "yes" })}
-                          className="w-4 h-4 text-[#3b82f6]"
-                        />
-                        <span className="text-sm">Yes</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="escortAssigned"
-                          checked={formData.escortAssigned === "no"}
-                          onChange={() => setFormData({ ...formData, escortAssigned: "no" })}
-                          className="w-4 h-4 text-[#3b82f6]"
-                        />
-                        <span className="text-sm">No</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 3 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-6">Calendar Actions</h2>
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Calendar actions configuration will be available here.</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer Buttons */}
-          <div className="flex items-center justify-between mt-6">
-            <div className="flex items-center gap-3">
-              <Button variant="outline" className="bg-transparent">Cancel</Button>
-              <Button variant="link" className="text-[#3b82f6]">Save & Continue</Button>
-            </div>
-            <div className="flex items-center gap-3">
-              {currentStep > 1 && (
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  className="bg-[#3b82f6] text-white hover:bg-[#2563eb] border-0"
+              return (
+                <button
+                  key={dateKey}
+                  type="button"
+                  onClick={() => setSelectedDate(dateKey)}
+                  className={cn(
+                    "min-h-[92px] border rounded-md p-2 text-left transition",
+                    isSelected ? "border-[#3b82f6] bg-[#3b82f6]/5" : "border-gray-200 hover:border-[#3b82f6]/50",
+                    !isCurrentMonth && "opacity-45"
+                  )}
                 >
-                  <ChevronLeft size={16} className="mr-1" />
-                  Previous
-                </Button>
-              )}
-              <Button
-                onClick={handleNext}
-                className="bg-[#3b82f6] text-white hover:bg-[#2563eb]"
-              >
-                {currentStep === 3 ? "Next Step" : "Next"}
-                <ChevronRight size={16} className="ml-1" />
-              </Button>
+                  <div className="text-sm font-medium mb-1">{dateObj.getDate()}</div>
+                  <div className="space-y-1">
+                    {dayEvents.slice(0, 2).map((event) => (
+                      <div
+                        key={event.id}
+                        className={cn(
+                          "text-[11px] px-1.5 py-0.5 rounded truncate",
+                          event.type === "pre"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-emerald-100 text-emerald-700"
+                        )}
+                        title={`${event.visitorName} (${event.time})`}
+                      >
+                        {event.type === "pre" ? "PR" : "WI"} - {event.visitorName}
+                      </div>
+                    ))}
+                    {dayEvents.length > 2 && (
+                      <div className="text-[10px] text-muted-foreground">
+                        +{dayEvents.length - 2} more
+                      </div>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="flex items-center gap-4 mt-4 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded bg-blue-100 border border-blue-200" />
+              <span>Pre-Registration</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" />
+              <span>Walk-In Registration</span>
             </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <h3 className="text-base font-semibold mb-1">Selected Date</h3>
+          <p className="text-sm text-muted-foreground mb-4">{selectedDate}</p>
+
+          {selectedEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No events on this date.</p>
+          ) : (
+            <div className="space-y-3">
+              {selectedEvents.map((event) => (
+                <div key={event.id} className="border rounded-md p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium text-sm">{event.visitorName}</p>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[11px]",
+                        event.type === "pre"
+                          ? "border-blue-200 text-blue-700"
+                          : "border-emerald-200 text-emerald-700"
+                      )}
+                    >
+                      {event.type === "pre" ? "Pre-Registration" : "Walk-In"}
+                    </Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>ID: {event.id}</p>
+                    <p>Time: {event.time}</p>
+                    <p>Host: {event.host}</p>
+                    <p>Department: {event.department}</p>
+                    <p>Status: {event.status}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </>
   )
 }

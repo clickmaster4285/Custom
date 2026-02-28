@@ -8,6 +8,6 @@ router.register(r"attendance", AttendanceViewSet, basename="attendance")
 
 urlpatterns = [
     path("auth/login/", LoginView.as_view(), name="login"),
-    path("auth/login", LoginView.as_view(), name="login-no-slash"),  # support both with and without trailing slash
+    path("auth/login", LoginView.as_view(), name="login-no-slash"), 
     *router.urls,
 ]

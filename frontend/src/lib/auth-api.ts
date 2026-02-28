@@ -1,4 +1,3 @@
-import { API_BASE_URL } from "@/lib/api";
 import type { AuthUser } from "@/lib/auth";
 
 export type LoginResponse = {
@@ -6,25 +5,63 @@ export type LoginResponse = {
   user: AuthUser;
 };
 
-export async function login(username: string, password: string): Promise<LoginResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/login/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
+type DummyCredential = {
+  username: string;
+  password: string;
+  user: AuthUser;
+};
 
-  if (!response.ok) {
-    let message = "Invalid username or password.";
-    try {
-      const data = await response.json();
-      if (data.username) message = data.username.join(" ");
-      else if (data.password) message = data.password.join(" ");
-      else if (data.non_field_errors) message = data.non_field_errors.join(" ");
-    } catch {
-      // ignore
-    }
-    throw new Error(message);
+const DUMMY_CREDENTIALS: DummyCredential[] = [
+  {
+    username: "admin",
+    password: "admin123",
+    user: {
+      id: 1,
+      username: "admin",
+      email: "admin@tekeye.local",
+      role: "ADMIN",
+      phone: "0300-0000001",
+    },
+  },
+  {
+    username: "hr",
+    password: "hr123",
+    user: {
+      id: 2,
+      username: "hr",
+      email: "hr@tekeye.local",
+      role: "HR",
+      phone: "0300-0000002",
+    },
+  },
+  {
+    username: "reception",
+    password: "reception123",
+    user: {
+      id: 3,
+      username: "reception",
+      email: "reception@tekeye.local",
+      role: "RECEPTIONIST",
+      phone: "0300-0000003",
+    },
+  },
+];
+
+export async function login(username: string, password: string): Promise<LoginResponse> {
+  const normalizedUsername = username.trim().toLowerCase();
+  const match = DUMMY_CREDENTIALS.find(
+    (c) => c.username.toLowerCase() === normalizedUsername && c.password === password
+  );
+
+  if (!match) {
+    throw new Error(
+      "Invalid username or password. Use dummy credentials: admin/admin123 or hr/hr123."
+    );
   }
 
-  return response.json();
+  const token = `local-token-${match.user.id}-${Date.now()}`;
+  return {
+    token,
+    user: match.user,
+  };
 }

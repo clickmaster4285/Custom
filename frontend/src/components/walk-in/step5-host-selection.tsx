@@ -82,10 +82,19 @@ export function WalkInStep5HostSelection({ formData, updateFormData }: WalkInSte
               <SelectValue placeholder="Select department" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="clearance">Customs Clearance</SelectItem>
+              <SelectItem value="appraisal">Appraisal</SelectItem>
+              <SelectItem value="enforcement">Enforcement</SelectItem>
+              <SelectItem value="intelligence">Intelligence</SelectItem>
+              <SelectItem value="legal">Legal</SelectItem>
+              <SelectItem value="bonded-warehouse">Bonded Warehouse</SelectItem>
+              <SelectItem value="transit">Transit</SelectItem>
+              <SelectItem value="preventive">Preventive</SelectItem>
+              <SelectItem value="valuation">Valuation</SelectItem>
+              <SelectItem value="ict">ICT</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="hr">Human Resources</SelectItem>
-              <SelectItem value="it">IT Department</SelectItem>
-              <SelectItem value="ops">Operations</SelectItem>
-              <SelectItem value="sales">Sales</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>

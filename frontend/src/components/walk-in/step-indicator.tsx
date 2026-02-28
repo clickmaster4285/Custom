@@ -1,65 +1,120 @@
-import { Check } from "lucide-react"
-import { cn } from "@/lib/utils"
-
-interface WalkInStepIndicatorProps {
-  currentStep: number
-}
-
 const steps = [
-  { number: 1, label: "Basic Visitor Information" },
-  { number: 2, label: "Document Upload" },
-  { number: 3, label: "QR Code Generation" },
-  { number: 4, label: "Time Slot Booking" },
-  { number: 5, label: "Host Selection" },
-  { number: 6, label: "Visit Purpose" },
-  { number: 7, label: "Quick Security Screening" },
-]
+  { number: 1, labelLines: ["Visitor", "Details"] },
+  { number: 2, labelLines: ["Document", "Upload"] },
+  { number: 3, labelLines: ["Visit", "Details"] },
+  { number: 4, labelLines: ["QR Code Generation &", "Clearance"] },
+];
 
-export function WalkInStepIndicator({ currentStep }: WalkInStepIndicatorProps) {
+const ACTIVE_BLUE = "#3366FF";
+
+export function WalkInStepIndicator({ currentStep = 1 }) {
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="flex items-center min-w-max gap-1">
-        {steps.map((step, index) => (
-          <div key={step.number} className="flex items-center shrink-0">
-            <div className="flex items-center gap-2">
+    <div
+      style={{
+        width: "100%",
+        display: "flex",
+        justifyContent: "center",
+        padding: "40px 56px",
+        background: "#f8f9fa",
+      }}
+    >
+      {/* Steps row */}
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "flex-start",
+          width: "100%",
+          maxWidth: 800,
+        }}
+      >
+        {/* Full-width gray connector line behind circles */}
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 17,
+            height: 2,
+            backgroundColor: "#d9d9d9",
+            zIndex: 0,
+          }}
+        />
+        {/* Blue progress line – extends to current step */}
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 17,
+            height: 2,
+            width: `${((currentStep - 0.5) / steps.length) * 100}%`,
+            backgroundColor: ACTIVE_BLUE,
+            zIndex: 0,
+          }}
+        />
+
+        {steps.map((step) => {
+          const isActive = currentStep === step.number;
+          const isCompleted = currentStep > step.number;
+          const isActiveOrCompleted = isActive || isCompleted;
+
+          return (
+            <div
+              key={step.number}
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              {/* Circle */}
               <div
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors shrink-0",
-                  currentStep > step.number
-                    ? "bg-[#3b82f6] text-white"
-                    : currentStep === step.number
-                      ? "bg-[#3b82f6] text-white"
-                      : "bg-muted text-muted-foreground"
-                )}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  backgroundColor: isActiveOrCompleted ? ACTIVE_BLUE : "#fff",
+                  border: isActiveOrCompleted ? "none" : "1.5px solid #d9d9d9",
+                }}
               >
-                {currentStep > step.number ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  step.number
-                )}
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: isActiveOrCompleted ? "#fff" : "#adb5bd",
+                    letterSpacing: "0.01em",
+                  }}
+                >
+                  {String(step.number).padStart(2, "0")}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "text-sm font-medium whitespace-nowrap",
-                  currentStep >= step.number
-                    ? "text-[#3b82f6]"
-                    : "text-muted-foreground"
-                )}
-              >
-                {step.label}
-              </span>
-            </div>
-            {index < steps.length - 1 && (
+
+              {/* Label – compact under circle, blue when active */}
               <div
-                className={cn(
-                  "w-6 h-0.5 mx-1 shrink-0",
-                  currentStep > step.number ? "bg-[#3b82f6]" : "bg-muted"
-                )}
-              />
-            )}
-          </div>
-        ))}
+                style={{
+                  marginTop: 6,
+                  textAlign: "center",
+                  fontSize: 14,
+                  lineHeight: 1.4,
+                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? ACTIVE_BLUE : "#6c757d",
+                }}
+              >
+                {step.labelLines.map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
-  )
+  );
 }

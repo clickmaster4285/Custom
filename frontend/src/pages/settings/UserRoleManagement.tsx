@@ -1,9 +1,10 @@
-
+import { useEffect, useState } from "react"
 import { Users, Shield, UserPlus } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Table,
   TableBody,
@@ -14,8 +15,85 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const STORAGE_KEY = "wms_user_accounts"
+
+type UserRow = { user: string; email: string; role: string; status: string }
+
+const defaultUsers: UserRow[] = [
+  { user: "admin", email: "admin@customs.gov.pk", role: "Administrator", status: "Active" },
+  { user: "sarah.martin", email: "sarah@customs.gov.pk", role: "Manager", status: "Active" },
+  { user: "ahmed.khan", email: "ahmed@customs.gov.pk", role: "Operator", status: "Active" },
+  { user: "fatima.ali", email: "fatima@customs.gov.pk", role: "HR", status: "Active" },
+]
+
+function loadRows(): UserRow[] {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as UserRow[]
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
+  } catch {}
+  return defaultUsers
+}
+
+function saveRows(rows: UserRow[]) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
+}
+
+const ROLES = ["Administrator", "Manager", "Operator", "HR", "Viewer"]
 
 export default function UserRoleManagementPage() {
+  const [users, setUsers] = useState<UserRow[]>([])
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({ user: "", email: "", role: "Operator", status: "Active" })
+  const [search, setSearch] = useState("")
+
+  useEffect(() => {
+    setUsers(loadRows())
+  }, [])
+
+  useEffect(() => {
+    if (users.length > 0) saveRows(users)
+  }, [users])
+
+  const openAddForm = () => {
+    setForm({ user: "", email: "", role: "Operator", status: "Active" })
+    setOpen(true)
+  }
+
+  const onSave = () => {
+    if (!form.user.trim() || !form.email.trim()) return
+    if (users.some((u) => u.user === form.user.trim())) return
+    setUsers((prev) => [
+      { user: form.user.trim(), email: form.email.trim(), role: form.role, status: form.status },
+      ...prev,
+    ])
+    setForm({ user: "", email: "", role: "Operator", status: "Active" })
+    setOpen(false)
+  }
+
+  const filteredUsers = users.filter(
+    (u) =>
+      !search.trim() ||
+      u.user.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase())
+  )
+
   return (
     <ModulePageLayout
       title="User & Role Management"
@@ -32,7 +110,7 @@ export default function UserRoleManagementPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">84</div>
+              <div className="text-2xl font-bold">{users.length}</div>
               <p className="text-xs text-muted-foreground mt-1">Active accounts</p>
             </CardContent>
           </Card>
@@ -68,7 +146,7 @@ export default function UserRoleManagementPage() {
               <CardTitle>Users & Roles</CardTitle>
               <CardDescription>Assign roles and manage access</CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white">
+            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={openAddForm}>
               <UserPlus className="h-4 w-4 mr-2" />
               Add User
             </Button>
@@ -80,7 +158,12 @@ export default function UserRoleManagementPage() {
                 <TabsTrigger value="roles">Roles</TabsTrigger>
               </TabsList>
               <TabsContent value="users" className="mt-6">
-                <Input placeholder="Search users..." className="mb-4 w-64" />
+                <Input
+                  placeholder="Search users..."
+                  className="mb-4 w-64"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -92,12 +175,7 @@ export default function UserRoleManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {[
-                      { user: "admin", email: "admin@customs.gov.pk", role: "Administrator", status: "Active" },
-                      { user: "sarah.martin", email: "sarah@customs.gov.pk", role: "Manager", status: "Active" },
-                      { user: "ahmed.khan", email: "ahmed@customs.gov.pk", role: "Operator", status: "Active" },
-                      { user: "fatima.ali", email: "fatima@customs.gov.pk", role: "HR", status: "Active" },
-                    ].map((row) => (
+                    {filteredUsers.map((row) => (
                       <TableRow key={row.user}>
                         <TableCell className="font-medium">{row.user}</TableCell>
                         <TableCell className="text-muted-foreground">{row.email}</TableCell>
@@ -152,6 +230,51 @@ export default function UserRoleManagementPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ user: "", email: "", role: "Operator", status: "Active" }) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add User</DialogTitle>
+            <p className="text-sm text-muted-foreground">User account (dummy data saved locally).</p>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Username *</Label>
+              <Input
+                value={form.user}
+                onChange={(e) => setForm((p) => ({ ...p, user: e.target.value }))}
+                placeholder="e.g. john.doe"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email *</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                placeholder="e.g. john@customs.gov.pk"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={form.role} onValueChange={(v) => setForm((p) => ({ ...p, role: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={onSave}>Save</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </ModulePageLayout>
   )
 }
