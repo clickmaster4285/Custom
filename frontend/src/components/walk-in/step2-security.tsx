@@ -107,7 +107,7 @@ export function WalkInStep2Security({
           onChange={(e) => updateFormData({ guardRemarks: e.target.value })}
           className="bg-background min-h-[120px] resize-none"
         />
-        <p className="text-xs text-muted-foreground">(Optional notes)</p>
+        <p className="text-sm text-muted-foreground">(Optional notes)</p>
       </div>
     </div>
   )

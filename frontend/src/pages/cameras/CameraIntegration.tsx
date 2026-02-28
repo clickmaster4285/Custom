@@ -29,10 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const STORAGE_KEY = "wms_camera_integration"
+import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
 
-/** Default stream used when no Stream URL is set – works in browser for live demo */
-const DEFAULT_LIVE_STREAM_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+const STORAGE_KEY = "wms_camera_integration"
 
 type CameraType = "PTZ" | "Fixed" | "Thermal" | "360°"
 type CameraStatus = "Online" | "Offline"

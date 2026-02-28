@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import QRCode from "qrcode"
+import { toDataURL } from "qrcode"
 import {
   Dialog,
   DialogContent,
@@ -39,7 +39,7 @@ export function PrintQROnSave({
       validTo,
       qrCodeId,
     })
-    QRCode.toDataURL(payload, { width: 200, margin: 2 })
+    toDataURL(payload, { width: 200, margin: 2 })
       .then(setDataUrl)
       .catch(() => setDataUrl(""))
   }, [qrPayload, visitorName, visitorCNIC, validFrom, validTo, qrCodeId])

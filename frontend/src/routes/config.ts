@@ -56,8 +56,13 @@ export const ROUTES = {
   ANALYTICS_DASHBOARD: "/analytics-dashboard",
   LIVE_CAMERA_GRID: "/analytics/live-camera-grid",
   VEHICLE_DETECTION: "/analytics/vehicle-detection",
+  AI_MODELS: "/analytics/ai-models",
+  AI_ZONES: "/analytics/zones",
+  AI_RULES: "/analytics/rules",
+  AI_TRAINING: "/analytics/training",
   LIVE_MONITORING: "/live-monitoring",
   CAMERA_MANAGEMENT: "/camera-management",
+  ANALYTICS_CAMERA_MANAGEMENT: "/analytics/camera-management",
   OBJECT_DETECTION: "/object-detection",
   ANPR_SETTINGS: "/anpr-settings",
   ANOMALY_DETECTION: "/anomaly-detection",
@@ -126,6 +131,17 @@ export const ROUTES = {
   NOTIFICATIONS: "/notifications",
   SECURITY_ACCESS: "/security-access",
 
+  // Additional modules (from full module spec)
+  TABLE_OF_CONTENTS: "/table-of-contents",
+  PLAYBACK_SEARCH: "/playback-search",
+  THERMAL_IMAGING: "/thermal-imaging",
+  ALERTS_NOTIFICATIONS: "/alerts-notifications",
+  INCIDENT_MANAGEMENT: "/incident-management",
+  PEOPLE_DATABASE: "/people-database",
+  VEHICLE_DATABASE: "/vehicle-database",
+  MOBILE_APP: "/mobile-app",
+  DATABASE_TABLES: "/database-tables",
+
   // Fallback
   NOT_FOUND: "/404",
 } as const
@@ -160,7 +176,6 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
     title: "MAIN MODULES",
     items: [
       { label: "Dashboard", href: ROUTES.DASHBOARD },
-      // { label: "Executive Dashboard", href: ROUTES.DASHBOARD },
       {
         label: "Visitor Management",
         children: [
@@ -267,7 +282,17 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
               { label: "Transfer Tracking", href: ROUTES.TRANSFER_TRACKING },
             ],
           },
-         
+          {
+            label: "Perishable Management",
+            children: [
+              { label: "Perishable Register", href: ROUTES.PERISHABLE_REGISTER },
+              { label: "Expiry Tracking", href: ROUTES.EXPIRY_TRACKING },
+              { label: "Priority Disposal Queue", href: ROUTES.PRIORITY_DISPOSAL_QUEUE },
+              { label: "Destruction Orders", href: ROUTES.DESTRUCTION_ORDERS },
+              { label: "Lot Creation", href: ROUTES.LOT_CREATION },
+              { label: "Item Valuation", href: ROUTES.ITEM_VALUATION },
+            ],
+          },
           {
             label: "Computer Vision",
             children: [
@@ -316,11 +341,23 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
         label: "AI Analytics",
         children: [
           { label: "Analytics Dashboard", href: ROUTES.ANALYTICS_DASHBOARD },
-          { label: "Live Camera Grid", href: ROUTES.LIVE_CAMERA_GRID },
+          { label: "AI Models", href: ROUTES.AI_MODELS },
+          { label: "Zones", href: ROUTES.AI_ZONES },
+          { label: "Rules", href: ROUTES.AI_RULES },
+          { label: "Training", href: ROUTES.AI_TRAINING },
+          { label: "Live View", href: ROUTES.LIVE_CAMERA_GRID },
+          { label: "Playback & Search", href: ROUTES.PLAYBACK_SEARCH },
+          { label: "Thermal Imaging", href: ROUTES.THERMAL_IMAGING },
+          { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
+          { label: "Incident Management", href: ROUTES.INCIDENT_MANAGEMENT },
+          { label: "People Database", href: ROUTES.PEOPLE_DATABASE },
+          { label: "Vehicle Database", href: ROUTES.VEHICLE_DATABASE },
           { label: "Vehicle Detection", href: ROUTES.VEHICLE_DETECTION },
-          { label: "Reports", href: ROUTES.REPORTS },
+          { label: "Reports & Analytics", href: ROUTES.REPORTS },
           { label: "Predictive Insights", href: ROUTES.PREDICTIVE_INSIGHTS },
           { label: "Data Visualization", href: ROUTES.DATA_VISUALIZATION },
+
+          { label: "Database Tables", href: ROUTES.DATABASE_TABLES },
         ],
       },
       {
@@ -343,9 +380,22 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
           { label: "Security & Access", href: ROUTES.SECURITY_ACCESS },
         ],
       },
-    ],
+          ],
   },
 ]
+
+/** All leaf nav items (label + href) from the full nav tree, for favorites etc. */
+export function getAllNavItems(): { label: string; href: RoutePath }[] {
+  const out: { label: string; href: RoutePath }[] = []
+  function walk(nodes: (NavItem | NavGroup)[]) {
+    for (const node of nodes) {
+      if ("href" in node) out.push({ label: node.label, href: node.href })
+      else walk(node.children)
+    }
+  }
+  for (const section of NAV_SECTIONS) walk(section.items)
+  return out
+}
 
 /** Map pathname to parent menu label (for sidebar expand state). Returns null for top-level items like Dashboard. */
 export function getParentMenuForPath(pathname: string): string | null {

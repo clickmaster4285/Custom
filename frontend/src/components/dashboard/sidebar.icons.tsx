@@ -5,23 +5,39 @@ import {
   Bell,
   Brain,
   Building2,
+  CalendarClock,
   CalendarDays,
   Camera,
   Circle,
   ClipboardList,
   Cog,
+  Database,
   FileText,
+  FolderOpen,
   Gavel,
+  GraduationCap,
   LayoutDashboard,
+  LayoutGrid,
+  Link2,
+  List,
+  ListChecks,
+  ListOrdered,
   Lock,
+  Monitor,
   Package,
+  Play,
   Scale,
   Shield,
   ShieldCheck,
+  Smartphone,
+  Thermometer,
+  Trash2,
   Truck,
   User,
   UserCheck,
+  UserCog,
   Users,
+  Wallet,
 } from "lucide-react"
 
 export type SidebarIconComponent = React.ComponentType<{ size?: number; className?: string }>
@@ -34,6 +50,7 @@ const PRIMARY_MENU_ICONS: Record<string, SidebarIconComponent> = {
   Armory: ShieldCheck,
   "Litigation Management": Scale,
   "Auction Management": Gavel,
+  "AI Analytics": Brain,
   "AI Analytics System": Brain,
   "Human Resource Management": Users,
   "Human Resource Management System": Users,
@@ -69,15 +86,42 @@ const EXPLICIT_SUBMENU_ICONS: Record<string, SidebarIconComponent> = {
   "Armory Dashboard": ShieldCheck,
   "Transfers & Handover": ArrowRightLeft,
   "Perishable Management": Package,
+  "Perishable Register": Package,
+  "Expiry Tracking": CalendarClock,
+  "Priority Disposal Queue": ListOrdered,
+  "Destruction Orders": Trash2,
+  "Lot Creation": Package,
+  "Item Valuation": Wallet,
   "Auction Management": Gavel,
   "Computer Vision": Camera,
   "Vehicle Detection": Truck,
+  "AI Models": Brain,
+  "Zones": LayoutGrid,
+  "Rules": ListChecks,
+  "Training": GraduationCap,
   "Integration": Cog,
   "Reports": BarChart3,
   "User Management": Users,
   Employees: Users,
   Attendance: UserCheck,
   Notifications: Bell,
+  // Table of Contents & AI Analytics sub-modules
+  "Table of Contents": List,
+  "Live View": Monitor,
+  "Playback & Search": Play,
+  "Thermal Imaging": Thermometer,
+  "Camera Management": Camera,
+  "Alerts & Notifications": Bell,
+  "Incident Management": FolderOpen,
+  "People Database": Users,
+  "Vehicle Database": Truck,
+  "Reports & Analytics": BarChart3,
+  Configuration: Cog,
+  Administration: UserCog,
+  "Mobile App": Smartphone,
+  "Integrations & API": Link2,
+  "Roles & Permissions": Shield,
+  "Database Tables": Database,
 }
 
 function resolveIconByKeyword(label: string): SidebarIconComponent {
@@ -106,6 +150,10 @@ function resolveIconByKeyword(label: string): SidebarIconComponent {
   ) {
     return Package
   }
+  if (key.includes("expiry") || key.includes("expiration")) return CalendarClock
+  if (key.includes("disposal") || key.includes("priority queue")) return ListOrdered
+  if (key.includes("destruction")) return Trash2
+  if (key.includes("valuation") || key.includes("value")) return Wallet
   if (key.includes("registration") || key.includes("visit") || key.includes("purpose")) return ClipboardList
   return Circle
 }
