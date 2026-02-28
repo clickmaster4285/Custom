@@ -1,9 +1,9 @@
-
 import { LayoutDashboard, BarChart3, Activity, Video } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
 
 const OPERATIONS_CAMERAS = [
   { id: "CAM-O1", location: "Main Gate", active: true },
@@ -97,6 +97,29 @@ export default function OperationsDashboardPage() {
             <p className="text-xs text-muted-foreground mt-2">
               {OPERATIONS_CAMERAS.filter((c) => c.active).length} active / {OPERATIONS_CAMERAS.length} total
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Video className="h-5 w-5" /> Live feed
+            </CardTitle>
+            <CardDescription>Same stream as configured in live-stream-url — runs everywhere</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="relative aspect-video rounded-lg border border-border bg-black overflow-hidden">
+              <video
+                src={DEFAULT_LIVE_STREAM_URL}
+                className="w-full h-full object-contain"
+                muted
+                playsInline
+                autoPlay
+                loop
+                controls
+                title="Live feed"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

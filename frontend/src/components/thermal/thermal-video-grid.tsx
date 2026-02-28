@@ -13,6 +13,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { Thermometer, Palette, Gauge } from "lucide-react"
+import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
 
 const COLOR_PALETTES = ["Ironbow", "Rainbow", "White-Hot", "Black-Hot"]
 const MOCK_THERMAL_CAMERAS = [
@@ -127,20 +128,33 @@ export function ThermalVideoGrid() {
           <div className={`grid ${gridCols} gap-2`}>
             {Array.from({ length: gridRows * (gridLayout === "1x1" ? 1 : gridLayout === "2x2" ? 2 : gridLayout === "3x3" ? 3 : 4) }).map((_, i) => {
               const cam = MOCK_THERMAL_CAMERAS[i % MOCK_THERMAL_CAMERAS.length]
+              const useLiveFeed = i === 0
               return (
                 <div
                   key={i}
-                  className="relative aspect-video rounded border border-muted-foreground/30 bg-gradient-to-br from-blue-900 via-purple-900 to-red-900 flex flex-col items-center justify-center text-white/80"
-                  style={{
-                    background: colorPalette === "Ironbow" 
+                  className="relative aspect-video rounded border border-muted-foreground/30 overflow-hidden bg-black flex flex-col items-center justify-center"
+                  style={!useLiveFeed ? {
+                    background: colorPalette === "Ironbow"
                       ? "linear-gradient(to bottom right, #000080, #0000FF, #00FFFF, #FFFF00, #FF8000, #FF0000)"
                       : colorPalette === "Rainbow"
                       ? "linear-gradient(to bottom right, #8B00FF, #4B0082, #0000FF, #00FF00, #FFFF00, #FF7F00, #FF0000)"
                       : colorPalette === "White-Hot"
                       ? "linear-gradient(to bottom right, #000000, #333333, #666666, #999999, #CCCCCC, #FFFFFF)"
                       : "linear-gradient(to bottom right, #FFFFFF, #CCCCCC, #999999, #666666, #333333, #000000)"
-                  }}
+                  } : undefined}
                 >
+                  {useLiveFeed ? (
+                    <video
+                      src={DEFAULT_LIVE_STREAM_URL}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      muted
+                      playsInline
+                      autoPlay
+                      loop
+                      controls
+                      title={cam.name}
+                    />
+                  ) : null}
                   <div className="absolute top-1 left-1 flex items-center gap-1">
                     <Badge variant="secondary" className="text-xs bg-black/50 text-white">
                       {cam.name}
@@ -150,14 +164,14 @@ export function ThermalVideoGrid() {
                     </Badge>
                   </div>
                   <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between text-xs">
-                    <span className="bg-black/50 px-1.5 py-0.5 rounded">
+                    <span className="bg-black/50 px-1.5 py-0.5 rounded text-white">
                       Min: {tempScale === "celsius" ? cam.minTemp : (cam.minTemp * 9/5 + 32).toFixed(1)}{tempUnit}
                     </span>
-                    <span className="bg-black/50 px-1.5 py-0.5 rounded">
+                    <span className="bg-black/50 px-1.5 py-0.5 rounded text-white">
                       Max: {tempScale === "celsius" ? cam.maxTemp : (cam.maxTemp * 9/5 + 32).toFixed(1)}{tempUnit}
                     </span>
                   </div>
-                  <div className="text-xs text-white/60">Thermal Feed {i + 1}</div>
+                  {!useLiveFeed && <div className="text-xs text-white/60">Thermal Feed {i + 1}</div>}
                 </div>
               )
             })}
