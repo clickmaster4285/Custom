@@ -2,6 +2,7 @@ import { Calendar, Clock, UserCheck, Users, MoreVertical } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
+import { ROUTES } from "@/routes/config"
 
 const stats = [
   {
@@ -41,7 +42,7 @@ const modules = [
     iconColor: "text-blue-600",
     title: "Time Slot Booking",
     description: "Schedule your visit based on the department availability.",
-    link: "/time-slot-booking",
+    link: ROUTES.TIME_SLOT_BOOKING,
     linkText: "View Slots",
   },
   {
@@ -50,7 +51,7 @@ const modules = [
     iconColor: "text-purple-600",
     title: "Host Selection",
     description: "Select the one who host to visit.",
-    link: "/host-selection",
+    link: ROUTES.HOST_SELECTION,
     linkText: "Select Host",
   },
   {
@@ -59,7 +60,7 @@ const modules = [
     iconColor: "text-green-600",
     title: "Visit Purpose",
     description: "Select visit type (official, meeting, contractor, interview, etc.)",
-    link: "/visit-purpose",
+    link: ROUTES.VISIT_PURPOSE,
     linkText: "Set Purpose",
   },
 ]
@@ -175,7 +176,7 @@ export default function AppointmentSchedulingPage() {
                   <p className="text-sm text-muted-foreground">Department-wise and officer-wise visit calendar</p>
                 </div>
               </div>
-              <Link to="/calendar-view" className="text-blue-600 text-sm font-medium hover:underline">
+              <Link to={ROUTES.CALENDAR_VIEW} className="text-blue-600 text-sm font-medium hover:underline">
                 Open Calendar &rarr;
               </Link>
             </div>

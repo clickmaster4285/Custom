@@ -16,17 +16,13 @@ interface Step4Props {
 export function Step4Consent({ formData, updateFormData }: Step4Props) {
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-base font-semibold text-foreground tracking-tight">
-          Security & Consent
-        </h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Read and accept the terms to complete registration
-        </p>
-      </div>
+      <h3 className="text-base font-medium text-foreground">
+        Security & Consent
+      </h3>
+
       <div className="space-y-6">
         {/* Disclaimer */}
-        <div className="flex items-start gap-3 p-5 rounded-lg border border-border bg-muted/30">
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-[#f8fafc]">
           <Checkbox
             id="disclaimer"
             checked={formData.disclaimerAccepted}
@@ -59,7 +55,7 @@ export function Step4Consent({ formData, updateFormData }: Step4Props) {
         </div>
 
         {/* Terms and Conditions */}
-        <div className="flex items-start gap-3 p-5 rounded-lg border border-border bg-muted/30">
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-[#f8fafc]">
           <Checkbox
             id="terms"
             checked={formData.termsAccepted}

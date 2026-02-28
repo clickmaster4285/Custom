@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
+
 export default function LiveMonitoringPage() {
   return (
     <ModulePageLayout
@@ -20,8 +21,8 @@ export default function LiveMonitoringPage() {
               <Video className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">45</div>
-              <p className="text-xs text-muted-foreground mt-1">/ 48 active</p>
+              <div className="text-2xl font-bold">8</div>
+              <p className="text-xs text-muted-foreground mt-1">/ 10 active</p>
             </CardContent>
           </Card>
           <Card>
@@ -57,13 +58,34 @@ export default function LiveMonitoringPage() {
         <Card>
           <CardHeader>
             <CardTitle>Live Feeds</CardTitle>
-            <CardDescription>Camera feeds and real-time monitoring</CardDescription>
+            <CardDescription>10 cameras — Active / Inactive status</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="aspect-video rounded-lg border border-border bg-muted/30 flex items-center justify-center text-muted-foreground text-sm">
-                  Camera {i} — Live feed
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                { id: 1, name: "CAM-01", active: true },
+                { id: 2, name: "CAM-02", active: true },
+                { id: 3, name: "CAM-03", active: false },
+                { id: 4, name: "CAM-04", active: true },
+                { id: 5, name: "CAM-05", active: true },
+                { id: 6, name: "CAM-06", active: true },
+                { id: 7, name: "CAM-07", active: false },
+                { id: 8, name: "CAM-08", active: true },
+                { id: 9, name: "CAM-09", active: true },
+                { id: 10, name: "CAM-10", active: true },
+              ].map((cam) => (
+                <div
+                  key={cam.id}
+                  className="relative aspect-video rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center text-muted-foreground text-sm"
+                >
+                  <Badge
+                    variant={cam.active ? "default" : "secondary"}
+                    className="absolute top-2 right-2"
+                  >
+                    {cam.active ? "Active" : "Inactive"}
+                  </Badge>
+                  <span className="font-medium">{cam.name}</span>
+                  <span className="text-xs">Live feed</span>
                 </div>
               ))}
             </div>

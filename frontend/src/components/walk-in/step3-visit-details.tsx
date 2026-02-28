@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Calendar, Clock } from "lucide-react"
+import { useFormik } from "formik"
+import * as Yup from "yup"
 
 export interface WalkInStep3VisitDetailsFormData {
   visitPurpose: string
@@ -77,6 +79,35 @@ export function WalkInStep3VisitDetails({
   onPrevious,
   onSaveAndContinue,
 }: WalkInStep3VisitDetailsProps) {
+  const formik = useFormik({
+    initialValues: {
+      visitPurpose: formData.visitPurpose || "",
+      visitPurposeDescription: formData.visitPurposeDescription || "",
+      department: formData.department || formData.departmentForSlot || "",
+      hostFullName: formData.hostFullName || "",
+      hostDesignation: formData.hostDesignation || "",
+      hostDepartment: formData.hostDepartment || "",
+      hostEmail: formData.hostEmail || "",
+      hostContactNumber: formData.hostContactNumber || "",
+      preferredDate: formData.preferredDate || "",
+      preferredTimeSlot: formData.preferredTimeSlot || "",
+      slotDuration: formData.slotDuration || "",
+      priorityLevel: formData.priorityLevel || "normal",
+    },
+    enableReinitialize: true,
+    validationSchema: Yup.object().shape({
+      visitPurpose: Yup.string().trim().required("Visit purpose is required"),
+      department: Yup.string().trim().required("Department to visit is required"),
+    }),
+    onSubmit: (values) => {
+      // mirror field changes to parent state in case user never touched inputs directly
+      updateFormData(values)
+      if (onSaveAndContinue) {
+        onSaveAndContinue()
+      }
+    },
+  })
+
   return (
     <div className="space-y-8">
       <Label className="text-[22px] font-bold text-foreground">Visit Details</Label>
@@ -85,8 +116,11 @@ export function WalkInStep3VisitDetails({
         <div className="space-y-2">
           <Label className="text-base text-foreground">Visit Purpose</Label>
           <Select
-            value={formData.visitPurpose || undefined}
-            onValueChange={(v) => updateFormData({ visitPurpose: v })}
+            value={formik.values.visitPurpose || undefined}
+            onValueChange={(v) => {
+              formik.setFieldValue("visitPurpose", v)
+              updateFormData({ visitPurpose: v })
+            }}
           >
             <SelectTrigger className="w-full h-10 text-base bg-background border-border">
               <SelectValue placeholder="Meeting" />
@@ -99,21 +133,29 @@ export function WalkInStep3VisitDetails({
               ))}
             </SelectContent>
           </Select>
+          {formik.touched.visitPurpose && formik.errors.visitPurpose && (
+            <p className="text-sm text-destructive">{String(formik.errors.visitPurpose)}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label className="text-base text-foreground">Visit Description</Label>
           <Input
+            name="visitPurposeDescription"
             placeholder="e.g. To discuss some security matters."
-            value={formData.visitPurposeDescription}
-            onChange={(e) => updateFormData({ visitPurposeDescription: e.target.value })}
+            value={formik.values.visitPurposeDescription}
+            onChange={(e) => {
+              formik.handleChange(e)
+              updateFormData({ visitPurposeDescription: e.target.value })
+            }}
             className="h-10 text-base bg-background border-border"
           />
         </div>
         <div className="space-y-2">
           <Label className="text-base text-foreground">Department to Visit</Label>
           <Select
-            value={formData.department || formData.departmentForSlot || undefined}
+            value={formik.values.department || undefined}
             onValueChange={(v) => {
+              formik.setFieldValue("department", v)
               updateFormData({ department: v, departmentForSlot: v })
             }}
           >
@@ -128,11 +170,14 @@ export function WalkInStep3VisitDetails({
               ))}
             </SelectContent>
           </Select>
+          {formik.touched.department && formik.errors.department && (
+            <p className="text-sm text-destructive">{String(formik.errors.department)}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label className="text-base text-foreground">Host Officer Name</Label>
           <Select
-            value={formData.hostFullName || undefined}
+            value={formik.values.hostFullName || undefined}
             onValueChange={(v) => {
               const host = v === "jahandad"
                 ? { hostDesignation: "Manager HR", hostDepartment: "Human Resource", hostEmail: "jahandad123@email.com", hostContactNumber: "051-1234567" }
@@ -141,6 +186,7 @@ export function WalkInStep3VisitDetails({
                   : v === "khan"
                     ? { hostDesignation: "Director", hostDepartment: "Operations", hostEmail: "khan@email.com", hostContactNumber: "051-1122334" }
                     : {}
+              formik.setValues({ ...formik.values, hostFullName: v, ...host })
               updateFormData({ hostFullName: v, ...host })
             }}
           >
@@ -163,38 +209,38 @@ export function WalkInStep3VisitDetails({
           <div className="space-y-1">
             <Label className="text-base text-muted-foreground">Hosting Officer Name</Label>
             <p className="text-base font-normal text-foreground">
-              {formData.hostFullName === "jahandad"
+              {formik.values.hostFullName === "jahandad"
                 ? "Mr. Jahandad Khan"
-                : formData.hostFullName === "ali"
+                : formik.values.hostFullName === "ali"
                   ? "Mr. Ali Ahmed"
-                  : formData.hostFullName === "khan"
+                  : formik.values.hostFullName === "khan"
                     ? "Mr. Hassan Khan"
-                    : formData.hostFullName || "—"}
+                    : formik.values.hostFullName || "—"}
             </p>
           </div>
           <div className="space-y-1">
             <Label className="text-base text-muted-foreground">Hosting Officer Designation</Label>
             <p className="text-base font-normal text-foreground">
-              {formData.hostDesignation || "—"}
+              {formik.values.hostDesignation || "—"}
             </p>
           </div>
           <div className="space-y-1">
             <Label className="text-base text-muted-foreground">Hosting Officer Department</Label>
             <p className="text-base font-normal text-foreground">
-              {formData.hostDepartment || "—"}
+              {formik.values.hostDepartment || "—"}
             </p>
           </div>
           <div className="space-y-1">
             <Label className="text-base text-muted-foreground">Hosting Officer Email</Label>
             <p className="text-base font-normal text-foreground">
-              {formData.hostEmail || "—"}
+              {formik.values.hostEmail || "—"}
             </p>
           </div>
           <div className="space-y-1">
             <Label className="text-base text-muted-foreground">Hosting Officer Contact Number</Label>
             <div className="flex items-center gap-2">
               <p className="text-base font-normal text-foreground">
-                {formData.hostContactNumber || "—"}
+                {formik.values.hostContactNumber || "—"}
               </p>
               <button
                 type="button"
@@ -223,8 +269,12 @@ export function WalkInStep3VisitDetails({
           <div className="relative">
             <Input
               type="date"
-              value={formData.preferredDate}
-              onChange={(e) => updateFormData({ preferredDate: e.target.value })}
+              name="preferredDate"
+              value={formik.values.preferredDate}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateFormData({ preferredDate: e.target.value })
+              }}
               className="h-10 text-base bg-background border-border pr-9"
             />
             <Calendar className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -234,8 +284,11 @@ export function WalkInStep3VisitDetails({
           <Label className="text-base text-foreground">Preferred Time Slot</Label>
           <div className="relative">
             <Select
-              value={formData.preferredTimeSlot || undefined}
-              onValueChange={(v) => updateFormData({ preferredTimeSlot: v })}
+              value={formik.values.preferredTimeSlot || undefined}
+              onValueChange={(v) => {
+                formik.setFieldValue("preferredTimeSlot", v)
+                updateFormData({ preferredTimeSlot: v })
+              }}
             >
               <SelectTrigger className="w-full h-10 text-base bg-background border-border pr-9">
                 <SelectValue placeholder="02:00 PM - 03:00 PM" />
@@ -254,8 +307,11 @@ export function WalkInStep3VisitDetails({
         <div className="space-y-2">
           <Label className="text-base text-foreground">Expected Duration</Label>
           <Select
-            value={formData.slotDuration || undefined}
-            onValueChange={(v) => updateFormData({ slotDuration: v })}
+            value={formik.values.slotDuration || undefined}
+            onValueChange={(v) => {
+              formik.setFieldValue("slotDuration", v)
+              updateFormData({ slotDuration: v })
+            }}
           >
             <SelectTrigger className="w-full h-10 text-base bg-background border-border">
               <SelectValue placeholder="60min" />
@@ -278,8 +334,11 @@ export function WalkInStep3VisitDetails({
       <div className="space-y-3 border-t border-border pt-6">
         <Label className="text-[22px] font-bold text-foreground">Priority Level</Label>
         <RadioGroup
-          value={formData.priorityLevel || "normal"}
-          onValueChange={(v) => updateFormData({ priorityLevel: v })}
+          value={formik.values.priorityLevel || "normal"}
+          onValueChange={(v) => {
+            formik.setFieldValue("priorityLevel", v)
+            updateFormData({ priorityLevel: v })
+          }}
           className="flex flex-row gap-6"
         >
           <div className="flex items-center gap-2">
@@ -339,7 +398,7 @@ export function WalkInStep3VisitDetails({
           {onSaveAndContinue && (
             <button
               type="button"
-              onClick={onSaveAndContinue}
+              onClick={() => formik.submitForm()}
               className="shrink-0 rounded-md bg-[#3366FF] px-5 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
             >
               Save & Continue

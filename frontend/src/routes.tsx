@@ -13,6 +13,7 @@ import { Suspense } from "react"
 import { createBrowserRouter } from "react-router-dom"
 import { AuthGuard } from "@/components/auth-guard"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { RouteErrorFallback } from "@/components/route-error-fallback"
 import { Spinner } from "@/components/ui/spinner"
 import { ROUTES } from "@/routes/config"
 import { DASHBOARD_ROUTES } from "@/routes/route-list"
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: "login", element: <LazyRoute><PAGES.Login /></LazyRoute> },
       {
         element: <DashboardLayout />,
+        errorElement: <RouteErrorFallback />,
         children: dashboardChildren,
       },
       { path: "*", element: <LazyRoute><PAGES.NotFound /></LazyRoute> },

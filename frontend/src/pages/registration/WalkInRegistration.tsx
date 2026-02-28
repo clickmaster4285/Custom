@@ -1,19 +1,15 @@
-
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { WalkInStepIndicator } from "@/components/walk-in/step-indicator"
 import { WalkInStep1VisitorDetails } from "@/components/walk-in/step1-visitor-details"
 import { WalkInStep2DocumentsUpload } from "@/components/walk-in/step2-documents-upload"
 import { WalkInStep4QRCodeGeneration } from "@/components/walk-in/step4-qr-code-generation"
-import { buildQRPayload, buildQRPayloadFromVisitor } from "@/components/registration/step5-qr-code-generation"
 import { WalkInStep3VisitDetails } from "@/components/walk-in/step3-visit-details"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
-import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, type VisitorRecord } from "@/lib/visitor-api"
-import { buildWalkInPayload } from "@/lib/visitor-payload"
+import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, getErrorToastMessage, type VisitorRecord } from "@/lib/visitor-api"
 import { PrintQROnSave } from "@/components/visitor/print-qr-on-save"
-import { z } from "zod"
 import { ChevronLeft, ChevronRight, MoreHorizontal, Printer, UserPlus, Trash2 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import {
@@ -168,8 +164,8 @@ export default function WalkInRegistrationPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["visitors"],
-    queryFn: fetchVisitors,
+    queryKey: ["visitors", "walk-in"],
+    queryFn: () => fetchVisitors("walk-in"),
   })
   const registrations = (data ?? []).map(mapVisitorToRegistration)
   const [showForm, setShowForm] = useState(false)
@@ -196,11 +192,11 @@ export default function WalkInRegistrationPage() {
   const validateStep = (step: number) => {
     switch (step) {
       case 1: {
+        // Step 1 validation is now handled by Formik in the component
+        // Only do basic checks here as fallback
         if (!formData.fullName.trim()) throw new Error("Full name is required")
         if (!formData.mobileNumber.trim()) throw new Error("Mobile number is required")
-        // require either CNIC or passport
-        if (!(formData.cnicNumber.trim() || formData.passportNumber.trim()))
-          throw new Error("Either CNIC or passport number must be provided")
+        if (!formData.cnicNumber.trim()) throw new Error("CNIC number is required")
         break
       }
       case 2: {
@@ -208,9 +204,7 @@ export default function WalkInRegistrationPage() {
         break
       }
       case 3: {
-        if (!formData.visitPurpose.trim()) throw new Error("Visit purpose is required")
-        if (!formData.department.trim() && !formData.departmentForSlot.trim())
-          throw new Error("Department to visit is required")
+        // detailed validation is handled by Formik/Yup in the step component
         break
       }
       case 4: {
@@ -225,11 +219,13 @@ export default function WalkInRegistrationPage() {
   const nextStep = () => {
     try {
       validateStep(currentStep)
+      console.log(`Step ${currentStep} validation passed, advancing to step ${currentStep + 1}`)
       if (currentStep < 4) setCurrentStep(currentStep + 1)
     } catch (e) {
+      console.error("Step validation failed:", e)
       toast({
         title: "Validation failed",
-        description: e instanceof Error ? e.message : "Please complete the form.",
+        description: getErrorToastMessage(e),
         variant: "destructive",
       })
     }
@@ -240,84 +236,120 @@ export default function WalkInRegistrationPage() {
   }
 
   const createVisitorMutation = useMutation({
-    mutationFn: createVisitor,
-    onSuccess: async (data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["visitors"] })
+    mutationFn: (payload: Record<string, unknown>) => createVisitor(payload, "walk-in"),
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ["visitors", "walk-in"] })
       toast({
         title: "Walk-In Registration saved",
         description: "Visitor has been added to the list.",
       })
       setShowForm(false)
       setCurrentStep(1)
+      const validFrom = (formData.timeValidityStart || "00:00").trim() || "00:00"
+      const validTo = (formData.timeValidityEnd || "23:59").trim() || "23:59"
+      const qrPayload = JSON.stringify({
+        name: data.full_name,
+        cnic: data.cnic_number,
+        id: data.id,
+        validFrom,
+        validTo,
+        qrCodeId: formData.qrCodeId || "",
+      })
+      setPrintQRData({
+        qrPayload,
+        visitorName: formData.fullName || data.full_name || "Visitor",
+        visitorCNIC: formData.cnicPassport || formData.cnicNumber || data.cnic_number || "",
+        validFrom,
+        validTo,
+        qrCodeId: formData.qrCodeId || "",
+      })
       setFormData({ ...initialFormData })
-      const step5Data = { ...formData, cnicNumber: formData.cnicNumber || formData.cnicPassport }
-      const hasBackendQR =
-        data &&
-        ((data as { cnic_number?: string }).cnic_number ||
-          (data as { passport_number?: string }).passport_number)
-      const qrPayload = hasBackendQR
-        ? buildQRPayloadFromVisitor(data as Parameters<typeof buildQRPayloadFromVisitor>[0])
-        : buildQRPayload(step5Data)
-      if (qrPayload && qrPayload !== "{}") {
-        const validFrom =
-          (data?.time_validity_start ?? variables?.time_validity_start ?? formData.timeValidityStart ?? "00:00").trim() ||
-          "00:00"
-        const validTo =
-          (data?.time_validity_end ?? variables?.time_validity_end ?? formData.timeValidityEnd ?? "23:59").trim() ||
-          "23:59"
-        setPrintQRData({
-          qrPayload,
-          visitorName: formData.fullName || (data?.full_name as string) || "Visitor",
-          visitorCNIC:
-            formData.cnicPassport ||
-            (data?.cnic_number as string) ||
-            (data?.cnic_passport as string) ||
-            "CNIC Number",
-          validFrom,
-          validTo,
-          qrCodeId: (data?.qr_code_id as string) || formData.qrCodeId,
-        })
-      }
     },
     onError: (mutationError) => {
-      const message =
-        mutationError instanceof Error
-          ? mutationError.message
-          : "Failed to save visitor."
       toast({
         title: "Save failed",
-        description: message,
+        description: getErrorToastMessage(mutationError),
         variant: "destructive",
       })
     },
   })
 
   const handleSubmit = () => {
-    // Defer so the click handler returns quickly (avoids slow handler violation)
-    setTimeout(() => {
-      try {
-        const payload = buildWalkInPayload(formData as Record<string, unknown>)
-        createVisitorMutation.mutate(payload)
-      } catch (err) {
-        const message =
-          err instanceof z.ZodError
-            ? err.errors[0]?.message ?? "Please fix the form errors."
-            : err instanceof Error
-              ? err.message
-              : "Validation failed."
-        toast({
-          title: "Validation failed",
-          description: message,
-          variant: "destructive",
-        })
+    try {
+      const payload: Record<string, unknown> = {
+        visitor_type: formData.visitorType || "individual",
+        full_name: formData.fullName || "Unknown Visitor",
+        gender: formData.gender,
+        cnic_number: formData.cnicNumber || formData.cnicPassport,
+        passport_number: formData.passportNumber,
+        nationality: formData.nationality,
+        mobile_number: formData.mobileNumber,
+        email_address: formData.emailAddress,
+        residential_address: formData.residentialAddress,
+        visit_purpose: formData.visitPurpose,
+        visit_description: formData.visitPurposeDescription,
+        department_to_visit: formData.department || formData.departmentForSlot || "admin",
+        host_officer_name: formData.hostFullName || formData.hostName,
+        host_officer_designation: formData.hostDesignation,
+        host_department: formData.hostDepartment,
+        preferred_visit_date: formData.preferredDate,
+        preferred_time_slot: formData.preferredTimeSlot,
+        slot_duration: formData.slotDuration,
+        document_type: formData.documentType,
+        document_no: formData.documentNo,
+        front_image: formData.frontImage,
+        back_image: formData.backImage,
+        application_letter: formData.applicationLetter,
+        additional_document: formData.additionalDocument,
+        captured_photo: formData.photoCapture,
+        time_validity_start: formData.timeValidityStart,
+        time_validity_end: formData.timeValidityEnd,
+        access_zone: formData.accessZone,
+        entry_gate: formData.entryGate,
+        qr_code_id: formData.qrCodeId,
+        visitor_ref_number: formData.visitorRefNumber,
+        visit_date: formData.visitDate,
       }
-    }, 0)
+      createVisitorMutation.mutate(payload)
+    } catch (err) {
+      toast({
+        title: "Validation failed",
+        description: getErrorToastMessage(err),
+        variant: "destructive",
+      })
+    }
   }
 
   const handleCancelForm = () => {
     setShowForm(false)
     setCurrentStep(1)
     setFormData({ ...initialFormData })
+  }
+
+  const handlePrintQR = () => {
+    const validFrom = (formData.timeValidityStart || "00:00").trim() || "00:00"
+    const validTo = (formData.timeValidityEnd || "23:59").trim() || "23:59"
+    const qrPayload = JSON.stringify({
+      name: formData.fullName,
+      cnic: formData.cnicNumber || formData.cnicPassport,
+      validFrom,
+      validTo,
+      qrCodeId: formData.qrCodeId || "",
+      visitorRefNumber: formData.visitorRefNumber,
+      visitDate: formData.visitDate,
+      accessZone: formData.accessZone,
+      entryGate: formData.entryGate,
+      visitPurpose: formData.visitPurpose,
+      department: formData.department,
+    })
+    setPrintQRData({
+      qrPayload,
+      visitorName: formData.fullName || "Visitor",
+      visitorCNIC: formData.cnicPassport || formData.cnicNumber || "",
+      validFrom,
+      validTo,
+      qrCodeId: formData.qrCodeId || "",
+    })
   }
 
   return (
@@ -448,21 +480,32 @@ export default function WalkInRegistrationPage() {
                                   <DropdownMenuItem
                                     onClick={async () => {
                                       try {
-                                        const v = await getVisitor(reg.id);
+                                        const v = await getVisitor(reg.id, "walk-in")
+                                        if (!v) {
+                                          toast({ title: "Visitor not found", variant: "destructive" })
+                                          return
+                                        }
+                                        const qrPayload = JSON.stringify({
+                                          name: v.full_name,
+                                          cnic: v.cnic_number,
+                                          id: v.id,
+                                          validFrom: "00:00",
+                                          validTo: "23:59",
+                                        })
                                         setPrintQRData({
-                                          qrPayload: buildQRPayloadFromVisitor(v),
+                                          qrPayload,
                                           visitorName: v.full_name ?? reg.name,
-                                          visitorCNIC: v.cnic_number ?? "CNIC Number",
-                                          validFrom: v.time_validity_start ?? "00:00",
-                                          validTo: v.time_validity_end ?? "23:59",
-                                          qrCodeId: v.qr_code_id ?? undefined,
-                                        });
+                                          visitorCNIC: v.cnic_number ?? "",
+                                          validFrom: "00:00",
+                                          validTo: "23:59",
+                                          qrCodeId: undefined,
+                                        })
                                       } catch (e) {
                                         toast({
                                           title: "Failed to load visitor",
-                                          description: e instanceof Error ? e.message : "Could not print QR.",
+                                          description: getErrorToastMessage(e),
                                           variant: "destructive",
-                                        });
+                                        })
                                       }
                                     }}
                                   >
@@ -499,14 +542,14 @@ export default function WalkInRegistrationPage() {
                     if (deleteId == null) return
                     setIsDeleting(true)
                     try {
-                      await deleteVisitor(deleteId)
-                      queryClient.invalidateQueries({ queryKey: ["visitors"] })
+                      await deleteVisitor(deleteId, "walk-in")
+                      await queryClient.invalidateQueries({ queryKey: ["visitors", "walk-in"] })
                       toast({ title: "Visitor deleted", description: "The visitor has been removed." })
                       setDeleteId(null)
                     } catch (err) {
                       toast({
                         title: "Delete failed",
-                        description: err instanceof Error ? err.message : "Could not delete visitor.",
+                        description: getErrorToastMessage(err),
                         variant: "destructive",
                       })
                     } finally {
@@ -629,6 +672,7 @@ export default function WalkInRegistrationPage() {
                     onCancel={handleCancelForm}
                     onReset={() => setFormData({ ...initialFormData })}
                     onPrevious={prevStep}
+                    onPrint={handlePrintQR}
                     onFinish={handleSubmit}
                   />
                 )}

@@ -1,8 +1,22 @@
 
-import { LayoutDashboard, BarChart3, Activity } from "lucide-react"
+import { LayoutDashboard, BarChart3, Activity, Video } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+
+const OPERATIONS_CAMERAS = [
+  { id: "CAM-O1", location: "Main Gate", active: true },
+  { id: "CAM-O2", location: "Dock 1", active: true },
+  { id: "CAM-O3", location: "Dock 2", active: false },
+  { id: "CAM-O4", location: "Aisle A", active: true },
+  { id: "CAM-O5", location: "Aisle B", active: true },
+  { id: "CAM-O6", location: "Staging", active: true },
+  { id: "CAM-O7", location: "Receiving", active: false },
+  { id: "CAM-O8", location: "Dispatch", active: true },
+  { id: "CAM-O9", location: "Parking", active: true },
+  { id: "CAM-O10", location: "Perimeter", active: true },
+]
 
 export default function OperationsDashboardPage() {
   return (
@@ -54,6 +68,35 @@ export default function OperationsDashboardPage() {
               Operations metrics and charts — integrate with your data
             </div>
             <Button className="mt-4 bg-[#3b82f6] hover:bg-[#2563eb] text-white">Refresh</Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="h-5 w-5" /> Cameras
+              </CardTitle>
+              <CardDescription>10 cameras — Active / Inactive</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {OPERATIONS_CAMERAS.map((cam) => (
+                <div
+                  key={cam.id}
+                  className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2"
+                >
+                  <span className="text-sm font-medium">{cam.id}</span>
+                  <Badge variant={cam.active ? "default" : "secondary"}>
+                    {cam.active ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {OPERATIONS_CAMERAS.filter((c) => c.active).length} active / {OPERATIONS_CAMERAS.length} total
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface Step2Props {
@@ -28,13 +29,10 @@ interface Step2Props {
 
 export function Step2VisitDetails({ formData, updateFormData }: Step2Props) {
   return (
-    <div className="space-y-8">
-      <div>
-        <h3 className="text-base font-semibold text-foreground tracking-tight">Visit Details</h3>
-        <p className="text-sm text-muted-foreground mt-1">Purpose, department, host and preferred schedule</p>
-      </div>
-      <div className="rounded-lg border border-border bg-muted/30 p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-6">
+      <h3 className="text-base font-medium text-foreground">Visit Details</h3>
+
+      <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label
             htmlFor="visitPurpose"
@@ -265,7 +263,6 @@ export function Step2VisitDetails({ formData, updateFormData }: Step2Props) {
             </Label>
           </div>
         </RadioGroup>
-      </div>
       </div>
     </div>
   );

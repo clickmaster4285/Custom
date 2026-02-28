@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Camera, MapPin, Video, VideoOff, AlertCircle } from "lucide-react"
+import { Camera, Car, MapPin, Video, VideoOff, AlertCircle } from "lucide-react"
 
 interface WalkInStep1Props {
   formData: {
@@ -25,6 +25,13 @@ interface WalkInStep1Props {
     department: string
     hostName: string
     location: string
+    vehicleName: string
+    vehicleType: string
+    vehicleNumberPlate: string
+    driverName: string
+    driverLicenseNo: string
+    driverContact: string
+    vehiclePhoto: string
   }
   updateFormData: (data: Partial<WalkInStep1Props["formData"]>) => void
 }
@@ -36,6 +43,7 @@ export function WalkInStep1BasicInfo({
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showCameraPanel, setShowCameraPanel] = useState(false)
+  const [captureMode, setCaptureMode] = useState<"visitor" | "vehicle">("visitor")
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -53,6 +61,14 @@ export function WalkInStep1BasicInfo({
     }
   }, [stopCamera])
 
+  // Once stream is set, attach to video and play (ref is ready after render)
+  useEffect(() => {
+    if (!stream || !videoRef.current) return
+    const video = videoRef.current
+    video.srcObject = stream
+    video.play().catch((e) => console.warn("Video play failed:", e))
+  }, [stream])
+
   const startCamera = async () => {
     setError(null)
     setIsLoading(true)
@@ -66,36 +82,47 @@ export function WalkInStep1BasicInfo({
         audio: false,
       })
       setStream(mediaStream)
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
-      }
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Could not access camera. Please allow camera permission and try again."
-      setError(message)
+      setError(getCameraErrorMessage(err))
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleCapture = () => {
-    if (!videoRef.current || !stream || !canvasRef.current) return
     const video = videoRef.current
     const canvas = canvasRef.current
+    if (!video || !stream || !canvas) return
+    const w = video.videoWidth
+    const h = video.videoHeight
+    if (!w || !h) {
+      setError("Camera not ready. Wait a moment and try again.")
+      return
+    }
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    ctx.drawImage(video, 0, 0)
+    canvas.width = w
+    canvas.height = h
+    ctx.drawImage(video, 0, 0, w, h)
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92)
-    updateFormData({ photoCapture: dataUrl })
+    if (captureMode === "vehicle") {
+      updateFormData({ vehiclePhoto: dataUrl })
+    } else {
+      updateFormData({ photoCapture: dataUrl })
+    }
     stopCamera()
     setShowCameraPanel(false)
+    setError(null)
   }
 
   const openPhotoCapture = () => {
+    setCaptureMode("visitor")
+    setShowCameraPanel(true)
+    setError(null)
+  }
+
+  const openVehiclePhotoCapture = () => {
+    setCaptureMode("vehicle")
     setShowCameraPanel(true)
     setError(null)
   }
@@ -124,7 +151,7 @@ export function WalkInStep1BasicInfo({
               updateFormData({ registrationType: value })
             }
           >
-            <SelectTrigger className="bg-background">
+            <SelectTrigger className="w-full h-9 bg-background">
               <SelectValue placeholder="Walk-in" />
             </SelectTrigger>
             <SelectContent>
@@ -171,7 +198,7 @@ export function WalkInStep1BasicInfo({
             value={formData.nationality}
             onValueChange={(value) => updateFormData({ nationality: value })}
           >
-            <SelectTrigger className="bg-background">
+            <SelectTrigger className="w-full h-9 bg-background">
               <SelectValue placeholder="Pakistani" />
             </SelectTrigger>
             <SelectContent>
@@ -247,11 +274,15 @@ export function WalkInStep1BasicInfo({
                   <span>{error}</span>
                 </div>
               )}
-              {!stream && !error && (
+              {!stream && (
                 <div className="flex flex-col items-start gap-3">
-                  <p className="text-sm text-muted-foreground">
-                    Click Start Camera to open your camera, then capture your photo.
-                  </p>
+                  {!error && (
+                    <p className="text-sm text-muted-foreground">
+                      {captureMode === "vehicle"
+                        ? "Click Start Camera to capture the vehicle photo."
+                        : "Click Start Camera to open your camera, then capture your photo."}
+                    </p>
+                  )}
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -260,7 +291,7 @@ export function WalkInStep1BasicInfo({
                       disabled={isLoading}
                       className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
                     >
-                      {isLoading ? "Opening…" : <><Video className="w-4 h-4 mr-2" /> Start Camera</>}
+                      {isLoading ? "Opening…" : <><Video className="w-4 h-4 mr-2" /> {error ? "Try again" : "Start Camera"}</>}
                     </Button>
                     <Button type="button" size="sm" variant="outline" onClick={closePhotoCapture}>
                       Cancel
@@ -289,7 +320,7 @@ export function WalkInStep1BasicInfo({
                       className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
                     >
                       <Camera className="w-4 h-4 mr-2" />
-                      Capture Photo
+                      {captureMode === "vehicle" ? "Capture vehicle photo" : "Capture Photo"}
                     </Button>
                     <Button type="button" size="sm" variant="outline" onClick={() => { stopCamera(); setShowCameraPanel(false); }}>
                       <VideoOff className="w-4 h-4 mr-2" />
@@ -324,16 +355,23 @@ export function WalkInStep1BasicInfo({
             value={formData.department}
             onValueChange={(value) => updateFormData({ department: value })}
           >
-            <SelectTrigger className="bg-background">
+            <SelectTrigger className="w-full h-9 bg-background">
               <SelectValue placeholder="Select the department" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="clearance">Customs Clearance</SelectItem>
+              <SelectItem value="appraisal">Appraisal</SelectItem>
+              <SelectItem value="enforcement">Enforcement</SelectItem>
+              <SelectItem value="intelligence">Intelligence</SelectItem>
+              <SelectItem value="legal">Legal</SelectItem>
+              <SelectItem value="bonded-warehouse">Bonded Warehouse</SelectItem>
+              <SelectItem value="transit">Transit</SelectItem>
+              <SelectItem value="preventive">Preventive</SelectItem>
+              <SelectItem value="valuation">Valuation</SelectItem>
+              <SelectItem value="ict">ICT</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="hr">Human Resources</SelectItem>
-              <SelectItem value="engineering">Engineering</SelectItem>
-              <SelectItem value="sales">Sales</SelectItem>
-              <SelectItem value="marketing">Marketing</SelectItem>
-              <SelectItem value="finance">Finance</SelectItem>
-              <SelectItem value="operations">Operations</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -347,7 +385,7 @@ export function WalkInStep1BasicInfo({
             value={formData.hostName}
             onValueChange={(value) => updateFormData({ hostName: value })}
           >
-            <SelectTrigger className="bg-background">
+            <SelectTrigger className="w-full h-9 bg-background">
               <SelectValue placeholder="Select the hosting official Name" />
             </SelectTrigger>
             <SelectContent>
@@ -380,6 +418,112 @@ export function WalkInStep1BasicInfo({
             >
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Vehicle Information */}
+      <div className="space-y-4 pt-4 border-t border-border">
+        <h3 className="text-base font-medium text-foreground flex items-center gap-2">
+          <Car className="w-4 h-4" /> Vehicle Information
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Vehicle name / make</Label>
+            <Input
+              placeholder="e.g. Toyota Corolla"
+              value={formData.vehicleName}
+              onChange={(e) => updateFormData({ vehicleName: e.target.value })}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Vehicle type</Label>
+            <Select
+              value={formData.vehicleType}
+              onValueChange={(value) => updateFormData({ vehicleType: value })}
+            >
+<SelectTrigger className="w-full h-9 bg-background">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="car">Car</SelectItem>
+                <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                <SelectItem value="van">Van</SelectItem>
+                <SelectItem value="truck">Truck</SelectItem>
+                <SelectItem value="bus">Bus</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Number plate</Label>
+            <Input
+              placeholder="e.g. ABC-1234"
+              value={formData.vehicleNumberPlate}
+              onChange={(e) => updateFormData({ vehicleNumberPlate: e.target.value })}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Driver name</Label>
+            <Input
+              placeholder="Full name of driver"
+              value={formData.driverName}
+              onChange={(e) => updateFormData({ driverName: e.target.value })}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Driver license no.</Label>
+            <Input
+              placeholder="License number"
+              value={formData.driverLicenseNo}
+              onChange={(e) => updateFormData({ driverLicenseNo: e.target.value })}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Driver contact</Label>
+            <Input
+              placeholder="Phone number"
+              value={formData.driverContact}
+              onChange={(e) => updateFormData({ driverContact: e.target.value })}
+              className="bg-background"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label className="text-sm font-medium text-foreground">Vehicle photo</Label>
+            <div className="relative">
+              <Input
+                placeholder="Take photo of vehicle"
+                value={formData.vehiclePhoto ? "Vehicle photo captured" : ""}
+                readOnly
+                onClick={openVehiclePhotoCapture}
+                className="bg-background pr-10 cursor-pointer"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={openVehiclePhotoCapture}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+              >
+                <Camera className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </div>
+            {formData.vehiclePhoto && (
+              <div className="mt-2 flex items-center gap-2">
+                <img
+                  src={formData.vehiclePhoto}
+                  alt="Vehicle"
+                  className="h-20 rounded object-cover border border-border"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={openVehiclePhotoCapture} className="text-xs">
+                  Retake
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -261,6 +261,11 @@ class Visitor(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
+        if is_new and not (self.time_validity_start or self.time_validity_end):
+            if not self.time_validity_start:
+                self.time_validity_start = "00:00"
+            if not self.time_validity_end:
+                self.time_validity_end = "23:59"
         super().save(*args, **kwargs)
         if is_new and not self.qr_code_id:
             self.qr_code_id = f"QR-{self.pk}"

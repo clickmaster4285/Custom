@@ -13,6 +13,10 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { User, Briefcase, Wrench, Search, Calendar, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useFormik } from "formik"
+import * as Yup from "yup"
+import { isCnicExists } from "@/lib/visitor-api"
+
 
 export interface WalkInStep1VisitorDetailsFormData {
   visitorCategory: string
@@ -76,6 +80,70 @@ export function WalkInStep1VisitorDetails({
   onReset,
   onSaveAndContinue,
 }: WalkInStep1VisitorDetailsProps) {
+  const formik = useFormik({
+    initialValues: {
+      fullName: formData.fullName || "",
+      mobileNumber: formData.mobileNumber || "",
+      cnicNumber: formData.cnicNumber || formData.cnicPassport || "",
+      passportNumber: formData.passportNumber || "",
+    },
+    enableReinitialize: true,
+    validateOnChange: false,
+    validateOnBlur: true,
+    validationSchema: Yup.object()
+      .shape({
+        fullName: Yup.string().trim().required("Full name is required"),
+        mobileNumber: Yup.string().trim().required("Mobile number is required"),
+        cnicNumber: Yup.string()
+          .trim()
+          .required("CNIC number is required")
+          .test(
+            "cnic-unique",
+            "This CNIC is already registered",
+            async function (val) {
+              if (!val) return true // allow empty (will be caught by required)
+              const cnic = val.trim()
+              const original = formData.cnicNumber || formData.cnicPassport || ""
+              // Only check uniqueness if CNIC changed
+              if (cnic === original) return true
+              // Debounce: small delay to avoid hammering API
+              await new Promise((r) => setTimeout(r, 300))
+              // Check against backend
+              try {
+                const exists = await isCnicExists(cnic)
+                return !exists
+              } catch {
+                return true // Allow on error
+              }
+            }
+          ),
+        passportNumber: Yup.string().trim(),
+      })
+      .test(
+        "cnic-required",
+        "CNIC number is required",
+        function (obj) {
+          const v = obj as any
+          const cnic = (v?.cnicNumber || "").toString().trim()
+          return Boolean(cnic)
+        }
+      ),
+    onSubmit: (values) => {
+      console.log("Step 1 form submitted with values:", values)
+      console.log("Current formik errors:", formik.errors)
+      // keep parent state in sync for main identity fields
+      updateFormData({
+        fullName: values.fullName,
+        mobileNumber: values.mobileNumber,
+        cnicNumber: values.cnicNumber,
+        passportNumber: values.passportNumber,
+      })
+      if (onSaveAndContinue) {
+        console.log("Calling onSaveAndContinue")
+        onSaveAndContinue()
+      }
+    },
+  })
   return (
     <div className="space-y-8">
       {/* Visitor Category */}
@@ -158,11 +226,19 @@ export function WalkInStep1VisitorDetails({
           <div className="space-y-2">
             <Label className="text-base text-foreground">Full Name (as per CNIC/Passport)</Label>
             <Input
+              name="fullName"
               placeholder="e.g. Mohammad Ali Hassan"
-              value={formData.fullName}
-              onChange={(e) => updateFormData({ fullName: e.target.value })}
+              value={formik.values.fullName}
+              onChange={(e) => {
+                formik.setFieldValue("fullName", e.target.value, false)
+                updateFormData({ fullName: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
               className="h-10 text-base bg-background border-border"
             />
+            {formik.touched.fullName && formik.errors.fullName && (
+              <p className="text-sm text-destructive">{String(formik.errors.fullName)}</p>
+            )}
             <p className="text-base text-muted-foreground">(as per CNIC/Passport)</p>
           </div>
           <div className="space-y-2">
@@ -184,21 +260,37 @@ export function WalkInStep1VisitorDetails({
           <div className="space-y-2">
             <Label className="text-sm text-foreground">CNIC Number</Label>
             <Input
+              name="cnicNumber"
               placeholder="00000-0000000-0"
-              value={formData.cnicNumber}
-              onChange={(e) => updateFormData({ cnicNumber: e.target.value })}
+              value={formik.values.cnicNumber}
+              onChange={(e) => {
+                formik.setFieldValue("cnicNumber", e.target.value, false)
+                updateFormData({ cnicNumber: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
               className="h-10 text-base bg-background border-border"
             />
+            {formik.touched.cnicNumber && formik.errors.cnicNumber && (
+              <p className="text-sm text-destructive">{String(formik.errors.cnicNumber)}</p>
+            )}
             <p className="text-base text-muted-foreground">(Mandatory for Pakistani Nationals)</p>
           </div>
           <div className="space-y-2">
             <Label className="text-base text-foreground">Passport Number</Label>
             <Input
+              name="passportNumber"
               placeholder="123456789"
-              value={formData.passportNumber}
-              onChange={(e) => updateFormData({ passportNumber: e.target.value })}
+              value={formik.values.passportNumber}
+              onChange={(e) => {
+                formik.setFieldValue("passportNumber", e.target.value, false)
+                updateFormData({ passportNumber: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
               className="h-10 text-base bg-background border-border"
             />
+            {formik.touched.passportNumber && formik.errors.passportNumber && (
+              <p className="text-sm text-destructive">{String(formik.errors.passportNumber)}</p>
+            )}
             <p className="text-base text-muted-foreground">(Mandatory for Foreign Nationals)</p>
           </div>
           <div className="space-y-2">
@@ -237,11 +329,19 @@ export function WalkInStep1VisitorDetails({
           <div className="space-y-2">
             <Label className="text-base text-foreground">Mobile Number</Label>
             <Input
+              name="mobileNumber"
               placeholder="0000-0000000"
-              value={formData.mobileNumber}
-              onChange={(e) => updateFormData({ mobileNumber: e.target.value })}
+              value={formik.values.mobileNumber}
+              onChange={(e) => {
+                formik.setFieldValue("mobileNumber", e.target.value, false)
+                updateFormData({ mobileNumber: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
               className="h-10 text-base bg-background border-border"
             />
+            {formik.touched.mobileNumber && formik.errors.mobileNumber && (
+              <p className="text-sm text-destructive">{String(formik.errors.mobileNumber)}</p>
+            )}
             <p className="text-base text-muted-foreground">(SMS Notification & OTP)</p>
           </div>
           <div className="space-y-2">
@@ -427,7 +527,7 @@ export function WalkInStep1VisitorDetails({
         {onSaveAndContinue && (
           <button
             type="button"
-            onClick={onSaveAndContinue}
+            onClick={() => formik.submitForm()}
             className="shrink-0 rounded-md bg-[#3366FF] px-5 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
           >
             Save & Continue

@@ -123,10 +123,7 @@ export function Step4PhotoCapture({ formData, updateFormData }: Step4PhotoCaptur
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-base font-semibold text-foreground tracking-tight">Photo Capture</h3>
-        <p className="text-sm text-muted-foreground mt-1">Live capture for visitor identification and records</p>
-      </div>
+      <h3 className="text-base font-medium text-foreground">Live Photo Data</h3>
 
       {/* Camera Capture Area */}
       <div className="flex flex-col items-center justify-center py-6 rounded-lg border border-border bg-muted/20 overflow-hidden">
@@ -187,7 +184,7 @@ export function Step4PhotoCapture({ formData, updateFormData }: Step4PhotoCaptur
                 onClick={stopCamera}
                 className="border-border"
               >
-                <VideoOff className="h-4 w-4 mr-2" />
+                <VideoOff className="w-4 h-4 mr-2" />
                 Stop Camera
               </Button>
               <Button

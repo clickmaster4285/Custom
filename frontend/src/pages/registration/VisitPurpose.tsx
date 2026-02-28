@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select"
 import { ChevronLeft, ChevronRight, Check } from "lucide-react"
 import { Link } from "react-router-dom"
+import { ROUTES } from "@/routes/config"
 
 const steps = [
   { number: 1, label: "Visit Type Master" },
@@ -55,9 +56,9 @@ export default function VisitPurposePage() {
       {/* Breadcrumb */}
           <div className="mb-2">
             <nav className="text-sm text-muted-foreground">
-              <Link to="/" className="hover:text-foreground">Home</Link>
+              <Link to={ROUTES.DASHBOARD} className="hover:text-foreground">Home</Link>
               <span className="mx-2">/</span>
-              <Link to="/appointment-scheduling" className="hover:text-foreground">Appointment Scheduling</Link>
+              <Link to={ROUTES.APPOINTMENT_SCHEDULING} className="hover:text-foreground">Appointment Scheduling</Link>
               <span className="mx-2">/</span>
               <span className="text-[#3b82f6]">Visit Purpose</span>
             </nav>
@@ -94,7 +95,7 @@ export default function VisitPurposePage() {
                   </span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className="w-24 h-0.5 bg-gray-200 mx-4">
+                  <div className="w-24 h-[2px] bg-gray-200 mx-4">
                     <div
                       className={`h-full bg-[#3b82f6] transition-all ${
                         currentStep > step.number ? "w-full" : "w-0"

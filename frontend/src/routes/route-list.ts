@@ -4,20 +4,13 @@
  */
 import { ROUTES } from "./config"
 
-export const toChildPath = (r: string) => r.replace(/^\//, "")
+export const toChildPath = (r: string | undefined) => (r ?? "").replace(/^\//, "")
 
 export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] = [
   { index: true, page: "Dashboard" },
   // Registration
   { path: toChildPath(ROUTES.PRE_REGISTRATION), page: "PreRegistration" },
   { path: toChildPath(ROUTES.WALK_IN_REGISTRATION), page: "WalkInRegistration" },
-  { path: toChildPath(ROUTES.ACTIVE_VISITORS), page: "ActiveVisitors" },
-  { path: toChildPath(ROUTES.APPROVAL_WORKFLOW), page: "ApprovalWorkflow" },
-  { path: toChildPath(ROUTES.CHECK_IN_OUT), page: "CheckInOut" },
-  { path: toChildPath(ROUTES.SECURITY_SCREENING), page: "SecurityScreening" },
-  { path: toChildPath(ROUTES.VEHICLE_CONTRACTOR), page: "VehicleContractor" },
-  { path: toChildPath(ROUTES.VMS_REPORTS_ANALYTICS), page: "VmsReportsAnalytics" },
-  { path: toChildPath(ROUTES.COMMUNICATION), page: "Communication" },
   { path: toChildPath(ROUTES.STREAMED_UPLOAD), page: "StreamedUpload" },
   { path: toChildPath(ROUTES.PHOTO_CAPTURE), page: "PhotoCapture" },
   { path: toChildPath(ROUTES.QR_CODE_GENERATION), page: "QRCodeGeneration" },
@@ -26,18 +19,26 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.HOST_SELECTION), page: "HostSelection" },
   { path: toChildPath(ROUTES.VISIT_PURPOSE), page: "VisitPurpose" },
   { path: toChildPath(ROUTES.CALENDAR_VIEW), page: "CalendarView" },
+  { path: toChildPath(ROUTES.SECURITY_SCREENING), page: "SecurityScreening" },
   { path: toChildPath(ROUTES.WATCHLIST_SCREENING), page: "WatchlistScreening" },
   { path: toChildPath(ROUTES.BLACKLIST_MANAGEMENT), page: "BlacklistManagement" },
   { path: toChildPath(ROUTES.FLAGGED_VISITOR_ALERTS), page: "FlaggedVisitorAlerts" },
+  { path: toChildPath(ROUTES.ACCESS_CONTROL), page: "AccessControl" },
   { path: toChildPath(ROUTES.ZONE_RESTRICTIONS), page: "ZoneRestrictions" },
   { path: toChildPath(ROUTES.GATE_INTEGRATION), page: "GateIntegration" },
   { path: toChildPath(ROUTES.ESCORT_REQUIREMENT), page: "EscortRequirement" },
+  { path: toChildPath(ROUTES.HOST_DEPARTMENT_DASHBOARD), page: "HostDepartmentDashboard" },
   { path: toChildPath(ROUTES.VISITOR_NOTIFICATIONS), page: "VisitorNotifications" },
   { path: toChildPath(ROUTES.UPCOMING_VISITS), page: "UpcomingVisits" },
   { path: toChildPath(ROUTES.VISITOR_HISTORY), page: "VisitorHistory" },
   { path: toChildPath(ROUTES.GUARD_RECEPTION_PANEL), page: "GuardReceptionPanel" },
-  { path: "visitors/:id/edit", page: "VisitorEdit" },
-  { path: "visitors/:id", page: "VisitorDetail" },
+  { path: toChildPath(ROUTES.VEHICLE_CONTRACTOR_MANAGEMENT), page: "VehicleContractorManagement" },
+  { path: toChildPath(ROUTES.VEHICLE_REGISTRATION), page: "VehicleRegistration" },
+  { path: toChildPath(ROUTES.VEHICLE_TRACKING), page: "VehicleTracking" },
+  { path: toChildPath(ROUTES.CONTRACTOR_PASSES), page: "ContractorPasses" },
+  { path: toChildPath(ROUTES.CARGO_DELIVERY_LOGS), page: "CargoDeliveryLogs" },
+  // Armory
+  { path: toChildPath(ROUTES.ARMORY), page: "Armory" },
   // Warehouse
   { path: toChildPath(ROUTES.WAREHOUSE_SETUP), page: "WarehouseSetup" },
   { path: toChildPath(ROUTES.ZONE_LOCATION_MANAGEMENT), page: "ZoneLocationManagement" },
@@ -48,6 +49,8 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.CAMERA_INTEGRATION), page: "CameraIntegration" },
   { path: toChildPath(ROUTES.OPERATIONS_DASHBOARD), page: "OperationsDashboard" },
   { path: toChildPath(ROUTES.ANALYTICS_DASHBOARD), page: "AnalyticsDashboard" },
+  { path: toChildPath(ROUTES.LIVE_CAMERA_GRID), page: "LiveCameraGrid" },
+  { path: toChildPath(ROUTES.VEHICLE_DETECTION), page: "VehicleDetection" },
   { path: toChildPath(ROUTES.LIVE_MONITORING), page: "LiveMonitoring" },
   // Seizures
   { path: toChildPath(ROUTES.NEW_SEIZURE_ENTRY), page: "NewSeizureEntry" },
@@ -84,8 +87,18 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.ANOMALY_DETECTION), page: "AnomalyDetection" },
   // Reports
   { path: toChildPath(ROUTES.REPORTS), page: "Reports" },
+  { path: toChildPath(ROUTES.STANDARD_REPORTS), page: "Reports" },
+  { path: toChildPath(ROUTES.CUSTOM_REPORT_BUILDER), page: "Reports" },
+  { path: toChildPath(ROUTES.EXPORT_CENTER), page: "Reports" },
   { path: toChildPath(ROUTES.PREDICTIVE_INSIGHTS), page: "PredictiveInsights" },
   { path: toChildPath(ROUTES.DATA_VISUALIZATION), page: "DataVisualization" },
+  // WMS Integration (reuse Integrations page)
+  { path: toChildPath(ROUTES.WEBOC_SYNC), page: "Integrations" },
+  { path: toChildPath(ROUTES.API_LOGS), page: "Integrations" },
+  // WMS User Management (reuse existing pages)
+  { path: toChildPath(ROUTES.USER_ACCOUNTS), page: "UserRoleManagement" },
+  { path: toChildPath(ROUTES.ROLES_PERMISSIONS), page: "UserRoleManagement" },
+  { path: toChildPath(ROUTES.ACTIVITY_LOGS), page: "SecurityAccess" },
   // HR
   { path: toChildPath(ROUTES.EMPLOYEES), page: "Employees" },
   { path: toChildPath(ROUTES.ATTENDANCE), page: "Attendance" },

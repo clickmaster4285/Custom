@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Check } from "lucide-react"
 import { Link } from "react-router-dom"
+import { ROUTES } from "@/routes/config"
 
 const steps = [
   { number: 1, label: "Host Master Data" },
@@ -57,7 +58,7 @@ export default function HostSelectionPage() {
                     {step.label}
                   </span>
                 </div>
-                {index < steps.length - 1 && <div className="w-24 h-0.5 bg-gray-200 mx-4" />}
+                {index < steps.length - 1 && <div className="w-24 h-[2px] bg-gray-200 mx-4" />}
               </div>
             ))}
           </div>
@@ -263,7 +264,7 @@ export default function HostSelectionPage() {
           {/* Action Buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link to="/appointment-scheduling">
+              <Link to={ROUTES.APPOINTMENT_SCHEDULING}>
                 <Button variant="outline">Cancel</Button>
               </Link>
               <Button variant="link" className="text-blue-600">

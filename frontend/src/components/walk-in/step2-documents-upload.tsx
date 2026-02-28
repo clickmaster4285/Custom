@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/label"
-import { Camera, FileText, X } from "lucide-react"
+import { Camera, FileText, X, Upload, Video, VideoOff, AlertCircle } from "lucide-react"
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -12,6 +13,23 @@ function readFileAsDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file)
   })
 }
+
+function isImageDataUrl(s: string): boolean {
+  return typeof s === "string" && s.startsWith("data:image/")
+}
+
+function getCameraErrorMessage(err: unknown): string {
+  if (err instanceof Error) {
+    const n = err.name
+    if (n === "NotAllowedError") return "Camera permission denied. Please allow camera access."
+    if (n === "NotFoundError") return "No camera found."
+    if (n === "NotReadableError") return "Camera is in use by another app."
+    return err.message || "Could not access camera."
+  }
+  return "Could not access camera."
+}
+
+type DocumentField = keyof WalkInStep2DocumentsFormData
 
 export interface WalkInStep2DocumentsFormData {
   frontImage: string
@@ -47,12 +65,11 @@ export function WalkInStep2DocumentsUpload({
   onPrevious,
   onSaveAndContinue,
 }: WalkInStep2DocumentsUploadProps) {
+  const { toast } = useToast()
   const [supportingFiles, setSupportingFiles] = useState<UploadedFile[]>([])
   const photoInputRef = useRef<HTMLInputElement>(null)
   const idInputRef = useRef<HTMLInputElement>(null)
   const supportingInputRef = useRef<HTMLInputElement>(null)
-  const authInputRef = useRef<HTMLInputElement>(null)
-  const nocInputRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -64,25 +81,38 @@ export function WalkInStep2DocumentsUpload({
       const dataUrl = await readFileAsDataUrl(file)
       updateFormData({ [field]: dataUrl })
     } catch {
-      // ignore
+      console.error("Failed to read uploaded file", file)
+      try {
+        toast({ title: "Upload failed", description: "Could not read the selected file.", variant: "destructive" })
+      } catch {}
     }
     e.target.value = ""
   }
 
-  const handleSupportingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSupportingUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files?.length) return
-    Array.from(files).forEach((file) => {
-      setSupportingFiles((prev) => [
-        ...prev,
-        {
-          id: Math.random().toString(36).slice(2),
-          name: file.name,
-          size: `${(file.size / 1024 / 1024).toFixed(1)}MB`,
-          file,
-        },
-      ])
-    })
+    const newFiles: UploadedFile[] = []
+    let applicationLetter = formData.applicationLetter
+    let additionalDocument = formData.additionalDocument
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      newFiles.push({
+        id: Math.random().toString(36).slice(2),
+        name: file.name,
+        size: `${(file.size / 1024 / 1024).toFixed(1)}MB`,
+        file,
+      })
+      try {
+        const dataUrl = await readFileAsDataUrl(file)
+        if (i === 0) applicationLetter = dataUrl
+        else if (i === 1) additionalDocument = dataUrl
+      } catch {
+        console.error("Failed to read file", file.name)
+      }
+    }
+    setSupportingFiles((prev) => [...prev, ...newFiles])
+    updateFormData({ applicationLetter, additionalDocument })
     e.target.value = ""
   }
 
@@ -90,85 +120,189 @@ export function WalkInStep2DocumentsUpload({
     setSupportingFiles((prev) => prev.filter((f) => f.id !== id))
   }
 
+  const [cameraFor, setCameraFor] = useState<DocumentField | null>(null)
+  const [stream, setStream] = useState<MediaStream | null>(null)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+  const [cameraLoading, setCameraLoading] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop())
+      setStream(null)
+    }
+  }, [stream])
+
+  useEffect(() => {
+    return () => stopCamera()
+  }, [stopCamera])
+
+  useEffect(() => {
+    if (!stream || !videoRef.current) return
+    const video = videoRef.current
+    video.srcObject = stream
+    video.play().catch((e) => console.warn("Video play:", e))
+  }, [stream])
+
+  const startCamera = async () => {
+    setCameraError(null)
+    setCameraLoading(true)
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      })
+      setStream(mediaStream)
+    } catch (err) {
+      setCameraError(getCameraErrorMessage(err))
+    } finally {
+      setCameraLoading(false)
+    }
+  }
+
+  const captureFromCamera = () => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!cameraFor || !video || !stream || !canvas) return
+    const w = video.videoWidth
+    const h = video.videoHeight
+    if (!w || !h) {
+      setCameraError("Camera not ready. Wait a moment and try again.")
+      return
+    }
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    canvas.width = w
+    canvas.height = h
+    ctx.drawImage(video, 0, 0, w, h)
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92)
+    updateFormData({ [cameraFor]: dataUrl })
+    stopCamera()
+    setCameraFor(null)
+    setCameraError(null)
+  }
+
+  const openCameraFor = (field: DocumentField) => {
+    setCameraError(null)
+    setCameraFor(field)
+  }
+
+  const closeCamera = () => {
+    stopCamera()
+    setCameraFor(null)
+    setCameraError(null)
+  }
+
   return (
     <div className="space-y-8">
       <Label className="text-[22px] font-bold text-foreground">Documents Upload</Label>
 
-      {/* Photograph Upload */}
+      {/* Photograph – capture from camera or upload */}
       <div className="space-y-3">
-        <div className={uploadBoxClass}>
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#dbeafe]">
-            <Camera className="h-7 w-7 text-[#3366FF]" />
+        <p className="text-base font-medium text-foreground">Visitor Photograph</p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          {formData.frontImage && isImageDataUrl(formData.frontImage) && (
+            <div className="rounded-lg border border-border overflow-hidden bg-muted/20 shrink-0">
+              <img src={formData.frontImage} alt="Visitor photo" className="h-40 w-auto object-contain" />
+            </div>
+          )}
+          <div className={uploadBoxClass + " flex-1 min-w-0"}>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,image/*"
+              className="hidden"
+              onChange={(e) => handleUpload(e, "frontImage")}
+            />
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => openCameraFor("frontImage")}
+                className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white flex items-center gap-2"
+              >
+                <Camera className="h-4 w-4" /> Capture from camera
+              </button>
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="rounded-md border border-[#3366FF] bg-white px-4 py-2.5 text-base text-[#3366FF] flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" /> Upload from device
+              </button>
+            </div>
           </div>
-          <p className="text-base font-normal text-foreground">Upload a Visitor Photograph</p>
-          <p className="text-base text-muted-foreground">Image size: Max 2MB, Format JPG/PNG</p>
-          <input
-            ref={photoInputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png"
-            className="hidden"
-            onChange={(e) => handleUpload(e, "frontImage")}
-          />
-          <button
-            type="button"
-            onClick={() => photoInputRef.current?.click()}
-            className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
-          >
-            Upload Photo
-          </button>
         </div>
       </div>
 
-      {/* ID Document Upload */}
+      {/* ID Document – capture or upload */}
       <div className="space-y-3 border-t border-border pt-6">
-        <div className={uploadBoxClass}>
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#dbeafe]">
-            <Camera className="h-7 w-7 text-[#3366FF]" />
+        <p className="text-base font-medium text-foreground">Proof of Identification</p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          {formData.backImage && isImageDataUrl(formData.backImage) && (
+            <div className="rounded-lg border border-border overflow-hidden bg-muted/20 shrink-0">
+              <img src={formData.backImage} alt="ID document" className="h-40 w-auto object-contain" />
+            </div>
+          )}
+          <div className={uploadBoxClass + " flex-1 min-w-0"}>
+            <input
+              ref={idInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,image/*"
+              className="hidden"
+              onChange={(e) => handleUpload(e, "backImage")}
+            />
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => openCameraFor("backImage")} className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white flex items-center gap-2">
+                <Camera className="h-4 w-4" /> Capture from camera
+              </button>
+              <button type="button" onClick={() => idInputRef.current?.click()} className="rounded-md border border-[#3366FF] bg-white px-4 py-2.5 text-base text-[#3366FF] flex items-center gap-2">
+                <Upload className="h-4 w-4" /> Upload from device
+              </button>
+            </div>
           </div>
-          <p className="text-base font-normal text-foreground">Upload a Proof of Identification</p>
-          <p className="text-base text-muted-foreground">Image size: Max 5MB, Format PDF/JPG</p>
-          <input
-            ref={idInputRef}
-            type="file"
-            accept=".pdf,.jpg,.jpeg"
-            className="hidden"
-            onChange={(e) => handleUpload(e, "backImage")}
-          />
-          <button
-            type="button"
-            onClick={() => idInputRef.current?.click()}
-            className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
-          >
-            Upload Document
-          </button>
         </div>
       </div>
 
       {/* Supporting Documents */}
       <div className="space-y-3 border-t border-border pt-6">
-        <div className={uploadBoxClass}>
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#dbeafe]">
-            <Camera className="h-7 w-7 text-[#3366FF]" />
+        <p className="text-base font-medium text-foreground">Supporting document(s)</p>
+        <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+          {formData.applicationLetter && isImageDataUrl(formData.applicationLetter) && (
+            <div className="rounded-lg border border-border overflow-hidden bg-muted/20 shrink-0">
+              <img src={formData.applicationLetter} alt="Supporting doc 1" className="h-40 w-auto object-contain" />
+            </div>
+          )}
+          {formData.additionalDocument && isImageDataUrl(formData.additionalDocument) && (
+            <div className="rounded-lg border border-border overflow-hidden bg-muted/20 shrink-0">
+              <img src={formData.additionalDocument} alt="Supporting doc 2" className="h-40 w-auto object-contain" />
+            </div>
+          )}
+          <div className={uploadBoxClass + " flex-1 min-w-0"}>
+            <input
+              ref={supportingInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,image/*"
+              multiple
+              className="hidden"
+              onChange={handleSupportingUpload}
+            />
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => openCameraFor("applicationLetter")} className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white flex items-center gap-2">
+                <Camera className="h-4 w-4" /> Capture (doc 1)
+              </button>
+              <button type="button" onClick={() => openCameraFor("additionalDocument")} className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white flex items-center gap-2">
+                <Camera className="h-4 w-4" /> Capture (doc 2)
+              </button>
+              <button type="button" onClick={() => supportingInputRef.current?.click()} className="rounded-md border border-[#3366FF] bg-white px-4 py-2.5 text-base text-[#3366FF] flex items-center gap-2">
+                <Upload className="h-4 w-4" /> Upload from device
+              </button>
+            </div>
           </div>
-          <p className="text-base font-normal text-foreground">Upload supporting document(s)</p>
-          <p className="text-base text-muted-foreground">
-            Total Image size: Max 10MB, Format PDF/JPG/PNG
-          </p>
-          <input
-            ref={supportingInputRef}
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            multiple
-            className="hidden"
-            onChange={handleSupportingUpload}
-          />
-          <button
-            type="button"
-            onClick={() => supportingInputRef.current?.click()}
-            className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
-          >
-            Upload Document(s)
-          </button>
         </div>
         {supportingFiles.length > 0 && (
           <div className="space-y-2">
@@ -196,61 +330,65 @@ export function WalkInStep2DocumentsUpload({
         )}
       </div>
 
-      {/* Authorization letter (if applicable) */}
-      <div className="space-y-3 border-t border-border pt-6">
-        <Label className="text-base font-medium text-foreground">
-          Authorization letter (if applicable)
-        </Label>
-        <div className={uploadBoxClass}>
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#dbeafe]">
-            <Camera className="h-7 w-7 text-[#3366FF]" />
-          </div>
-          <p className="text-base font-normal text-foreground">Upload a Proof of Identification</p>
-          <p className="text-base text-muted-foreground">Image size: Max 5MB, Format PDF/JPG</p>
-          <input
-            ref={authInputRef}
-            type="file"
-            accept=".pdf,.jpg,.jpeg"
-            className="hidden"
-            onChange={(e) => handleUpload(e, "applicationLetter")}
-          />
-          <button
-            type="button"
-            onClick={() => authInputRef.current?.click()}
-            className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
-          >
-            Upload Document
-          </button>
+      {/* Camera panel – shown when capturing one of the documents */}
+      {cameraFor && (
+        <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+          {cameraError && (
+            <div className="flex flex-col gap-2 text-destructive text-sm py-2 px-3 bg-destructive/10 rounded-md">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{cameraError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setCameraError(null); startCamera(); }}
+                disabled={cameraLoading}
+                className="self-start rounded-md bg-[#3366FF] px-3 py-1.5 text-white text-sm"
+              >
+                {cameraLoading ? "Opening…" : "Try again"}
+              </button>
+            </div>
+          )}
+          {!stream && !cameraError && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={startCamera}
+                disabled={cameraLoading}
+                className="rounded-md bg-[#3366FF] px-4 py-2.5 text-white flex items-center gap-2"
+              >
+                {cameraLoading ? "Opening…" : <><Video className="h-4 w-4" /> Start camera</>}
+              </button>
+              <button type="button" onClick={closeCamera} className="rounded-md border border-border px-4 py-2.5">
+                Cancel
+              </button>
+            </div>
+          )}
+          {!stream && cameraError && (
+            <div className="flex gap-2">
+              <button type="button" onClick={closeCamera} className="rounded-md border border-border px-4 py-2.5">
+                Cancel
+              </button>
+            </div>
+          )}
+          {stream && (
+            <>
+              <div className="rounded overflow-hidden bg-black aspect-video max-w-md">
+                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              </div>
+              <canvas ref={canvasRef} className="hidden" />
+              <div className="flex gap-2">
+                <button type="button" onClick={captureFromCamera} className="rounded-md bg-[#3366FF] px-4 py-2.5 text-white flex items-center gap-2">
+                  <Camera className="h-4 w-4" /> Capture
+                </button>
+                <button type="button" onClick={closeCamera} className="rounded-md border border-border px-4 py-2.5 flex items-center gap-2">
+                  <VideoOff className="h-4 w-4" /> Cancel
+                </button>
+              </div>
+            </>
+          )}
         </div>
-      </div>
-
-      {/* NOC from Relevant Authority (if required) */}
-      <div className="space-y-3 border-t border-border pt-6">
-        <Label className="text-base font-medium text-foreground">
-          NOC from Relevant Authority (if required)
-        </Label>
-        <div className={uploadBoxClass}>
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#dbeafe]">
-            <Camera className="h-7 w-7 text-[#3366FF]" />
-          </div>
-          <p className="text-base font-normal text-foreground">Upload a Proof of Identification</p>
-          <p className="text-base text-muted-foreground">Image size: Max 5MB, Format PDF/JPG</p>
-          <input
-            ref={nocInputRef}
-            type="file"
-            accept=".pdf,.jpg,.jpeg"
-            className="hidden"
-            onChange={(e) => handleUpload(e, "additionalDocument")}
-          />
-          <button
-            type="button"
-            onClick={() => nocInputRef.current?.click()}
-            className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
-          >
-            Upload Document
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Action buttons – same as first form */}
       <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-t border-border">
