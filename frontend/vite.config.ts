@@ -28,6 +28,12 @@ export default defineConfig({
   optimizeDeps: {
     include: ["qrcode"],
   },
+  build: {
+    commonjsOptions: {
+      include: [/qrcode/, /node_modules/],
+      transformMixedEsModules: true,
+    },
+  },
   resolve: {
     alias: {
       "@": path.join(projectRoot, "src"),
