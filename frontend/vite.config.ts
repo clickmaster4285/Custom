@@ -25,6 +25,9 @@ export default defineConfig({
   root: projectRoot,
   publicDir: path.join(projectRoot, "public"),
   plugins: [ensureDistIconPlugin(), react()],
+  optimizeDeps: {
+    include: ["qrcode"],
+  },
   resolve: {
     alias: {
       "@": path.join(projectRoot, "src"),

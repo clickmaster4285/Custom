@@ -1,4 +1,3 @@
-
 import { LayoutDashboard, BarChart3, Activity, Video } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -97,6 +96,20 @@ export default function OperationsDashboardPage() {
             <p className="text-xs text-muted-foreground mt-2">
               {OPERATIONS_CAMERAS.filter((c) => c.active).length} active / {OPERATIONS_CAMERAS.length} total
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Video className="h-5 w-5" /> Live feed
+            </CardTitle>
+            <CardDescription>Live camera feed</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="relative aspect-video rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center text-muted-foreground text-sm">
+              Live feed
+            </div>
           </CardContent>
         </Card>
       </div>

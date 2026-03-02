@@ -51,6 +51,10 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.ANALYTICS_DASHBOARD), page: "AnalyticsDashboard" },
   { path: toChildPath(ROUTES.LIVE_CAMERA_GRID), page: "LiveCameraGrid" },
   { path: toChildPath(ROUTES.VEHICLE_DETECTION), page: "VehicleDetection" },
+  { path: toChildPath(ROUTES.AI_MODELS), page: "AiModels" },
+  { path: toChildPath(ROUTES.AI_ZONES), page: "AiZones" },
+  { path: toChildPath(ROUTES.AI_RULES), page: "AiRules" },
+  { path: toChildPath(ROUTES.AI_TRAINING), page: "AiTraining" },
   { path: toChildPath(ROUTES.LIVE_MONITORING), page: "LiveMonitoring" },
   // Seizures
   { path: toChildPath(ROUTES.NEW_SEIZURE_ENTRY), page: "NewSeizureEntry" },
@@ -82,6 +86,7 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.SALE_COMPLETION), page: "SaleCompletion" },
   { path: toChildPath(ROUTES.REVENUE_REPORTS), page: "RevenueReports" },
   { path: toChildPath(ROUTES.CAMERA_MANAGEMENT), page: "CameraManagement" },
+  { path: toChildPath(ROUTES.ANALYTICS_CAMERA_MANAGEMENT), page: "AnalyticsCameraManagement" },
   { path: toChildPath(ROUTES.OBJECT_DETECTION), page: "ObjectDetection" },
   { path: toChildPath(ROUTES.ANPR_SETTINGS), page: "AnprSettings" },
   { path: toChildPath(ROUTES.ANOMALY_DETECTION), page: "AnomalyDetection" },
@@ -111,4 +116,14 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.INTEGRATIONS), page: "Integrations" },
   { path: toChildPath(ROUTES.NOTIFICATIONS), page: "Notifications" },
   { path: toChildPath(ROUTES.SECURITY_ACCESS), page: "SecurityAccess" },
+  // Additional modules
+  { path: toChildPath(ROUTES.TABLE_OF_CONTENTS), page: "TableOfContents" },
+  { path: toChildPath(ROUTES.PLAYBACK_SEARCH), page: "PlaybackSearch" },
+  { path: toChildPath(ROUTES.THERMAL_IMAGING), page: "ThermalImaging" },
+  { path: toChildPath(ROUTES.ALERTS_NOTIFICATIONS), page: "AlertsNotifications" },
+  { path: toChildPath(ROUTES.INCIDENT_MANAGEMENT), page: "IncidentManagement" },
+  { path: toChildPath(ROUTES.PEOPLE_DATABASE), page: "PeopleDatabase" },
+  { path: toChildPath(ROUTES.VEHICLE_DATABASE), page: "VehicleDatabase" },
+  { path: toChildPath(ROUTES.MOBILE_APP), page: "MobileApp" },
+  { path: toChildPath(ROUTES.DATABASE_TABLES), page: "DatabaseTables" },
 ]

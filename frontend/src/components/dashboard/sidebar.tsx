@@ -1,10 +1,30 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useLocation, Link, NavLink } from "react-router-dom"
-import { Eye, ChevronDown, ChevronRight } from "lucide-react"
+import { Eye, ChevronDown, ChevronRight, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAV_SECTIONS, getAncestorMenusForPath, type NavGroup } from "@/routes/config"
 import { getNodeKey, hasActiveDescendant, isNavGroup, type SidebarNode } from "@/components/dashboard/sidebar.helpers"
 import { renderMenuIcon } from "@/components/dashboard/sidebar.icons"
+
+const FAVORITES_KEY = "tekeye-sidebar-favorites"
+
+export type FavoriteItem = { href: string; label: string }
+
+function loadFavorites(): FavoriteItem[] {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((x): x is FavoriteItem => x && typeof x.href === "string" && typeof x.label === "string")
+  } catch {
+    return []
+  }
+}
+
+function saveFavorites(items: FavoriteItem[]) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(items))
+}
 
 type SidebarChildrenProps = {
   nodes: SidebarNode[]
@@ -13,6 +33,8 @@ type SidebarChildrenProps = {
   onToggle: (label: string) => void
   childLinkClass: (href: string) => string
   depth: number
+  isFavorite: (href: string) => boolean
+  onToggleFavorite: (href: string, label: string) => void
 }
 
 function SidebarChildren({
@@ -22,16 +44,37 @@ function SidebarChildren({
   onToggle,
   childLinkClass,
   depth,
+  isFavorite,
+  onToggleFavorite,
 }: SidebarChildrenProps) {
   return (
     <>
       {nodes.map((node) => {
         if (!isNavGroup(node)) {
+          const fav = isFavorite(node.href)
           return (
-            <Link key={getNodeKey(node)} to={node.href} className={cn(childLinkClass(node.href), depth > 1 && "pl-6 text-[13px]")}>
-              {renderMenuIcon(node.label, 12, "shrink-0")}
-              <span>{node.label}</span>
-            </Link>
+            <div key={getNodeKey(node)} className="group/link flex items-center gap-1">
+              <Link to={node.href} className={cn("flex-1 min-w-0 flex items-center gap-2", childLinkClass(node.href), depth > 1 && "pl-6 text-[13px]")}>
+                {renderMenuIcon(node.label, 12, "shrink-0")}
+                <span className="truncate">{node.label}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onToggleFavorite(node.href, node.label)
+                }}
+                className={cn(
+                  "shrink-0 p-1 rounded opacity-0 group-hover/link:opacity-100 focus:opacity-100 transition-opacity",
+                  fav ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"
+                )}
+                aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+                title={fav ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Star size={12} className={fav ? "fill-current" : undefined} />
+              </button>
+            </div>
           )
         }
 
@@ -67,6 +110,8 @@ function SidebarChildren({
                   onToggle={onToggle}
                   childLinkClass={childLinkClass}
                   depth={depth + 1}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={onToggleFavorite}
                 />
               </div>
             )}
@@ -80,10 +125,15 @@ function SidebarChildren({
 export function Sidebar() {
   const pathname = useLocation().pathname
   const [expandedItems, setExpandedItems] = useState<string[]>(() => getAncestorMenusForPath(pathname))
+  const [favorites, setFavorites] = useState<FavoriteItem[]>(loadFavorites)
 
   useEffect(() => {
     setExpandedItems(getAncestorMenusForPath(pathname))
   }, [pathname])
+
+  useEffect(() => {
+    saveFavorites(favorites)
+  }, [favorites])
 
   const toggleExpand = (label: string) => {
     setExpandedItems((prev) =>
@@ -92,6 +142,15 @@ export function Sidebar() {
   }
 
   const isExpanded = (label: string) => expandedItems.includes(label)
+
+  const isFavorite = useCallback((href: string) => favorites.some((f) => f.href === href), [favorites])
+  const onToggleFavorite = useCallback((href: string, label: string) => {
+    setFavorites((prev) => {
+      const has = prev.some((f) => f.href === href)
+      if (has) return prev.filter((f) => f.href !== href)
+      return [...prev, { href, label }]
+    })
+  }, [])
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -121,6 +180,47 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-3" aria-label="Main">
+        {favorites.length > 0 && (
+          <div className="mb-3">
+            <div className="px-3 py-2 text-[11px] font-semibold text-[#6B7280] tracking-[0.12em] uppercase">
+              Favorites
+            </div>
+            <div className="space-y-1">
+              {favorites.map((fav) => {
+                const active = pathname === fav.href
+                return (
+                  <div key={fav.href} className="group/link flex items-center gap-1">
+                    <Link
+                      to={fav.href}
+                      className={cn(
+                        "flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-md text-sm border-l-2 border-transparent transition-all",
+                        active
+                          ? "bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] text-white font-medium border-[#155DFC]"
+                          : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
+                      )}
+                    >
+                      {renderMenuIcon(fav.label, 18, "shrink-0")}
+                      <span className="truncate whitespace-nowrap">{fav.label}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onToggleFavorite(fav.href, fav.label)
+                      }}
+                      className="shrink-0 p-1 rounded text-amber-500 opacity-0 group-hover/link:opacity-100 focus:opacity-100 hover:bg-amber-500/10"
+                      aria-label="Remove from favorites"
+                      title="Remove from favorites"
+                    >
+                      <Star size={14} className="fill-current" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {NAV_SECTIONS.map((section) => (
           <div key={section.title} className="mb-3">
             {section.title && (
@@ -130,16 +230,30 @@ export function Sidebar() {
             )}
             {section.items.map((item) => {
               if (!isNavGroup(item)) {
+                const fav = isFavorite(item.href)
                 return (
-                  <NavLink
-                    key={getNodeKey(item)}
-                    to={item.href}
-                    className={linkClass}
-                    end={item.href === "/"}
-                  >
-                    {renderMenuIcon(item.label, 18, "shrink-0")}
-                    <span className="whitespace-nowrap">{item.label}</span>
-                  </NavLink>
+                  <div key={getNodeKey(item)} className="group/link flex items-center gap-1">
+                    <NavLink to={item.href} className={({ isActive }) => cn("flex-1 min-w-0 flex items-center gap-3", linkClass({ isActive }))} end={item.href === "/"}>
+                      {renderMenuIcon(item.label, 18, "shrink-0")}
+                      <span className="whitespace-nowrap truncate">{item.label}</span>
+                    </NavLink>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        onToggleFavorite(item.href, item.label)
+                      }}
+                      className={cn(
+                        "shrink-0 p-1 rounded opacity-0 group-hover/link:opacity-100 focus:opacity-100 transition-opacity",
+                        fav ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"
+                      )}
+                      aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+                      title={fav ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <Star size={14} className={fav ? "fill-current" : undefined} />
+                    </button>
+                  </div>
                 )
               }
 
@@ -179,6 +293,8 @@ export function Sidebar() {
                         onToggle={toggleExpand}
                         childLinkClass={childLinkClass}
                         depth={1}
+                        isFavorite={isFavorite}
+                        onToggleFavorite={onToggleFavorite}
                       />
                     </div>
                   )}
@@ -190,7 +306,9 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-[#E5E7EB] shrink-0">
-        <p className="text-xs text-[#6B7280]">© 2024 Powered by OSIEMENS</p>
+        <p className="text-sm leading-4 text-[#6B7280] font-normal">
+          © 2026 Powered by <span className="underline">Clickmasters.</span>
+        </p>
       </div>
     </aside>
   )

@@ -207,7 +207,7 @@ export function WalkInStep3VisitDetails({
         <Label className="text-[22px] font-bold text-foreground">Hosting Officer Details</Label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1">
-            <Label className="text-base text-muted-foreground">Hosting Officer Name</Label>
+            <Label className="text-sm text-muted-foreground">Hosting Officer Name</Label>
             <p className="text-base font-normal text-foreground">
               {formik.values.hostFullName === "jahandad"
                 ? "Mr. Jahandad Khan"
@@ -219,25 +219,25 @@ export function WalkInStep3VisitDetails({
             </p>
           </div>
           <div className="space-y-1">
-            <Label className="text-base text-muted-foreground">Hosting Officer Designation</Label>
+            <Label className="text-sm text-muted-foreground">Hosting Officer Designation</Label>
             <p className="text-base font-normal text-foreground">
               {formik.values.hostDesignation || "—"}
             </p>
           </div>
           <div className="space-y-1">
-            <Label className="text-base text-muted-foreground">Hosting Officer Department</Label>
+            <Label className="text-sm text-muted-foreground">Hosting Officer Department</Label>
             <p className="text-base font-normal text-foreground">
               {formik.values.hostDepartment || "—"}
             </p>
           </div>
           <div className="space-y-1">
-            <Label className="text-base text-muted-foreground">Hosting Officer Email</Label>
+            <Label className="text-sm text-muted-foreground">Hosting Officer Email</Label>
             <p className="text-base font-normal text-foreground">
               {formik.values.hostEmail || "—"}
             </p>
           </div>
           <div className="space-y-1">
-            <Label className="text-base text-muted-foreground">Hosting Officer Contact Number</Label>
+            <Label className="text-sm text-muted-foreground">Hosting Officer Contact Number</Label>
             <div className="flex items-center gap-2">
               <p className="text-base font-normal text-foreground">
                 {formik.values.hostContactNumber || "—"}
@@ -251,7 +251,7 @@ export function WalkInStep3VisitDetails({
             </div>
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label className="text-base text-muted-foreground">Availability Status</Label>
+            <Label className="text-sm text-muted-foreground">Availability Status</Label>
             <p className="text-base font-medium text-green-600">Available</p>
             <button
               type="button"
@@ -324,7 +324,7 @@ export function WalkInStep3VisitDetails({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-base text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             (Note: Slot duration cannot be exceeded later on once booked.)
           </p>
         </div>
@@ -360,7 +360,7 @@ export function WalkInStep3VisitDetails({
             </Label>
           </div>
         </RadioGroup>
-        <p className="text-base text-muted-foreground">(Priority level for the visit)</p>
+        <p className="text-sm text-muted-foreground">(Priority level for the visit)</p>
       </div>
 
       {/* Action buttons – same as first form */}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useEffect, useState } from "react"
-import QRCode from "qrcode"
+import { toDataURL } from "qrcode"
 import { Label } from "@/components/ui/label"
 import { QrCode } from "lucide-react"
 
@@ -75,7 +75,7 @@ export function WalkInStep4QRCodeGeneration({
 
   const [qrDataUrl, setQrDataUrl] = useState<string>("")
   useEffect(() => {
-    QRCode.toDataURL(qrPayload, { width: 200, margin: 2 })
+    toDataURL(qrPayload, { width: 200, margin: 2 })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(""))
   }, [qrPayload])
@@ -83,7 +83,7 @@ export function WalkInStep4QRCodeGeneration({
   return (
     <div className="space-y-8">
       <Label className="text-[22px] font-bold text-foreground">QR Code Generation</Label>
-      <p className="text-base text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         QR code is generated from the information you added. Print it or finish to save the registration.
       </p>
 

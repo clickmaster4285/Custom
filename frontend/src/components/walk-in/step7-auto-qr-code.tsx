@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import QRCode from "qrcode"
+import { toDataURL } from "qrcode"
 
 interface WalkInAutoQrFormData {
   cnicPassport: string
@@ -137,7 +137,7 @@ export function WalkInStep7AutoQrCode({ formData, updateFormData }: WalkInStep7A
 
   useEffect(() => {
     let mounted = true
-    QRCode.toDataURL(qrPayload, {
+    toDataURL(qrPayload, {
       errorCorrectionLevel: "M",
       margin: 1,
       width: 280,
@@ -206,7 +206,7 @@ export function WalkInStep7AutoQrCode({ formData, updateFormData }: WalkInStep7A
               Generating QR...
             </div>
           )}
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-sm text-muted-foreground text-center">
             On scan, barrier gate can validate CNIC + allowed zone and open only for permitted access.
           </p>
         </div>

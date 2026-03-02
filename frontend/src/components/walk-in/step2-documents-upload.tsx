@@ -314,7 +314,7 @@ export function WalkInStep2DocumentsUpload({
                 <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base text-foreground">{f.name}</p>
-                  <p className="text-base text-muted-foreground">File size: {f.size}</p>
+                  <p className="text-sm text-muted-foreground">File size: {f.size}</p>
                 </div>
                 <button
                   type="button"

@@ -166,7 +166,7 @@ export function WalkInStep1BasicInfo({
         <div className="space-y-2">
           <Label className="text-sm font-medium text-foreground">
             Full Name <span className="text-red-500">*</span>{" "}
-            <span className="text-muted-foreground text-xs">(as per CNIC/Passport)</span>
+            <span className="text-muted-foreground text-sm">(as per CNIC/Passport)</span>
           </Label>
           <Input
             placeholder="e.g. Muhammad Ali Hassan"

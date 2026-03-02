@@ -211,7 +211,7 @@ export function WalkInStep1VisitorDetails({
                 </span>
                 <div className="flex min-w-0 flex-col gap-0.5 pr-6">
                   <span className="text-base font-semibold text-foreground">{label}</span>
-                  <span className="text-base text-muted-foreground">{description}</span>
+                  <span className="text-sm text-muted-foreground">{description}</span>
                 </div>
               </button>
             )
@@ -239,7 +239,7 @@ export function WalkInStep1VisitorDetails({
             {formik.touched.fullName && formik.errors.fullName && (
               <p className="text-sm text-destructive">{String(formik.errors.fullName)}</p>
             )}
-            <p className="text-base text-muted-foreground">(as per CNIC/Passport)</p>
+            <p className="text-sm text-muted-foreground">(as per CNIC/Passport)</p>
           </div>
           <div className="space-y-2">
             <Label className="text-base text-foreground">Gender</Label>
@@ -273,7 +273,7 @@ export function WalkInStep1VisitorDetails({
             {formik.touched.cnicNumber && formik.errors.cnicNumber && (
               <p className="text-sm text-destructive">{String(formik.errors.cnicNumber)}</p>
             )}
-            <p className="text-base text-muted-foreground">(Mandatory for Pakistani Nationals)</p>
+            <p className="text-sm text-muted-foreground">(Mandatory for Pakistani Nationals)</p>
           </div>
           <div className="space-y-2">
             <Label className="text-base text-foreground">Passport Number</Label>
@@ -291,7 +291,7 @@ export function WalkInStep1VisitorDetails({
             {formik.touched.passportNumber && formik.errors.passportNumber && (
               <p className="text-sm text-destructive">{String(formik.errors.passportNumber)}</p>
             )}
-            <p className="text-base text-muted-foreground">(Mandatory for Foreign Nationals)</p>
+            <p className="text-sm text-muted-foreground">(Mandatory for Foreign Nationals)</p>
           </div>
           <div className="space-y-2">
             <Label className="text-base text-foreground">Nationality</Label>
@@ -311,7 +311,7 @@ export function WalkInStep1VisitorDetails({
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-base text-muted-foreground">(Country of Citizenship)</p>
+            <p className="text-sm text-muted-foreground">(Country of Citizenship)</p>
           </div>
           <div className="space-y-2">
             <Label className="text-base text-foreground">Date of Birth</Label>
@@ -324,7 +324,7 @@ export function WalkInStep1VisitorDetails({
               />
               <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             </div>
-            <p className="text-base text-muted-foreground">(for identity verification)</p>
+            <p className="text-sm text-muted-foreground">(for identity verification)</p>
           </div>
           <div className="space-y-2">
             <Label className="text-base text-foreground">Mobile Number</Label>
@@ -342,7 +342,7 @@ export function WalkInStep1VisitorDetails({
             {formik.touched.mobileNumber && formik.errors.mobileNumber && (
               <p className="text-sm text-destructive">{String(formik.errors.mobileNumber)}</p>
             )}
-            <p className="text-base text-muted-foreground">(SMS Notification & OTP)</p>
+            <p className="text-sm text-muted-foreground">(SMS Notification & OTP)</p>
           </div>
           <div className="space-y-2">
             <Label className="text-base text-foreground">Email Address</Label>
@@ -353,7 +353,7 @@ export function WalkInStep1VisitorDetails({
               onChange={(e) => updateFormData({ emailAddress: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
-            <p className="text-base text-muted-foreground">(Confirmation and Status Updates)</p>
+            <p className="text-sm text-muted-foreground">(Confirmation and Status Updates)</p>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label className="text-base text-foreground">Residential Address</Label>
@@ -363,7 +363,7 @@ export function WalkInStep1VisitorDetails({
               onChange={(e) => updateFormData({ residentialAddress: e.target.value })}
               className="min-h-20 text-base bg-background border-border resize-none"
             />
-            <p className="text-base text-muted-foreground">(Visitor Address)</p>
+            <p className="text-sm text-muted-foreground">(Visitor Address)</p>
           </div>
         </div>
       </div>
@@ -406,7 +406,7 @@ export function WalkInStep1VisitorDetails({
               onChange={(e) => updateFormData({ ntnRegistrationNo: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
-            <p className="text-base text-muted-foreground">(Business registration - optional)</p>
+            <p className="text-sm text-muted-foreground">(Business registration - optional)</p>
           </div>
           <div className="space-y-2">
             <Label className="text-base text-foreground">Designation</Label>
@@ -416,7 +416,7 @@ export function WalkInStep1VisitorDetails({
               onChange={(e) => updateFormData({ designation: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
-            <p className="text-base text-muted-foreground">(Mandatory for Pakistani Nationals)</p>
+            <p className="text-sm text-muted-foreground">(Mandatory for Pakistani Nationals)</p>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label className="text-base text-foreground">Office Address</Label>
@@ -426,7 +426,7 @@ export function WalkInStep1VisitorDetails({
               onChange={(e) => updateFormData({ officeAddress: e.target.value })}
               className="min-h-20 text-base bg-background border-border resize-none"
             />
-            <p className="text-base text-muted-foreground">(Organization Address)</p>
+            <p className="text-sm text-muted-foreground">(Organization Address)</p>
           </div>
         </div>
       </div>

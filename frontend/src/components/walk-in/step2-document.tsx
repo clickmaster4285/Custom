@@ -203,7 +203,7 @@ export function WalkInStep2Document({
             </div>
           )}
           {images.length > 0 && (
-            <p className="text-xs text-muted-foreground">{images.length} image(s) added</p>
+            <p className="text-sm text-muted-foreground">{images.length} image(s) added</p>
           )}
         </div>
 
