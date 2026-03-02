@@ -159,10 +159,10 @@ export function Sidebar() {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 border border-transparent",
+      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 border border-transparent bg-transparent",
       isActive
-        ? "sidebar-active-gradient text-[#2860C8] font-medium border-[#5A82E8]"
-        : "text-[#4B5563] hover:text-[#2860C8] hover:bg-[#D2DCF5]/80"
+        ? "text-[#2860C8] font-medium border-[#5A82E8]"
+        : "text-[#4B5563] hover:text-[#2860C8]"
     )
 
   const childLinkClass = (href: string) =>
@@ -174,7 +174,7 @@ export function Sidebar() {
     )
 
   return (
-    <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[333px] h-screen bg-[#FFFFFF] border-r border-[#E5E7EB] flex flex-col shrink-0 pt-[24px] pr-[3px] pl-[25px]">
+    <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[333px] h-screen bg-[#FFFFFF] border-r border-[#E5E7EB] flex flex-col shrink-0 pt-[15px] pr-[3px] pl-[15px]">
       <div className="pb-4 border-b border-[#E5E7EB] shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#5B9AFF] to-white flex items-center justify-center">
@@ -184,7 +184,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-3" aria-label="Main">
+      <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-1" aria-label="Main">
         {favorites.length > 0 && (
           <div className="mb-3">
             <div className="px-3 py-2 text-[11px] font-semibold text-[#6B7280] tracking-[0.12em] uppercase">
@@ -194,14 +194,21 @@ export function Sidebar() {
               {favorites.map((fav) => {
                 const active = pathname === fav.href
                 return (
-                  <div key={fav.href} className="group/link flex items-center gap-1">
+                  <div
+                    key={fav.href}
+                    className={cn(
+                      "group/link flex items-center gap-1 rounded-xl",
+                      active && "sidebar-active-gradient",
+                      "hover:bg-[#D2DCF5]/80"
+                    )}
+                  >
                     <Link
                       to={fav.href}
                       className={cn(
-                        "flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm border border-transparent transition-all",
+                        "flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm border border-transparent transition-all bg-transparent",
                         active
-                          ? "sidebar-active-gradient text-[#2860C8] font-medium border-[#5A82E8]"
-                          : "text-[#4B5563] hover:text-[#2860C8] hover:bg-[#D2DCF5]/80"
+                          ? "text-[#2860C8] font-medium border-[#5A82E8]"
+                          : "text-[#4B5563] hover:text-[#2860C8]"
                       )}
                     >
                       <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
@@ -238,8 +245,16 @@ export function Sidebar() {
             {section.items.map((item) => {
               if (!isNavGroup(item)) {
                 const fav = isFavorite(item.href)
+                const isLinkActive = pathname === item.href
                 return (
-                  <div key={getNodeKey(item)} className="group/link flex items-center gap-1">
+                  <div
+                    key={getNodeKey(item)}
+                    className={cn(
+                      "group/link flex items-center gap-1 rounded-xl",
+                      isLinkActive && "sidebar-active-gradient",
+                      "hover:bg-[#D2DCF5]/80"
+                    )}
+                  >
                     <NavLink to={item.href} className={({ isActive }) => cn("flex-1 min-w-0 flex items-center gap-3", linkClass({ isActive }))} end={item.href === "/"}>
                       <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
                         {renderMenuIcon(item.label, 18, "shrink-0")}
