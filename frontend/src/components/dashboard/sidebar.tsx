@@ -185,7 +185,7 @@ export function Sidebar() {
       <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-1" aria-label="Main">
         {favorites.length > 0 && (
           <div className="mb-3">
-            <div className="px-3 py-2 text-[11px] font-semibold text-[#6B7280] tracking-[0.12em] uppercase">
+            <div className="sidebar-section-heading px-3 py-2">
               Favorites
             </div>
             <div className="space-y-1">
@@ -234,7 +234,7 @@ export function Sidebar() {
         {NAV_SECTIONS.map((section) => (
           <div key={section.title} className="mb-3">
             {section.title && (
-              <div className="px-3 py-2 text-[11px] font-semibold text-[#6B7280] tracking-[0.12em] uppercase">
+              <div className="sidebar-section-heading px-3 py-2">
                 {section.title}
               </div>
             )}

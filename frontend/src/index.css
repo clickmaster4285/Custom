@@ -121,6 +121,17 @@
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
+/* Sidebar section headings: Inter 12px, Semi Bold 600, line-height 16px, letter-spacing 0 */
+.sidebar-section-heading {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: #6B7280;
+  text-transform: uppercase;
+}
+
 /* Sidebar active menu: soft light-blue gradient (darker shade) + thin blue border */
 .sidebar-active-gradient {
   background: linear-gradient(
