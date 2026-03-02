@@ -3,7 +3,6 @@ import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
 
 const OPERATIONS_CAMERAS = [
   { id: "CAM-O1", location: "Main Gate", active: true },
@@ -105,20 +104,11 @@ export default function OperationsDashboardPage() {
             <CardTitle className="flex items-center gap-2">
               <Video className="h-5 w-5" /> Live feed
             </CardTitle>
-            <CardDescription>Same stream as configured in live-stream-url — runs everywhere</CardDescription>
+            <CardDescription>Live camera feed</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="relative aspect-video rounded-lg border border-border bg-black overflow-hidden">
-              <video
-                src={DEFAULT_LIVE_STREAM_URL}
-                className="w-full h-full object-contain"
-                muted
-                playsInline
-                autoPlay
-                loop
-                controls
-                title="Live feed"
-              />
+            <div className="relative aspect-video rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center text-muted-foreground text-sm">
+              Live feed
             </div>
           </CardContent>
         </Card>

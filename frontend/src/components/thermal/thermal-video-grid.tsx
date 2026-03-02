@@ -13,7 +13,6 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { Thermometer, Palette, Gauge } from "lucide-react"
-import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
 
 const COLOR_PALETTES = ["Ironbow", "Rainbow", "White-Hot", "Black-Hot"]
 const MOCK_THERMAL_CAMERAS = [
@@ -144,16 +143,9 @@ export function ThermalVideoGrid() {
                   } : undefined}
                 >
                   {useLiveFeed ? (
-                    <video
-                      src={DEFAULT_LIVE_STREAM_URL}
-                      className="absolute inset-0 w-full h-full object-contain"
-                      muted
-                      playsInline
-                      autoPlay
-                      loop
-                      controls
-                      title={cam.name}
-                    />
+                    <div className="absolute inset-0 w-full h-full flex items-center justify-center text-white/60 text-sm">
+                      Live feed
+                    </div>
                   ) : null}
                   <div className="absolute top-1 left-1 flex items-center gap-1">
                     <Badge variant="secondary" className="text-xs bg-black/50 text-white">

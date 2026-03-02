@@ -3,7 +3,6 @@ import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
 
 
 export default function LiveMonitoringPage() {
@@ -76,25 +75,16 @@ export default function LiveMonitoringPage() {
               ].map((cam) => (
                 <div
                   key={cam.id}
-                  className="relative aspect-video rounded-lg border border-border bg-black overflow-hidden"
+                  className="relative aspect-video rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center text-muted-foreground text-sm"
                 >
-                  <video
-                    src={DEFAULT_LIVE_STREAM_URL}
-                    className="w-full h-full object-contain"
-                    muted
-                    playsInline
-                    autoPlay
-                    loop
-                    controls
-                    title={cam.name}
-                  />
+                  <span className="absolute inset-0 flex items-center justify-center">Live feed</span>
                   <Badge
                     variant={cam.active ? "default" : "secondary"}
-                    className="absolute top-2 right-2"
+                    className="absolute top-2 right-2 z-10"
                   >
                     {cam.active ? "Active" : "Inactive"}
                   </Badge>
-                  <span className="absolute bottom-1 left-1 text-xs font-medium bg-black/60 text-white px-1.5 py-0.5 rounded">{cam.name}</span>
+                  <span className="absolute bottom-1 left-1 z-10 text-xs font-medium bg-black/60 text-white px-1.5 py-0.5 rounded">{cam.name}</span>
                 </div>
               ))}
             </div>

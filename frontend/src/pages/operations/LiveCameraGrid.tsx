@@ -38,7 +38,6 @@ import {
   Square,
   Circle,
 } from "lucide-react"
-import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
 
 const LAYOUTS = ["1x1", "2x2", "3x3", "4x4", "6x6", "Custom"]
 const CAMERA_TYPES = ["Fixed", "PTZ", "Thermal", "360"]
@@ -295,19 +294,10 @@ export default function LiveCameraGridPage() {
           <Card>
             <CardContent className="p-4">
               {fullScreenCell ? (
-                <div className="relative aspect-video rounded-lg border border-border bg-black overflow-hidden">
+                <div className="relative aspect-video rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center text-muted-foreground text-sm">
                   <Button size="sm" variant="ghost" className="absolute top-2 right-2 z-10 bg-background/80" onClick={() => setFullScreenCell(null)}>Exit full screen</Button>
-                  <video
-                    src={DEFAULT_LIVE_STREAM_URL}
-                    className="w-full h-full object-contain"
-                    muted
-                    playsInline
-                    autoPlay
-                    loop
-                    controls
-                    title={`Camera ${fullScreenCell}`}
-                  />
-                  <span className="absolute bottom-1 left-1 text-xs font-medium bg-black/60 text-white px-1.5 py-0.5 rounded">{fullScreenCell}</span>
+                  <span className="absolute bottom-1 left-1 z-10 text-xs font-medium bg-black/60 text-white px-1.5 py-0.5 rounded">{fullScreenCell}</span>
+                  Camera
                 </div>
               ) : (
                 <div
@@ -322,22 +312,13 @@ export default function LiveCameraGridPage() {
                   {MOCK_CAMERAS.slice(0, layout === "1x1" ? 1 : layout === "2x2" ? 4 : layout === "3x3" ? 9 : layout === "4x4" ? 16 : 6).map((cam) => (
                     <div
                       key={cam.id}
-                      className="relative aspect-video rounded bg-black overflow-hidden cursor-pointer border border-border hover:border-[#A9D1EF]"
+                      className="relative aspect-video rounded overflow-hidden cursor-pointer border border-border hover:border-[#A9D1EF]"
                       onDoubleClick={() => setFullScreenCell(cam.id)}
                     >
-                      <video
-                        src={DEFAULT_LIVE_STREAM_URL}
-                        className="w-full h-full object-contain"
-                        muted
-                        playsInline
-                        autoPlay
-                        loop
-                        controls
-                        title={`${cam.id} — ${cam.location}`}
-                      />
-                      {showCameraName && <span className="absolute top-1 left-1 text-xs font-medium bg-black/60 text-white px-1.5 py-0.5 rounded">{cam.id}</span>}
-                      {showTimestamp && <span className="absolute top-1 right-1 text-xs bg-black/60 text-white px-1.5 py-0.5 rounded">{new Date().toLocaleTimeString()}</span>}
-                      <span className="absolute bottom-1 left-1 text-xs text-white/90 bg-black/60 px-1.5 py-0.5 rounded">{cam.location}</span>
+                      <div className="w-full h-full aspect-video bg-muted flex items-center justify-center text-muted-foreground text-sm">Camera</div>
+                      {showCameraName && <span className="absolute top-1 left-1 z-10 text-xs font-medium bg-black/60 text-white px-1.5 py-0.5 rounded">{cam.id}</span>}
+                      {showTimestamp && <span className="absolute top-1 right-1 z-10 text-xs bg-black/60 text-white px-1.5 py-0.5 rounded">{new Date().toLocaleTimeString()}</span>}
+                      <span className="absolute bottom-1 left-1 z-10 text-xs text-white/90 bg-black/60 px-1.5 py-0.5 rounded">{cam.location}</span>
                     </div>
                   ))}
                 </div>

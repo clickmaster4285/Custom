@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Map, Video } from "lucide-react"
-import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
 
 export function DashboardMapView() {
   const [mapType, setMapType] = useState("street")
@@ -62,17 +61,8 @@ export function DashboardMapView() {
           <Label className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1">
             <Video className="h-3.5 w-3.5" /> Live feed (same stream everywhere)
           </Label>
-          <div className="aspect-video rounded-lg border border-border bg-black overflow-hidden max-h-40">
-            <video
-              src={DEFAULT_LIVE_STREAM_URL}
-              className="w-full h-full object-contain"
-              muted
-              playsInline
-              autoPlay
-              loop
-              controls
-              title="Live feed"
-            />
+          <div className="aspect-video rounded-lg border border-border overflow-hidden max-h-40 bg-muted flex items-center justify-center text-muted-foreground text-sm">
+            Live feed
           </div>
         </div>
       </CardContent>

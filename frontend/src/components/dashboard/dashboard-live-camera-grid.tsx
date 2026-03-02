@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Monitor } from "lucide-react"
-import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
 
 const LAYOUTS = ["1x1", "2x2", "3x3", "4x4", "Custom"]
 const QUALITIES = ["Auto", "HD", "SD", "Low"]
@@ -76,18 +75,9 @@ export function DashboardLiveCameraGrid() {
       <CardContent>
         <div className={`grid gap-2 ${layout === "1x1" ? "grid-cols-1" : layout === "2x2" ? "grid-cols-2" : layout === "3x3" ? "grid-cols-3" : "grid-cols-4"}`}>
           {Array.from({ length: layout === "1x1" ? 1 : layout === "2x2" ? 4 : layout === "3x3" ? 9 : 16 }, (_, i) => (
-            <div key={i} className="relative aspect-video rounded-lg border border-border bg-black overflow-hidden">
-              <video
-                src={DEFAULT_LIVE_STREAM_URL}
-                className="w-full h-full object-contain"
-                muted
-                playsInline
-                autoPlay
-                loop
-                controls
-                title={`Camera ${i + 1}`}
-              />
-              <span className="absolute bottom-1 left-1 text-xs font-medium bg-black/60 text-white px-1.5 py-0.5 rounded">{MOCK_CAMERAS[i % MOCK_CAMERAS.length]}</span>
+            <div key={i} className="relative aspect-video rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center text-muted-foreground text-sm">
+              <span className="absolute bottom-1 left-1 z-10 text-xs font-medium bg-black/60 text-white px-1.5 py-0.5 rounded">{MOCK_CAMERAS[i % MOCK_CAMERAS.length]}</span>
+              Camera {i + 1}
             </div>
           ))}
         </div>

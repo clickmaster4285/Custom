@@ -233,16 +233,20 @@ export default function CameraIntegrationPage() {
                     className="rounded-lg border border-border overflow-hidden bg-black/90 flex flex-col"
                   >
                     <div className="relative aspect-video">
-                      <video
-                        src={getStreamUrl(cam)}
-                        className="w-full h-full object-contain"
-                        preload="metadata"
-                        muted
-                        playsInline
-                        loop
-                        controls
-                        title={`${cam.name} – ${cam.location}`}
-                      />
+                      {getStreamUrl(cam) === DEFAULT_LIVE_STREAM_URL ? (
+                        <div className="w-full h-full aspect-video bg-muted flex items-center justify-center text-muted-foreground text-sm">Live stream</div>
+                      ) : (
+                        <video
+                          src={getStreamUrl(cam)}
+                          className="w-full h-full object-contain"
+                          preload="metadata"
+                          muted
+                          playsInline
+                          loop
+                          controls
+                          title={`${cam.name} – ${cam.location}`}
+                        />
+                      )}
                       <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between">
                         <Badge variant="default" className="text-xs">
                           {cam.name}
@@ -482,17 +486,21 @@ export default function CameraIntegrationPage() {
           </DialogHeader>
           <div className="relative aspect-video w-full">
             {liveCamera && (
-              <video
-                key={liveCamera.id}
-                src={getStreamUrl(liveCamera)}
-                className="w-full h-full object-contain"
-                autoPlay
-                muted={false}
-                playsInline
-                loop
-                controls
-                title={`${liveCamera.name} – Live`}
-              />
+              getStreamUrl(liveCamera) === DEFAULT_LIVE_STREAM_URL ? (
+                <div key={liveCamera.id} className="w-full h-full aspect-video bg-muted flex items-center justify-center text-muted-foreground text-sm">Live stream</div>
+              ) : (
+                <video
+                  key={liveCamera.id}
+                  src={getStreamUrl(liveCamera)}
+                  className="w-full h-full object-contain"
+                  autoPlay
+                  muted={false}
+                  playsInline
+                  loop
+                  controls
+                  title={`${liveCamera.name} – Live`}
+                />
+              )
             )}
           </div>
         </DialogContent>
