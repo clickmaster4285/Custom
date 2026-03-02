@@ -174,7 +174,7 @@ export function Sidebar() {
     )
 
   return (
-    <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[333px] h-screen bg-[#FFFFFF] border-r border-[#E5E7EB] flex flex-col shrink-0 pt-[24px] pr-[25px] pl-[25px]">
+    <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[333px] h-screen bg-[#FFFFFF] border-r border-[#E5E7EB] flex flex-col shrink-0 pt-[24px] pr-[3px] pl-[25px]">
       <div className="pb-4 border-b border-[#E5E7EB] shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#5B9AFF] to-white flex items-center justify-center">
