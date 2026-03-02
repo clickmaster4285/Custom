@@ -116,8 +116,50 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Sidebar active state: solid #155DFC */
+/* Sidebar: Inter font for full sidebar */
+.sidebar-font {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+/* Sidebar section headings: Inter 12px, Semi Bold 600, line-height 16px, letter-spacing 0 */
+.sidebar-section-heading {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: #6B7280;
+  text-transform: uppercase;
+}
+
+/* Sidebar active menu: soft light-blue gradient (darker shade) + thin blue border */
 .sidebar-active-gradient {
+  background: linear-gradient(
+    to right,
+    #cdddff 0%,
+    #fcfcfc 45%,
+    #f8f8f8 55%,
+    #dee6f7 75%,
+    #cdddff 100%
+  );
+}
+
+/* Selected sub-menu item: square background (no rounded corners), secondary color text, bold */
+.sidebar-submenu-active {
+  background: transparent;
+  color: #155DFC;
+  font-weight: 700;
+  position: relative;
+  border-radius: 0;
+}
+/* Blue line (2px) inside the light line; secondary color */
+.sidebar-submenu-active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
   background: #155DFC;
 }
 

@@ -171,12 +171,9 @@ export interface NavGroup {
   children: (NavItem | NavGroup)[]
 }
 
-/** Sidebar navigation sections: each has a title and list of groups or items */
-export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = [
-  {
-    title: "MAIN MODULES",
-    items: [
-      { label: "Dashboard", href: ROUTES.DASHBOARD },
+/** All nav items in order; split into sections by NAV_SECTIONS */
+const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
+  { label: "Dashboard", href: ROUTES.DASHBOARD },
       {
         label: "Visitor Management",
         children: [
@@ -382,8 +379,14 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
           { label: "Logs", href: ROUTES.LOGS },
         ],
       },
-          ],
-  },
+]
+
+/** Sidebar navigation sections: each has a title and list of groups or items */
+export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = [
+  { title: "Main Menu", items: ALL_NAV_ITEMS.slice(0, 1) },
+  { title: "Management System", items: ALL_NAV_ITEMS.slice(1, 6) },
+  { title: "Reports and Monitoring", items: ALL_NAV_ITEMS.slice(6, 8) },
+  { title: "System", items: ALL_NAV_ITEMS.slice(8, 9) },
 ]
 
 /** All leaf nav items (label + href) from the full nav tree, for favorites etc. */
