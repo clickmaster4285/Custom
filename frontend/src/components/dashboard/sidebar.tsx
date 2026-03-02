@@ -160,9 +160,7 @@ export function Sidebar() {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
       "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 border border-transparent bg-transparent",
-      isActive
-        ? "text-[#2860C8] font-medium border-[#5A82E8]"
-        : "text-[#4B5563] hover:text-[#2860C8]"
+      isActive ? "text-[#2860C8] font-medium" : "text-[#4B5563] hover:text-[#2860C8]"
     )
 
   const childLinkClass = (href: string) =>
@@ -197,18 +195,16 @@ export function Sidebar() {
                   <div
                     key={fav.href}
                     className={cn(
-                      "group/link flex items-center gap-1 rounded-xl",
-                      active && "sidebar-active-gradient",
+                      "group/link flex items-center gap-1 rounded-xl border border-transparent transition-all",
+                      active && "sidebar-active-gradient border-[#5A82E8]",
                       "hover:bg-[#D2DCF5]/80"
                     )}
                   >
                     <Link
                       to={fav.href}
                       className={cn(
-                        "flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm border border-transparent transition-all bg-transparent",
-                        active
-                          ? "text-[#2860C8] font-medium border-[#5A82E8]"
-                          : "text-[#4B5563] hover:text-[#2860C8]"
+                        "flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm border-0 transition-all bg-transparent",
+                        active ? "text-[#2860C8] font-medium" : "text-[#4B5563] hover:text-[#2860C8]"
                       )}
                     >
                       <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
@@ -250,12 +246,12 @@ export function Sidebar() {
                   <div
                     key={getNodeKey(item)}
                     className={cn(
-                      "group/link flex items-center gap-1 rounded-xl",
-                      isLinkActive && "sidebar-active-gradient",
+                      "group/link flex items-center gap-1 rounded-xl border border-transparent transition-all",
+                      isLinkActive && "sidebar-active-gradient border-[#5A82E8]",
                       "hover:bg-[#D2DCF5]/80"
                     )}
                   >
-                    <NavLink to={item.href} className={({ isActive }) => cn("flex-1 min-w-0 flex items-center gap-3", linkClass({ isActive }))} end={item.href === "/"}>
+                    <NavLink to={item.href} className={({ isActive }) => cn("flex-1 min-w-0 flex items-center gap-3 border-0", linkClass({ isActive }))} end={item.href === "/"}>
                       <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
                         {renderMenuIcon(item.label, 18, "shrink-0")}
                       </span>
