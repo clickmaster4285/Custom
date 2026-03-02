@@ -54,7 +54,7 @@ function SidebarChildren({
           const fav = isFavorite(node.href)
           return (
             <div key={getNodeKey(node)} className="group/link flex items-center gap-1">
-              <Link to={node.href} className={cn("flex-1 min-w-0 flex items-center gap-2", childLinkClass(node.href), depth > 1 && "pl-6 text-[13px]")}>
+              <Link to={node.href} className={cn("flex-1 min-w-0 flex items-center gap-2", childLinkClass(node.href), depth > 1 && "pl-6")}>
                 <span className="w-5 shrink-0 flex items-center justify-start" aria-hidden>
                   {renderMenuIcon(node.label, 12, "shrink-0")}
                 </span>
@@ -91,9 +91,9 @@ function SidebarChildren({
               onClick={() => onToggle(label)}
               aria-expanded={isExpanded}
               className={cn(
-                "w-full flex items-center justify-between px-2 py-1.5 rounded-r-xl text-sm transition-all duration-200 border border-transparent border-l-0",
+                "w-full flex items-center justify-between px-2 py-1.5 rounded-r-xl text-[14px] transition-all duration-200 border border-transparent border-l-0",
                 isActive
-                  ? "sidebar-submenu-active font-medium"
+                  ? "sidebar-submenu-active"
                   : "text-muted-foreground hover:text-[#3366FF] hover:bg-[#F5F8FF]"
               )}
             >
@@ -106,7 +106,7 @@ function SidebarChildren({
               {isExpanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
             </button>
             {isExpanded && (
-              <div className="ml-5 mt-0.5 space-y-0.5 border-l border-[#C1D9F8] pl-2">
+              <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-[#C1D9F8] pl-2 overflow-visible">
                 <SidebarChildren
                   nodes={node.children}
                   pathname={pathname}
@@ -166,14 +166,14 @@ export function Sidebar() {
 
   const childLinkClass = (href: string) =>
     cn(
-      "flex items-center gap-2 px-3 py-1.5 text-sm rounded-r-xl transition-all duration-200 border border-transparent border-l-0",
+      "flex items-center gap-2 px-3 py-1.5 text-[14px] rounded-r-xl transition-all duration-200 border border-transparent border-l-0",
       pathname === href
-        ? "sidebar-submenu-active font-medium"
-        : "text-[#4B5563] hover:text-[#3366FF] hover:bg-[#F5F8FF]"
+        ? "sidebar-submenu-active"
+        : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#F3F7FF]"
     )
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 w-[300px] h-screen bg-[#F9FAFB] border-r border-[#E5E7EB] flex flex-col shrink-0 shadow-sm font-sans">
+    <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[300px] h-screen bg-[#F9FAFB] border-r border-[#E5E7EB] flex flex-col shrink-0 shadow-sm">
       <div className="p-4 border-b border-[#E5E7EB] shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#5B9AFF] to-white flex items-center justify-center">
@@ -295,7 +295,7 @@ export function Sidebar() {
                     )}
                   </button>
                   {isExpanded(label) && (
-                    <div className="ml-6 mt-1.5 space-y-1 border-l border-[#C1D9F8] pl-2">
+                    <div className="ml-6 mt-1.5 space-y-1 border-l-2 border-[#C1D9F8] pl-2 overflow-visible">
                       <SidebarChildren
                         nodes={group.children}
                         pathname={pathname}
