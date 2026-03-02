@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { toDataURL } from "qrcode"
+// Default import for CJS/ESM compatibility with Vite/Rollup on Linux
+import QRCode from "qrcode"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -77,7 +78,7 @@ export default function QRCodeGenerationPage() {
   useEffect(() => {
     const text = JSON.stringify(payload)
     let cancelled = false
-    toDataURL(text, { width: 220, margin: 2 })
+    QRCode.toDataURL(text, { width: 220, margin: 2 })
       .then((url) => { if (!cancelled) setQrDataUrl(url) })
       .catch(() => { if (!cancelled) setQrDataUrl("") })
     return () => { cancelled = true }
