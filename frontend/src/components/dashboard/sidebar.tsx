@@ -55,7 +55,9 @@ function SidebarChildren({
           return (
             <div key={getNodeKey(node)} className="group/link flex items-center gap-1">
               <Link to={node.href} className={cn("flex-1 min-w-0 flex items-center gap-2", childLinkClass(node.href), depth > 1 && "pl-6 text-[13px]")}>
-                {renderMenuIcon(node.label, 12, "shrink-0")}
+                <span className="w-5 shrink-0 flex items-center justify-start" aria-hidden>
+                  {renderMenuIcon(node.label, 12, "shrink-0")}
+                </span>
                 <span className="truncate">{node.label}</span>
               </Link>
               <button
@@ -96,7 +98,9 @@ function SidebarChildren({
               )}
             >
               <span className="flex items-center gap-2 whitespace-nowrap text-left pl-1">
-                {renderMenuIcon(label, 12, "shrink-0 opacity-70")}
+                <span className="w-5 shrink-0 flex items-center justify-start opacity-70" aria-hidden>
+                  {renderMenuIcon(label, 12, "shrink-0")}
+                </span>
                 {label}
               </span>
               {isExpanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
@@ -199,7 +203,9 @@ export function Sidebar() {
                           : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
                       )}
                     >
-                      {renderMenuIcon(fav.label, 18, "shrink-0")}
+                      <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
+                        {renderMenuIcon(fav.label, 18, "shrink-0")}
+                      </span>
                       <span className="truncate whitespace-nowrap">{fav.label}</span>
                     </Link>
                     <button
@@ -234,7 +240,9 @@ export function Sidebar() {
                 return (
                   <div key={getNodeKey(item)} className="group/link flex items-center gap-1">
                     <NavLink to={item.href} className={({ isActive }) => cn("flex-1 min-w-0 flex items-center gap-3", linkClass({ isActive }))} end={item.href === "/"}>
-                      {renderMenuIcon(item.label, 18, "shrink-0")}
+                      <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
+                        {renderMenuIcon(item.label, 18, "shrink-0")}
+                      </span>
                       <span className="whitespace-nowrap truncate">{item.label}</span>
                     </NavLink>
                     <button
@@ -275,7 +283,9 @@ export function Sidebar() {
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      {renderMenuIcon(label, 18, isActive ? "shrink-0 text-white" : "shrink-0 text-[#6B7280]")}
+                      <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
+                        {renderMenuIcon(label, 18, isActive ? "shrink-0 text-white" : "shrink-0 text-[#6B7280]")}
+                      </span>
                       <span className="whitespace-nowrap text-left">{label}</span>
                     </div>
                     {isExpanded(label) ? (
