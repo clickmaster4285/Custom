@@ -31,7 +31,7 @@ if not _SECRET_KEY:
     )
 SECRET_KEY = _SECRET_KEY
 DEBUG = os.getenv("DEBUG", "False") == "True"
-ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS")
 
 # -----------------------------
 # Installed Apps
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     # Local apps
     "users",
     "visitors",
+    'logs',
 ]
 
 # -----------------------------
@@ -67,6 +68,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    #for Logs
+    'logs.middleware.ActivityLogMiddleware',
 ]
 
 # -----------------------------
@@ -148,7 +151,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # -----------------------------
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = 'Asia/Karachi'
 USE_I18N = True
 USE_TZ = True
 
