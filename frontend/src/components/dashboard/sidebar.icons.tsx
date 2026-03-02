@@ -122,6 +122,7 @@ const EXPLICIT_SUBMENU_ICONS: Record<string, SidebarIconComponent> = {
   "Integrations & API": Link2,
   "Roles & Permissions": Shield,
   "Database Tables": Database,
+  Logs: FileText,
 }
 
 function resolveIconByKeyword(label: string): SidebarIconComponent {

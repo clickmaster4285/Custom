@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.authtoken.models import Token
+from rest_framework.serializers import ValidationError
 from .models import Staff, Attendance
 from .permissions import IsAdminOrHR
 from .serializers import (
@@ -13,6 +14,7 @@ from .serializers import (
     LoginResponseSerializer,
     AttendanceSerializer,
 )
+from logs.middleware import create_activity_log
 
 
 class LoginView(APIView):
@@ -21,14 +23,19 @@ class LoginView(APIView):
     authentication_classes = []  # No token/session needed for login
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response(
-            LoginResponseSerializer({"token": token.key, "user": user}).data,
-            status=status.HTTP_200_OK,
-        )
+        try:
+            serializer = LoginSerializer(data=request.data, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            user = serializer.validated_data["user"]
+            token, _ = Token.objects.get_or_create(user=user)
+            create_activity_log(user, request, "POST /api/auth/login (success)")
+            return Response(
+                LoginResponseSerializer({"token": token.key, "user": user}).data,
+                status=status.HTTP_200_OK,
+            )
+        except ValidationError:
+            create_activity_log(None, request, "POST /api/auth/login (failed)")
+            raise
 
 
 class StaffViewSet(viewsets.ModelViewSet):

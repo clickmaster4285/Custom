@@ -44,7 +44,7 @@ function emptyForm(): FirRegistrationForm {
     firNumber: "",
     registrationDate: new Date().toISOString().slice(0, 10),
     registrationTime: new Date().toTimeString().slice(0, 5),
-    customsOfficeStation: "Customs Karachi",
+    customsOfficeStation: "Customs Peshawer",
     stationCode: "",
     districtRegion: "",
     complainantName: "",

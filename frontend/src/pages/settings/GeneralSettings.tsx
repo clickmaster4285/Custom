@@ -30,7 +30,7 @@ export default function GeneralSettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="org-address">Address</Label>
-              <Input id="org-address" defaultValue="Customs House, Karachi" className="max-w-md" />
+              <Input id="org-address" defaultValue="Customs House, Peshawer" className="max-w-md" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="org-email">Contact Email</Label>

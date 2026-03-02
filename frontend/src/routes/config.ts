@@ -130,6 +130,7 @@ export const ROUTES = {
   INTEGRATIONS: "/integrations",
   NOTIFICATIONS: "/notifications",
   SECURITY_ACCESS: "/security-access",
+  LOGS: "/settings/logs",
 
   // Additional modules (from full module spec)
   TABLE_OF_CONTENTS: "/table-of-contents",
@@ -378,6 +379,7 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
           { label: "Integrations", href: ROUTES.INTEGRATIONS },
           { label: "Notifications", href: ROUTES.NOTIFICATIONS },
           { label: "Security & Access", href: ROUTES.SECURITY_ACCESS },
+          { label: "Logs", href: ROUTES.LOGS },
         ],
       },
           ],

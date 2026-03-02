@@ -18,5 +18,9 @@ class UserActivityLog(models.Model):
     action = models.CharField(max_length=255)
     time = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def username(self):
+        return self.user.username if self.user_id else None
+
     def __str__(self):
         return f"{self.user} - {self.action}"

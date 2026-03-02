@@ -116,6 +116,7 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.INTEGRATIONS), page: "Integrations" },
   { path: toChildPath(ROUTES.NOTIFICATIONS), page: "Notifications" },
   { path: toChildPath(ROUTES.SECURITY_ACCESS), page: "SecurityAccess" },
+  { path: toChildPath(ROUTES.LOGS), page: "ActivityLogs" },
   // Additional modules
   { path: toChildPath(ROUTES.TABLE_OF_CONTENTS), page: "TableOfContents" },
   { path: toChildPath(ROUTES.PLAYBACK_SEARCH), page: "PlaybackSearch" },
