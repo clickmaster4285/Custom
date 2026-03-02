@@ -375,7 +375,7 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
         label: "System Configuration",
         children: [
           { label: "General Settings", href: ROUTES.GENERAL_SETTINGS },
-          { label: "User & Role", href: ROUTES.USER_ROLE_MANAGEMENT },
+          { label: "Roles & Permissions", href: ROUTES.USER_ROLE_MANAGEMENT },
           { label: "Integrations", href: ROUTES.INTEGRATIONS },
           { label: "Notifications", href: ROUTES.NOTIFICATIONS },
           { label: "Security & Access", href: ROUTES.SECURITY_ACCESS },
