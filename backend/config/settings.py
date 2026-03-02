@@ -10,12 +10,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # -----------------------------
 # Load Environment Variables
 # -----------------------------
-load_dotenv(os.path.join(BASE_DIR, ".env"))
+_env_path = BASE_DIR / ".env"
+if _env_path.exists():
+    load_dotenv(dotenv_path=_env_path)
+else:
+    # Try project root (e.g. when running from repo root)
+    load_dotenv(dotenv_path=BASE_DIR.parent / ".env")
+
 
 def _env_list(key: str, default: str = "") -> list[str]:
     """Read comma-separated list from .env."""
     value = os.getenv(key, default).strip()
     return [v.strip() for v in value.split(",") if v.strip()]
+
+
+# Dev fallback hosts so DisallowedHost is avoided even if .env is missing or ALLOWED_HOSTS empty
+_DEFAULT_DEV_HOSTS = ["127.0.0.1", "localhost", "127.0.0.1:8000", "localhost:8000"]
 
 # -----------------------------
 # Security Settings
@@ -31,7 +41,10 @@ if not _SECRET_KEY:
     )
 SECRET_KEY = _SECRET_KEY
 DEBUG = os.getenv("DEBUG", "False") == "True"
-ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS")
+ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS") or []
+# In dev, always allow localhost with/without port so requests to localhost:8000 never hit DisallowedHost
+if DEBUG:
+    ALLOWED_HOSTS = list(set(ALLOWED_HOSTS) | set(_DEFAULT_DEV_HOSTS))
 
 # -----------------------------
 # Installed Apps

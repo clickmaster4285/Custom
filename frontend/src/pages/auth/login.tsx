@@ -178,15 +178,6 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
-
-                <div className="rounded-xl border border-[#3b82f6]/20 bg-[#3b82f6]/5 px-4 py-3.5">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#1d4ed8]">
-                    Demo credentials (frontend mode)
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Use `admin / admin123` or `hr / hr123` to sign in.
-                  </p>
-                </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-4 pb-8 pt-2">
                 <Button
