@@ -91,10 +91,10 @@ function SidebarChildren({
               onClick={() => onToggle(label)}
               aria-expanded={isExpanded}
               className={cn(
-                "w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm transition-all duration-200",
+                "w-full flex items-center justify-between px-2 py-1.5 rounded-r-xl text-sm transition-all duration-200 border border-transparent border-l-0",
                 isActive
-                  ? "text-[#3b82f6] font-medium bg-[#3b82f6]/5"
-                  : "text-muted-foreground hover:text-[#3b82f6] hover:bg-[#3b82f6]/5"
+                  ? "sidebar-submenu-active font-medium"
+                  : "text-muted-foreground hover:text-[#3366FF] hover:bg-[#F5F8FF]"
               )}
             >
               <span className="flex items-center gap-2 whitespace-nowrap text-left pl-1">
@@ -106,7 +106,7 @@ function SidebarChildren({
               {isExpanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
             </button>
             {isExpanded && (
-              <div className="ml-5 mt-0.5 space-y-0.5 border-l border-border pl-2">
+              <div className="ml-5 mt-0.5 space-y-0.5 border-l border-[#C1D9F8] pl-2">
                 <SidebarChildren
                   nodes={node.children}
                   pathname={pathname}
@@ -158,25 +158,25 @@ export function Sidebar() {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-200 border-l-2 border-transparent",
+      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 border border-transparent",
       isActive
-        ? "bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] text-white font-medium border-[#155DFC] shadow-sm"
-        : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
+        ? "sidebar-active-gradient text-[#2860C8] font-medium border-[#5A82E8]"
+        : "text-[#4B5563] hover:text-[#2860C8] hover:bg-[#D2DCF5]/80"
     )
 
   const childLinkClass = (href: string) =>
     cn(
-      "flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all duration-200 border-l-2 border-transparent",
+      "flex items-center gap-2 px-3 py-1.5 text-sm rounded-r-xl transition-all duration-200 border border-transparent border-l-0",
       pathname === href
-        ? "bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] text-white font-medium border-[#155DFC] shadow-sm"
-        : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
+        ? "sidebar-submenu-active font-medium"
+        : "text-[#4B5563] hover:text-[#3366FF] hover:bg-[#F5F8FF]"
     )
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 w-[300px] h-screen bg-[#F9FAFB] border-r border-[#E5E7EB] flex flex-col shrink-0 shadow-sm font-sans">
       <div className="p-4 border-b border-[#E5E7EB] shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#5B9AFF] to-white flex items-center justify-center">
             <Eye className="w-5 h-5 text-white" />
           </div>
           <span className="font-semibold text-lg text-[#1F2937]">TekEye</span>
@@ -197,10 +197,10 @@ export function Sidebar() {
                     <Link
                       to={fav.href}
                       className={cn(
-                        "flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-md text-sm border-l-2 border-transparent transition-all",
+                        "flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm border border-transparent transition-all",
                         active
-                          ? "bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] text-white font-medium border-[#155DFC]"
-                          : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
+                          ? "sidebar-active-gradient text-[#2860C8] font-medium border-[#5A82E8]"
+                          : "text-[#4B5563] hover:text-[#2860C8] hover:bg-[#D2DCF5]/80"
                       )}
                     >
                       <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
@@ -276,26 +276,26 @@ export function Sidebar() {
                     onClick={() => toggleExpand(label)}
                     aria-expanded={isExpanded(label)}
                     className={cn(
-                      "w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm transition-all duration-200 border-l-2 border-transparent",
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all duration-200 border border-transparent",
                       isActive
-                        ? "bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] text-white font-medium border-[#155DFC] shadow-sm"
-                        : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
+                        ? "sidebar-active-gradient text-[#2860C8] font-medium border-[#5A82E8]"
+                        : "text-[#4B5563] hover:text-[#2860C8] hover:bg-[#D2DCF5]/80"
                     )}
                   >
                     <div className="flex items-center gap-3">
                       <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
-                        {renderMenuIcon(label, 18, isActive ? "shrink-0 text-white" : "shrink-0 text-[#6B7280]")}
+                        {renderMenuIcon(label, 18, isActive ? "shrink-0 text-[#2860C8]" : "shrink-0 text-[#6B7280]")}
                       </span>
                       <span className="whitespace-nowrap text-left">{label}</span>
                     </div>
                     {isExpanded(label) ? (
-                      <ChevronDown size={16} aria-hidden className={isActive ? "text-white" : "text-[#6B7280]"} />
+                      <ChevronDown size={16} aria-hidden className={isActive ? "text-[#2860C8]" : "text-[#6B7280]"} />
                     ) : (
-                      <ChevronRight size={16} aria-hidden className={isActive ? "text-white" : "text-[#6B7280]"} />
+                      <ChevronRight size={16} aria-hidden className={isActive ? "text-[#2860C8]" : "text-[#6B7280]"} />
                     )}
                   </button>
                   {isExpanded(label) && (
-                    <div className="ml-6 mt-1.5 space-y-1 border-l-2 border-[#155DFC]/50 pl-2">
+                    <div className="ml-6 mt-1.5 space-y-1 border-l border-[#C1D9F8] pl-2">
                       <SidebarChildren
                         nodes={group.children}
                         pathname={pathname}

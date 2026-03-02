@@ -116,9 +116,23 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Sidebar active state: solid #155DFC */
+/* Sidebar active menu: soft light-blue gradient (darker shade) + thin blue border */
 .sidebar-active-gradient {
-  background: #155DFC;
+  background: linear-gradient(
+    to right,
+    #cdddff 0%,
+    #fcfcfc 45%,
+    #f8f8f8 55%,
+    #dee6f7 75%,
+    #cdddff 100%
+  );
+}
+
+/* Sub-menu active item: light blue background + thick blue left bar (like reference) */
+.sidebar-submenu-active {
+  background: #F5F8FF;
+  border-left: 4px solid #3366FF;
+  color: #3366FF;
 }
 
 @layer base {
