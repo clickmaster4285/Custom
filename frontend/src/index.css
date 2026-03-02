@@ -133,12 +133,13 @@
   );
 }
 
-/* Selected sub-menu item: Color 3 background, secondary color text, bold */
+/* Selected sub-menu item: square background (no rounded corners), secondary color text, bold */
 .sidebar-submenu-active {
-  background: #F3F7FF;
+  background: transparent;
   color: #155DFC;
   font-weight: 700;
   position: relative;
+  border-radius: 0;
 }
 /* Blue line (2px) inside the light line; secondary color */
 .sidebar-submenu-active::before {

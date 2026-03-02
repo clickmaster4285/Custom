@@ -53,11 +53,15 @@ function SidebarChildren({
         if (!isNavGroup(node)) {
           const fav = isFavorite(node.href)
           return (
-            <div key={getNodeKey(node)} className="group/link flex items-center gap-1">
-              <Link to={node.href} className={cn("flex-1 min-w-0 flex items-center gap-2", childLinkClass(node.href), depth > 1 && "pl-6")}>
-                <span className="w-5 shrink-0 flex items-center justify-start" aria-hidden>
-                  {renderMenuIcon(node.label, 12, "shrink-0")}
-                </span>
+            <div
+              key={getNodeKey(node)}
+              className={cn(
+                "group/link flex items-center gap-1 rounded-none",
+                pathname === node.href && "bg-[#F3F7FF]",
+                "hover:bg-[#F3F7FF]"
+              )}
+            >
+              <Link to={node.href} className={cn("flex-1 min-w-0 flex items-center rounded-none", childLinkClass(node.href), depth > 1 && "pl-2")}>
                 <span className="truncate">{node.label}</span>
               </Link>
               <button
@@ -86,25 +90,22 @@ function SidebarChildren({
 
         return (
           <div key={getNodeKey(node)}>
-            <button
-              type="button"
-              onClick={() => onToggle(label)}
-              aria-expanded={isExpanded}
-              className={cn(
-                "w-full flex items-center justify-between px-2 py-1.5 rounded-r-xl text-[14px] transition-all duration-200 border border-transparent border-l-0",
-                isActive
-                  ? "sidebar-submenu-active"
-                  : "text-muted-foreground hover:text-[#3366FF] hover:bg-[#F5F8FF]"
-              )}
-            >
-              <span className="flex items-center gap-2 whitespace-nowrap text-left pl-1">
-                <span className="w-5 shrink-0 flex items-center justify-start opacity-70" aria-hidden>
-                  {renderMenuIcon(label, 12, "shrink-0")}
-                </span>
-                {label}
-              </span>
-              {isExpanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
-            </button>
+            <div className={cn(isActive && "bg-[#F3F7FF] rounded-none")}>
+              <button
+                type="button"
+                onClick={() => onToggle(label)}
+                aria-expanded={isExpanded}
+                className={cn(
+                  "w-full flex items-center justify-between px-2 py-1.5 rounded-none text-[14px] transition-all duration-200 border border-transparent border-l-0",
+                  isActive
+                    ? "sidebar-submenu-active"
+                    : "text-muted-foreground hover:text-[#3366FF] hover:bg-[#F5F8FF]"
+                )}
+              >
+                <span className="flex items-center whitespace-nowrap text-left pl-1">{label}</span>
+                {isExpanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
+              </button>
+            </div>
             {isExpanded && (
               <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-[#C1D9F8] pl-2 overflow-visible">
                 <SidebarChildren
@@ -166,15 +167,15 @@ export function Sidebar() {
 
   const childLinkClass = (href: string) =>
     cn(
-      "flex items-center gap-2 px-3 py-1.5 text-[14px] rounded-r-xl transition-all duration-200 border border-transparent border-l-0",
+      "flex items-center px-3 py-1.5 text-[14px] rounded-none transition-all duration-200 border border-transparent border-l-0",
       pathname === href
         ? "sidebar-submenu-active"
-        : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#F3F7FF]"
+        : "text-[#4B5563] hover:text-[#155DFC] bg-transparent"
     )
 
   return (
-    <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[300px] h-screen bg-[#F9FAFB] border-r border-[#E5E7EB] flex flex-col shrink-0 shadow-sm">
-      <div className="p-4 border-b border-[#E5E7EB] shrink-0">
+    <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[333px] h-screen bg-[#FFFFFF] border-r border-[#E5E7EB] flex flex-col shrink-0 pt-[24px] pr-[25px] pl-[25px]">
+      <div className="pb-4 border-b border-[#E5E7EB] shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#5B9AFF] to-white flex items-center justify-center">
             <Eye className="w-5 h-5 text-white" />
