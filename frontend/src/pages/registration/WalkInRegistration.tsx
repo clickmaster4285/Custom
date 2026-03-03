@@ -107,7 +107,20 @@ const initialFormData = {
   licenseNo: "",
   licenseIssueDate: "",
   licenseExpiryDate: "",
+  visitorPhotos: [] as string[],
   photoCapture: "",
+  visitorMinors: [] as {
+    name: string
+    relation: string
+    gender: string
+    cnicOrBForm: string
+    passportNumber: string
+    nationality: string
+    dateOfBirth: string
+    mobileNumber: string
+    emailAddress: string
+    residentialAddress: string
+  }[],
   visitPurpose: "",
   department: "",
   hostName: "",
@@ -118,10 +131,15 @@ const initialFormData = {
   expiryDate: "",
   frontImage: "",
   backImage: "",
+  backImageFiles: [] as { dataUrl: string; name: string; size: string }[],
   supportDocType: "",
   applicationLetter: "",
   letterRefNo: "",
   additionalDocument: "",
+  authorizationLetter: "",
+  authorizationLetterFiles: [] as { dataUrl: string; name: string; size: string }[],
+  nocDocument: "",
+  nocDocumentFiles: [] as { dataUrl: string; name: string; size: string }[],
   uploadProcedure: "",
   qrCodeId: "",
   securityLevel: "",
@@ -301,7 +319,7 @@ export default function WalkInRegistrationPage() {
         back_image: formData.backImage,
         application_letter: formData.applicationLetter,
         additional_document: formData.additionalDocument,
-        captured_photo: formData.photoCapture,
+        captured_photo: (formData.visitorPhotos?.length ? formData.visitorPhotos[0] : formData.photoCapture) ?? "",
         time_validity_start: formData.timeValidityStart,
         time_validity_end: formData.timeValidityEnd,
         access_zone: formData.accessZone,
@@ -611,6 +629,9 @@ export default function WalkInRegistrationPage() {
                       licenseNo: formData.licenseNo,
                       licenseIssueDate: formData.licenseIssueDate,
                       licenseExpiryDate: formData.licenseExpiryDate,
+                      visitorPhotos: formData.visitorPhotos ?? [],
+                      photoCapture: formData.photoCapture,
+                      visitorMinors: formData.visitorMinors ?? [],
                     }}
                     updateFormData={(data) => {
                       updateFormData({
@@ -628,8 +649,13 @@ export default function WalkInRegistrationPage() {
                     formData={{
                       frontImage: formData.frontImage,
                       backImage: formData.backImage,
+                      backImageFiles: formData.backImageFiles ?? [],
                       applicationLetter: formData.applicationLetter,
                       additionalDocument: formData.additionalDocument,
+                      authorizationLetter: formData.authorizationLetter ?? "",
+                      authorizationLetterFiles: formData.authorizationLetterFiles ?? [],
+                      nocDocument: formData.nocDocument ?? "",
+                      nocDocumentFiles: formData.nocDocumentFiles ?? [],
                     }}
                     updateFormData={(data) => updateFormData(data)}
                     onCancel={handleCancelForm}
