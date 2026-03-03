@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react"
-import { useLocation, Link, NavLink } from "react-router-dom"
-import { Eye, ChevronDown, ChevronRight, Star } from "lucide-react"
+import { useLocation, useNavigate, Link, NavLink } from "react-router-dom"
+import { ChevronDown, ChevronRight, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAV_SECTIONS, getAncestorMenusForPath, type NavGroup } from "@/routes/config"
 import { getNodeKey, hasActiveDescendant, isNavGroup, type SidebarNode } from "@/components/dashboard/sidebar.helpers"
@@ -53,9 +53,15 @@ function SidebarChildren({
         if (!isNavGroup(node)) {
           const fav = isFavorite(node.href)
           return (
-            <div key={getNodeKey(node)} className="group/link flex items-center gap-1">
-              <Link to={node.href} className={cn("flex-1 min-w-0 flex items-center gap-2", childLinkClass(node.href), depth > 1 && "pl-6 text-[13px]")}>
-                {renderMenuIcon(node.label, 12, "shrink-0")}
+            <div
+              key={getNodeKey(node)}
+              className={cn(
+                "group/link flex items-center gap-1 rounded-none",
+                pathname === node.href && "bg-[#EBF2FF]",
+                "hover:bg-[#F3F7FF]"
+              )}
+            >
+              <Link to={node.href} className={cn("flex-1 min-w-0 flex items-center rounded-none", childLinkClass(node.href), depth > 1 && "pl-2")}>
                 <span className="truncate">{node.label}</span>
               </Link>
               <button
@@ -84,25 +90,24 @@ function SidebarChildren({
 
         return (
           <div key={getNodeKey(node)}>
-            <button
-              type="button"
-              onClick={() => onToggle(label)}
-              aria-expanded={isExpanded}
-              className={cn(
-                "w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm transition-all duration-200",
-                isActive
-                  ? "text-[#3b82f6] font-medium bg-[#3b82f6]/5"
-                  : "text-muted-foreground hover:text-[#3b82f6] hover:bg-[#3b82f6]/5"
-              )}
-            >
-              <span className="flex items-center gap-2 whitespace-nowrap text-left pl-1">
-                {renderMenuIcon(label, 12, "shrink-0 opacity-70")}
-                {label}
-              </span>
-              {isExpanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
-            </button>
+            <div className={cn(isActive && "bg-[#F3F7FF] rounded-none")}>
+              <button
+                type="button"
+                onClick={() => onToggle(label)}
+                aria-expanded={isExpanded}
+                className={cn(
+                  "w-full flex items-center justify-between px-2 py-1.5 rounded-none transition-all duration-200 border border-transparent border-l-0",
+                  isActive
+                    ? "sidebar-nested-module-selected"
+                    : "text-[14px] text-muted-foreground hover:text-[#155DFC] hover:bg-[#F5F8FF]"
+                )}
+              >
+                <span className="flex items-center whitespace-nowrap text-left pl-1">{label}</span>
+                {isExpanded ? <ChevronDown size={16} aria-hidden className={isActive ? "text-[#155DFC]" : undefined} /> : <ChevronRight size={16} aria-hidden className={isActive ? "text-[#155DFC]" : undefined} />}
+              </button>
+            </div>
             {isExpanded && (
-              <div className="ml-5 mt-0.5 space-y-0.5 border-l border-border pl-2">
+              <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-[#C1D9F8] pl-2 overflow-visible">
                 <SidebarChildren
                   nodes={node.children}
                   pathname={pathname}
@@ -124,6 +129,7 @@ function SidebarChildren({
 
 export function Sidebar() {
   const pathname = useLocation().pathname
+  const navigate = useNavigate()
   const [expandedItems, setExpandedItems] = useState<string[]>(() => getAncestorMenusForPath(pathname))
   const [favorites, setFavorites] = useState<FavoriteItem[]>(loadFavorites)
 
@@ -154,52 +160,64 @@ export function Sidebar() {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-200 border-l-2 border-transparent",
-      isActive
-        ? "bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] text-white font-medium border-[#155DFC] shadow-sm"
-        : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
+      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 border border-transparent bg-transparent",
+      isActive ? "text-[#2860C8] font-medium" : "text-[#4B5563] hover:text-[#2860C8]"
     )
 
   const childLinkClass = (href: string) =>
     cn(
-      "flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all duration-200 border-l-2 border-transparent",
+      "flex items-center px-3 py-1.5 text-[14px] rounded-none transition-all duration-200 border border-transparent border-l-0",
       pathname === href
-        ? "bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] text-white font-medium border-[#155DFC] shadow-sm"
-        : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
+        ? "sidebar-submenu-active"
+        : "text-[#4B5563] hover:text-[#155DFC] bg-transparent"
     )
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 w-[300px] h-screen bg-[#F9FAFB] border-r border-[#E5E7EB] flex flex-col shrink-0 shadow-sm font-sans">
-      <div className="p-4 border-b border-[#E5E7EB] shrink-0">
+    <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[333px] h-screen bg-[#FFFFFF] border-r border-[#E5E7EB] flex flex-col shrink-0 pt-[15px] pr-[3px] pl-[15px]">
+      <div className="pb-4 border-b border-[#E5E7EB] shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] flex items-center justify-center">
-            <Eye className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 flex items-center justify-center shrink-0" aria-hidden>
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Outermost: solid blue diamond */}
+              <path d="M16 2 L30 16 L16 30 L2 16 Z" fill="#155DFC" />
+              {/* Middle: white diamond (creates white band) */}
+              <path d="M16 5 L27 16 L16 27 L5 16 Z" fill="white" />
+              {/* Innermost: solid blue diamond */}
+              <path d="M16 8 L24 16 L16 24 L8 16 Z" fill="#155DFC" />
+            </svg>
           </div>
-          <span className="font-semibold text-lg text-[#1F2937]">TekEye</span>
+          <span className="sidebar-app-name">TekEye</span>
         </div>
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-3" aria-label="Main">
+      <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-1" aria-label="Main">
         {favorites.length > 0 && (
           <div className="mb-3">
-            <div className="px-3 py-2 text-[11px] font-semibold text-[#6B7280] tracking-[0.12em] uppercase">
+            <div className="sidebar-section-heading px-3 py-2">
               Favorites
             </div>
             <div className="space-y-1">
               {favorites.map((fav) => {
                 const active = pathname === fav.href
                 return (
-                  <div key={fav.href} className="group/link flex items-center gap-1">
+                  <div
+                    key={fav.href}
+                    className={cn(
+                      "group/link flex items-center gap-1 rounded-xl transition-all",
+                      active && "sidebar-active-gradient",
+                      "hover:bg-[#D2DCF5]/80"
+                    )}
+                  >
                     <Link
                       to={fav.href}
                       className={cn(
-                        "flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-md text-sm border-l-2 border-transparent transition-all",
-                        active
-                          ? "bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] text-white font-medium border-[#155DFC]"
-                          : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
+                        "flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm border-0 transition-all bg-transparent",
+                        active ? "text-[#2860C8] font-medium" : "text-[#4B5563] hover:text-[#2860C8]"
                       )}
                     >
-                      {renderMenuIcon(fav.label, 18, "shrink-0")}
+                      <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
+                        {renderMenuIcon(fav.label, 18, "shrink-0")}
+                      </span>
                       <span className="truncate whitespace-nowrap">{fav.label}</span>
                     </Link>
                     <button
@@ -224,17 +242,27 @@ export function Sidebar() {
         {NAV_SECTIONS.map((section) => (
           <div key={section.title} className="mb-3">
             {section.title && (
-              <div className="px-3 py-2 text-[11px] font-semibold text-[#6B7280] tracking-[0.12em] uppercase">
+              <div className="sidebar-section-heading px-3 py-2">
                 {section.title}
               </div>
             )}
             {section.items.map((item) => {
               if (!isNavGroup(item)) {
                 const fav = isFavorite(item.href)
+                const isLinkActive = pathname === item.href
                 return (
-                  <div key={getNodeKey(item)} className="group/link flex items-center gap-1">
-                    <NavLink to={item.href} className={({ isActive }) => cn("flex-1 min-w-0 flex items-center gap-3", linkClass({ isActive }))} end={item.href === "/"}>
-                      {renderMenuIcon(item.label, 18, "shrink-0")}
+                  <div
+                    key={getNodeKey(item)}
+                    className={cn(
+                      "group/link flex items-center gap-1 rounded-xl transition-all",
+                      isLinkActive && "sidebar-active-gradient",
+                      "hover:bg-[#D2DCF5]/80"
+                    )}
+                  >
+                    <NavLink to={item.href} className={({ isActive }) => cn("flex-1 min-w-0 flex items-center gap-3 border-0", linkClass({ isActive }))} end={item.href === "/"}>
+                      <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
+                        {renderMenuIcon(item.label, 18, "shrink-0")}
+                      </span>
                       <span className="whitespace-nowrap truncate">{item.label}</span>
                     </NavLink>
                     <button
@@ -265,27 +293,32 @@ export function Sidebar() {
                 <div key={getNodeKey(group)}>
                   <button
                     type="button"
-                    onClick={() => toggleExpand(label)}
+                    onClick={() => {
+                      if (group.overviewHref) navigate(group.overviewHref)
+                      toggleExpand(label)
+                    }}
                     aria-expanded={isExpanded(label)}
                     className={cn(
-                      "w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm transition-all duration-200 border-l-2 border-transparent",
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200",
                       isActive
-                        ? "bg-gradient-to-r from-[#155DFC] to-[#5F9EFC] text-white font-medium border-[#155DFC] shadow-sm"
-                        : "text-[#4B5563] hover:text-[#155DFC] hover:bg-[#155DFC]/10"
+                        ? "sidebar-active-gradient sidebar-main-module-selected"
+                        : "text-sm text-[#4B5563] hover:text-[#2860C8] hover:bg-[#D2DCF5]/80"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      {renderMenuIcon(label, 18, isActive ? "shrink-0 text-white" : "shrink-0 text-[#6B7280]")}
+                      <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
+                        {renderMenuIcon(label, 16, isActive ? "shrink-0 text-[#155DFC]" : "shrink-0 text-[#6B7280]")}
+                      </span>
                       <span className="whitespace-nowrap text-left">{label}</span>
                     </div>
                     {isExpanded(label) ? (
-                      <ChevronDown size={16} aria-hidden className={isActive ? "text-white" : "text-[#6B7280]"} />
+                      <ChevronDown size={16} aria-hidden className={isActive ? "text-[#155DFC]" : "text-[#6B7280]"} />
                     ) : (
-                      <ChevronRight size={16} aria-hidden className={isActive ? "text-white" : "text-[#6B7280]"} />
+                      <ChevronRight size={16} aria-hidden className={isActive ? "text-[#155DFC]" : "text-[#6B7280]"} />
                     )}
                   </button>
                   {isExpanded(label) && (
-                    <div className="ml-6 mt-1.5 space-y-1 border-l-2 border-[#155DFC]/50 pl-2">
+                    <div className="ml-6 mt-1.5 space-y-1 border-l-2 border-[#C1D9F8] pl-2 overflow-visible">
                       <SidebarChildren
                         nodes={group.children}
                         pathname={pathname}

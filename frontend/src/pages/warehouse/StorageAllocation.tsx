@@ -33,7 +33,7 @@ const STORAGE_KEY = "wms_storage_allocations"
 type AllocationRow = {
   id: string
   ref: string
-  sku: string
+  QR_Code: string
   product: string
   qty: number
   wh: string
@@ -41,10 +41,10 @@ type AllocationRow = {
 }
 
 const defaultRows: AllocationRow[] = [
-  { id: "1", ref: "ALC-2024-0841", sku: "SKU-7821", product: "Electronics - Category A", qty: 120, wh: "WH-001", priority: "High" },
-  { id: "2", ref: "ALC-2024-0842", sku: "SKU-9103", product: "Textiles - Bulk", qty: 500, wh: "WH-001", priority: "Normal" },
-  { id: "3", ref: "ALC-2024-0843", sku: "SKU-4452", product: "Pharma - Temp Control", qty: 80, wh: "WH-005", priority: "High" },
-  { id: "4", ref: "ALC-2024-0844", sku: "SKU-2298", product: "General Merchandise", qty: 200, wh: "WH-002", priority: "Normal" },
+  { id: "1", ref: "ALC-2024-0841", QR_Code: "QR_Code-7821", product: "Electronics - Category A", qty: 120, wh: "Peshawar", priority: "High" },
+  { id: "2", ref: "ALC-2024-0842", QR_Code: "QR_Code-9103", product: "Textiles - Bulk", qty: 500, wh: "Peshawar", priority: "Normal" },
+  { id: "3", ref: "ALC-2024-0843", QR_Code: "QR_Code-4452", product: "Pharma - Temp Control", qty: 80, wh: "DI Khan", priority: "High" },
+  { id: "4", ref: "ALC-2024-0844", QR_Code: "QR_Code-2298", product: "General Merchandise", qty: 200, wh: "Yarik", priority: "Normal" },
 ]
 
 function loadRows(): AllocationRow[] {
@@ -65,7 +65,7 @@ function saveRows(rows: AllocationRow[]) {
 export default function StorageAllocationPage() {
   const [rows, setRows] = useState<AllocationRow[]>([])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ ref: "", sku: "", product: "", qty: 0, wh: "WH-001", priority: "Normal" })
+  const [form, setForm] = useState({ ref: "", QR_Code: "", product: "", qty: 0, wh: "Peshawar", priority: "Normal" })
 
   useEffect(() => {
     setRows(loadRows())
@@ -76,16 +76,16 @@ export default function StorageAllocationPage() {
   }, [rows])
 
   const openAdd = () => {
-    setForm({ ref: "", sku: "", product: "", qty: 0, wh: "WH-001", priority: "Normal" })
+    setForm({ ref: "", QR_Code: "", product: "", qty: 0, wh: "Peshawar", priority: "Normal" })
     setOpen(true)
   }
 
   const onSave = () => {
-    if (!form.ref.trim() || !form.sku.trim() || !form.product.trim()) return
+    if (!form.ref.trim() || !form.QR_Code.trim() || !form.product.trim()) return
     const newRow: AllocationRow = {
       id: `alc-${Date.now()}`,
       ref: form.ref.trim(),
-      sku: form.sku.trim(),
+      QR_Code: form.QR_Code.trim(),
       product: form.product.trim(),
       qty: form.qty || 0,
       wh: form.wh,
@@ -157,7 +157,7 @@ export default function StorageAllocationPage() {
               <CardDescription>Items pending storage allocation. Data in localStorage.</CardDescription>
             </div>
             <div className="flex gap-2 flex-shrink-0">
-              <Input placeholder="Search by SKU or PO..." className="w-64" />
+              <Input placeholder="Search by QR_Code or PO..." className="w-64" />
               <Button variant="outline">Auto-allocate</Button>
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={openAdd}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -170,7 +170,7 @@ export default function StorageAllocationPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Reference</TableHead>
-                  <TableHead>SKU</TableHead>
+                  <TableHead>QR_Code</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Quantity</TableHead>
                   <TableHead>Warehouse</TableHead>
@@ -182,7 +182,7 @@ export default function StorageAllocationPage() {
                 {rows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">{row.ref}</TableCell>
-                    <TableCell>{row.sku}</TableCell>
+                    <TableCell>{row.QR_Code}</TableCell>
                     <TableCell>{row.product}</TableCell>
                     <TableCell>{row.qty}</TableCell>
                     <TableCell>{row.wh}</TableCell>
@@ -214,8 +214,8 @@ export default function StorageAllocationPage() {
               <Input value={form.ref} onChange={(e) => setForm((f) => ({ ...f, ref: e.target.value }))} placeholder="e.g. ALC-2024-0845" />
             </div>
             <div className="grid gap-2">
-              <Label>SKU</Label>
-              <Input value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} placeholder="e.g. SKU-1234" />
+              <Label>QR_Code</Label>
+              <Input value={form.QR_Code} onChange={(e) => setForm((f) => ({ ...f, QR_Code: e.target.value }))} placeholder="e.g. QR_Code-1234" />
             </div>
             <div className="grid gap-2">
               <Label>Product</Label>
@@ -233,7 +233,7 @@ export default function StorageAllocationPage() {
             </div>
             <div className="grid gap-2">
               <Label>Warehouse</Label>
-              <Input value={form.wh} onChange={(e) => setForm((f) => ({ ...f, wh: e.target.value }))} placeholder="WH-001" />
+              <Input value={form.wh} onChange={(e) => setForm((f) => ({ ...f, wh: e.target.value }))} placeholder="Peshawar" />
             </div>
             <div className="grid gap-2">
               <Label>Priority</Label>

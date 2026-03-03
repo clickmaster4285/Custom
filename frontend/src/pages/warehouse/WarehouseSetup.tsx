@@ -44,11 +44,11 @@ type WarehouseRow = {
 }
 
 const defaultRows: WarehouseRow[] = [
-  { id: "1", code: "WH-001", name: "Main Distribution Center", location: "Karachi", capacity: "10,000", totalArea: "50,000", zoneType: "Non-bonded", currentOccupancy: "7,200", status: "Active" },
-  { id: "2", code: "WH-002", name: "North Regional Hub", location: "Lahore", capacity: "8,500", totalArea: "42,000", zoneType: "Non-bonded", currentOccupancy: "5,100", status: "Active" },
-  { id: "3", code: "WH-003", name: "Customs Bonded Warehouse", location: "Port Qasim", capacity: "12,000", totalArea: "65,000", zoneType: "Bonded", currentOccupancy: "9,000", status: "Active" },
-  { id: "4", code: "WH-004", name: "Transit Warehouse", location: "Islamabad", capacity: "5,200", totalArea: "28,000", zoneType: "Dispatch", currentOccupancy: "2,100", status: "Active" },
-  { id: "5", code: "WH-005", name: "Cold Storage Unit", location: "Faisalabad", capacity: "2,800", totalArea: "12,000", zoneType: "Quarantine", currentOccupancy: "1,800", status: "Maintenance" },
+  { id: "1", code: "Peshawar", name: "Main Distribution Center", location: "Karachi", capacity: "10,000", totalArea: "50,000", zoneType: "Non-bonded", currentOccupancy: "7,200", status: "Active" },
+  { id: "2", code: "Yarik", name: "North Regional Hub", location: "Lahore", capacity: "8,500", totalArea: "42,000", zoneType: "Non-bonded", currentOccupancy: "5,100", status: "Active" },
+  { id: "3", code: "Mardan", name: "Customs Bonded Warehouse", location: "Port Qasim", capacity: "12,000", totalArea: "65,000", zoneType: "Bonded", currentOccupancy: "9,000", status: "Active" },
+  { id: "4", code: "Kohat", name: "Transit Warehouse", location: "Islamabad", capacity: "5,200", totalArea: "28,000", zoneType: "Dispatch", currentOccupancy: "2,100", status: "Active" },
+  { id: "5", code: "DI Khan", name: "Cold Storage Unit", location: "Faisalabad", capacity: "2,800", totalArea: "12,000", zoneType: "Quarantine", currentOccupancy: "1,800", status: "Maintenance" },
 ]
 
 function loadRows(): WarehouseRow[] {

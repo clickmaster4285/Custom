@@ -116,8 +116,97 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Sidebar active state: solid #155DFC */
+/* Sidebar: Inter font for full sidebar */
+.sidebar-font {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+/* Sidebar app name (TekEye): Outfit ExtraBold 24px, #155DFC */
+.sidebar-app-name {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 24px;
+  letter-spacing: -0.45px;
+  color: #155DFC;
+}
+
+/* Sidebar section headings: Inter 12px, Semi Bold 600, line-height 16px, letter-spacing 0 */
+.sidebar-section-heading {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: #6B7280;
+  text-transform: uppercase;
+}
+
+/* Sidebar active menu: soft light-blue gradient (darker shade) + thin blue border */
 .sidebar-active-gradient {
+  background: linear-gradient(
+    41deg,
+    #9ec5ff 0%,
+    #adcdfd 25%,
+    #f8f8f8 40%,
+    #f8f8f8 50%,
+    #9ec5ff 100%
+  );
+}
+
+/* Main module selected: Inter 14px, Medium 500, line-height 20px, letter-spacing -0.15px, #155DFC */
+.sidebar-main-module-selected {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: #155DFC;
+}
+
+/* Nested module selected (e.g. Visitor Registration): same sizing/styling as main module */
+.sidebar-nested-module-selected {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: #155DFC;
+  position: relative;
+  background: transparent;
+  border-radius: 0;
+}
+/* Blue bar (4px) on the left for nested module selected */
+.sidebar-nested-module-selected::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #155DFC;
+}
+
+/* Selected sub-module (leaf e.g. Pre-Registration): Inter 14px, Semi Bold 600, #155DFC */
+.sidebar-submenu-active {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.15px;
+  color: #155DFC;
+  background: transparent;
+  position: relative;
+  border-radius: 0;
+}
+/* Blue bar (4px) on the left for selected sub-module */
+.sidebar-submenu-active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
   background: #155DFC;
 }
 
