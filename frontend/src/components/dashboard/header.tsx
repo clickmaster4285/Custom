@@ -83,7 +83,10 @@ export function Header() {
               <span className="text-[#697282] text-xs">{role}</span>
             </div>
             <Avatar className="h-10 w-10 rounded-full border-2 border-gray-100 shrink-0">
-              <AvatarImage alt={displayName} />
+              <AvatarImage
+                src="https://randomuser.me/api/portraits/women/44.jpg"
+                alt={displayName}
+              />
               <AvatarFallback className="bg-gray-200 text-[#6B7280] text-sm">
                 {initials || <User className="w-5 h-5" />}
               </AvatarFallback>
