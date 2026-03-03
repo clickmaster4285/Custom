@@ -121,6 +121,16 @@
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
+/* Sidebar app name (TekEye): Outfit ExtraBold 24px, #155DFC */
+.sidebar-app-name {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 24px;
+  letter-spacing: -0.45px;
+  color: #155DFC;
+}
+
 /* Sidebar section headings: Inter 12px, Semi Bold 600, line-height 16px, letter-spacing 0 */
 .sidebar-section-heading {
   font-family: 'Inter', 'Segoe UI', sans-serif;
