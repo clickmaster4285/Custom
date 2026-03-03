@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Calendar, Clock } from "lucide-react"
+import { Clock, Pencil } from "lucide-react"
 import { useFormik } from "formik"
 import * as Yup from "yup"
 
@@ -29,6 +29,15 @@ export interface WalkInStep3VisitDetailsFormData {
   preferredTimeSlot: string
   slotDuration: string
   priorityLevel: string
+  securityLevel?: string
+  allowedDepartments?: string
+  entryGate?: string
+  maxVisitDuration?: string
+  allowedZones?: string
+  timeValidityStart?: string
+  timeValidityEnd?: string
+  additionalRemarks?: string
+  escortMandatory?: string
 }
 
 interface WalkInStep3VisitDetailsProps {
@@ -55,18 +64,16 @@ const departmentOptions = [
   { value: "finance", label: "Finance" },
 ]
 
-const timeSlotOptions = [
-  { value: "09:00-10:00", label: "09:00 AM - 10:00 AM" },
-  { value: "10:00-11:00", label: "10:00 AM - 11:00 AM" },
-  { value: "11:00-12:00", label: "11:00 AM - 12:00 PM" },
-  { value: "14:00-15:00", label: "02:00 PM - 03:00 PM" },
-  { value: "15:00-16:00", label: "03:00 PM - 04:00 PM" },
+const securityLevelOptions = [
+  { value: "standard", label: "Standard" },
+  { value: "elevated", label: "Elevated" },
+  { value: "high", label: "High" },
 ]
 
-const durationOptions = [
-  { value: "30min", label: "30min" },
-  { value: "60min", label: "60min" },
-  { value: "2hr", label: "2hr" },
+const entryGateOptions = [
+  { value: "main", label: "Main Gate" },
+  { value: "side", label: "Side Gate" },
+  { value: "rear", label: "Rear Gate" },
 ]
 
 export function WalkInStep3VisitDetails({
@@ -91,6 +98,15 @@ export function WalkInStep3VisitDetails({
       preferredTimeSlot: formData.preferredTimeSlot || "",
       slotDuration: formData.slotDuration || "",
       priorityLevel: formData.priorityLevel || "normal",
+      securityLevel: formData.securityLevel || "",
+      allowedDepartments: formData.allowedDepartments || "",
+      entryGate: formData.entryGate || "",
+      maxVisitDuration: formData.maxVisitDuration || "",
+      allowedZones: formData.allowedZones || "",
+      timeValidityStart: formData.timeValidityStart || "",
+      timeValidityEnd: formData.timeValidityEnd || "",
+      additionalRemarks: formData.additionalRemarks || "",
+      escortMandatory: formData.escortMandatory ?? "yes",
     },
     enableReinitialize: true,
     validationSchema: Yup.object().shape({
@@ -111,6 +127,7 @@ export function WalkInStep3VisitDetails({
       <Label className="text-[22px] font-bold text-foreground">Visit Details</Label>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Left column: Visit Purpose, Department to Visit */}
         <div className="space-y-2">
           <Label className="text-base text-foreground">Visit Purpose</Label>
           <Select
@@ -139,7 +156,7 @@ export function WalkInStep3VisitDetails({
           <Label className="text-base text-foreground">Visit Description</Label>
           <Input
             name="visitPurposeDescription"
-            placeholder="e.g. To discuss some security matters."
+            placeholder="To discuss some security matters."
             value={formik.values.visitPurposeDescription}
             onChange={(e) => {
               formik.handleChange(e)
@@ -189,7 +206,7 @@ export function WalkInStep3VisitDetails({
             }}
           >
             <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-              <SelectValue placeholder="Select host" />
+              <SelectValue placeholder="Mr. Jahandad Khan" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="jahandad">Mr. Jahandad Khan</SelectItem>
@@ -242,89 +259,12 @@ export function WalkInStep3VisitDetails({
               </p>
               <button
                 type="button"
-                className="text-base font-normal text-[#3366CC] hover:underline"
+                className="inline-flex items-center gap-1 text-base font-normal text-[#3366CC] hover:underline"
               >
-                Edit
+                Edit <Pencil className="h-4 w-4" />
               </button>
             </div>
           </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label className="text-sm text-muted-foreground">Availability Status</Label>
-            <p className="text-base font-medium text-green-600">Available</p>
-            <button
-              type="button"
-              className="rounded-md border border-[#3366FF] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
-            >
-              Check Availability
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label className="text-base text-foreground">Preferred Visit Date</Label>
-          <div className="relative">
-            <Input
-              type="date"
-              name="preferredDate"
-              value={formik.values.preferredDate}
-              onChange={(e) => {
-                formik.handleChange(e)
-                updateFormData({ preferredDate: e.target.value })
-              }}
-              className="h-10 text-base bg-background border-border pr-9"
-            />
-            <Calendar className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-base text-foreground">Preferred Time Slot</Label>
-          <div className="relative">
-            <Select
-              value={formik.values.preferredTimeSlot || undefined}
-              onValueChange={(v) => {
-                formik.setFieldValue("preferredTimeSlot", v)
-                updateFormData({ preferredTimeSlot: v })
-              }}
-            >
-              <SelectTrigger className="w-full h-10 text-base bg-background border-border pr-9">
-                <SelectValue placeholder="02:00 PM - 03:00 PM" />
-              </SelectTrigger>
-              <SelectContent>
-                {timeSlotOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Clock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label className="text-base text-foreground">Expected Duration</Label>
-          <Select
-            value={formik.values.slotDuration || undefined}
-            onValueChange={(v) => {
-              formik.setFieldValue("slotDuration", v)
-              updateFormData({ slotDuration: v })
-            }}
-          >
-            <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-              <SelectValue placeholder="60min" />
-            </SelectTrigger>
-            <SelectContent>
-              {durationOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-sm text-muted-foreground">
-            (Note: Slot duration cannot be exceeded later on once booked.)
-          </p>
         </div>
       </div>
 
@@ -359,6 +299,181 @@ export function WalkInStep3VisitDetails({
           </div>
         </RadioGroup>
         <p className="text-sm text-muted-foreground">(Priority level for the visit)</p>
+      </div>
+
+      {/* Security Clearance */}
+      <div className="space-y-4 border-t border-border pt-6">
+        <Label className="text-[22px] font-bold text-foreground">Security Clearance</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label className="text-base text-foreground">Security Level</Label>
+            <Select
+              value={formik.values.securityLevel || undefined}
+              onValueChange={(v) => {
+                formik.setFieldValue("securityLevel", v)
+                updateFormData({ securityLevel: v })
+              }}
+            >
+              <SelectTrigger className="w-full h-10 text-base bg-background border-border">
+                <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                {securityLevelOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-base text-foreground">Maximum Visit Duration</Label>
+            <Input
+              placeholder="Set limit"
+              value={formik.values.maxVisitDuration}
+              onChange={(e) => {
+                formik.setFieldValue("maxVisitDuration", e.target.value)
+                updateFormData({ maxVisitDuration: e.target.value })
+              }}
+              className="h-10 text-base bg-background border-border"
+            />
+            <p className="text-sm text-muted-foreground">(Capacity Control)</p>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-base text-foreground">Allowed Departments</Label>
+            <Select
+              value={formik.values.allowedDepartments || undefined}
+              onValueChange={(v) => {
+                formik.setFieldValue("allowedDepartments", v)
+                updateFormData({ allowedDepartments: v })
+              }}
+            >
+              <SelectTrigger className="w-full h-10 text-base bg-background border-border">
+                <SelectValue placeholder="Select department(s)" />
+              </SelectTrigger>
+              <SelectContent>
+                {departmentOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-base text-foreground">Allowed Zones</Label>
+            <Select
+              value={formik.values.allowedZones || undefined}
+              onValueChange={(v) => {
+                formik.setFieldValue("allowedZones", v)
+                updateFormData({ allowedZones: v })
+              }}
+            >
+              <SelectTrigger className="w-full h-10 text-base bg-background border-border">
+                <SelectValue placeholder="Select department(s)" />
+              </SelectTrigger>
+              <SelectContent>
+                {departmentOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-base text-foreground">Entry Gate</Label>
+            <Select
+              value={formik.values.entryGate || undefined}
+              onValueChange={(v) => {
+                formik.setFieldValue("entryGate", v)
+                updateFormData({ entryGate: v })
+              }}
+            >
+              <SelectTrigger className="w-full h-10 text-base bg-background border-border">
+                <SelectValue placeholder="Select department(s)" />
+              </SelectTrigger>
+              <SelectContent>
+                {entryGateOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-base text-foreground">Time Validity</Label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type="time"
+                  placeholder="---"
+                  value={formik.values.timeValidityStart}
+                  onChange={(e) => {
+                    formik.setFieldValue("timeValidityStart", e.target.value)
+                    updateFormData({ timeValidityStart: e.target.value })
+                  }}
+                  className="h-10 text-base bg-background border-border pr-9"
+                />
+                <Clock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              </div>
+              <div className="relative flex-1">
+                <Input
+                  type="time"
+                  placeholder="---"
+                  value={formik.values.timeValidityEnd}
+                  onChange={(e) => {
+                    formik.setFieldValue("timeValidityEnd", e.target.value)
+                    updateFormData({ timeValidityEnd: e.target.value })
+                  }}
+                  className="h-10 text-base bg-background border-border pr-9"
+                />
+                <Clock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Remarks */}
+      <div className="space-y-2 border-t border-border pt-6">
+        <Label className="text-base text-foreground">Additional Remarks</Label>
+        <Textarea
+          placeholder="Add remarks"
+          value={formik.values.additionalRemarks}
+          onChange={(e) => {
+            formik.setFieldValue("additionalRemarks", e.target.value)
+            updateFormData({ additionalRemarks: e.target.value })
+          }}
+          className="min-h-20 text-base bg-background border-border resize-none"
+        />
+      </div>
+
+      {/* Escort Mandatory */}
+      <div className="space-y-3 border-t border-border pt-6">
+        <Label className="text-[22px] font-bold text-foreground">Escort Mandatory</Label>
+        <RadioGroup
+          value={formik.values.escortMandatory || "yes"}
+          onValueChange={(v) => {
+            formik.setFieldValue("escortMandatory", v)
+            updateFormData({ escortMandatory: v })
+          }}
+          className="flex flex-row gap-6"
+        >
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="yes" id="escort-yes" />
+            <Label htmlFor="escort-yes" className="text-base font-normal cursor-pointer">
+              Yes
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="no" id="escort-no" />
+            <Label htmlFor="escort-no" className="text-base font-normal cursor-pointer">
+              No
+            </Label>
+          </div>
+        </RadioGroup>
       </div>
 
       {/* Action buttons – same as first form */}
