@@ -54,7 +54,7 @@ export function Dashboard() {
   return (
     <div className="flex flex-col min-h-full">
       <div className="flex flex-1 flex-col gap-11">
-        <div className="flex flex-col self-stretch mx-8 gap-9">
+        <div className="flex flex-col self-stretch  gap-9">
           {/* Welcome */}
           <div className="flex flex-col gap-2">
             <h1 className="text-[#101727] text-3xl font-bold">Welcome Back Sarah!</h1>
