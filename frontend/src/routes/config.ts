@@ -50,6 +50,11 @@ export const ROUTES = {
   STORAGE_ALLOCATION: "/storage-allocation",
   INVENTORY_TRACKING: "/inventory-tracking",
   STOCK_RECONCILIATION: "/stock-reconciliation",
+  // Inventory Management (sidebar sub-items)
+  GOODS_RECEIPT: "/goods-receipt",
+  STOCK_MANAGEMENT: "/stock-management",
+  CYCLE_COUNTING: "/cycle-counting-audit",
+  INVENTORY_VALUATION: "/inventory-valuation",
 
   // Cameras & monitoring
   CAMERA_INTEGRATION: "/camera-integration",
@@ -68,6 +73,8 @@ export const ROUTES = {
   ANPR_SETTINGS: "/anpr-settings",
   ANOMALY_DETECTION: "/anomaly-detection",
 
+  // Detentions
+  DEPOSIT_ACCOUNT_REGISTER: "/deposit-account-register",
   // Seizures & cases
   NEW_SEIZURE_ENTRY: "/new-seizure-entry",
   JCP_TOLL_PLAZA_ENTRY: "/jcp-toll-plaza-entry",
@@ -120,6 +127,7 @@ export const ROUTES = {
 
   // HR
   EMPLOYEES: "/employees",
+  RECRUITMENT: "/recruitment",
   /** Path for employee detail; use getEmployeeDetailPath(id) for links */
   EMPLOYEE_DETAIL: "/employees/:id",
   ATTENDANCE: "/attendance",
@@ -154,6 +162,20 @@ export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
 /** Build path to employee detail page */
 export function getEmployeeDetailPath(id: number): string {
   return `/employees/${id}`
+}
+
+/** Build path to Inventory Management detail pages */
+export function getGoodsReceiptDetailPath(id: string): string {
+  return `${ROUTES.GOODS_RECEIPT}/${encodeURIComponent(id)}`
+}
+export function getStockManagementDetailPath(id: string): string {
+  return `${ROUTES.STOCK_MANAGEMENT}/${encodeURIComponent(id)}`
+}
+export function getCycleCountingDetailPath(id: string): string {
+  return `${ROUTES.CYCLE_COUNTING}/${encodeURIComponent(id)}`
+}
+export function getInventoryValuationDetailPath(id: string): string {
+  return `${ROUTES.INVENTORY_VALUATION}/${encodeURIComponent(id)}`
 }
 
 /** Returns true if pathname is the login route */
@@ -261,8 +283,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       {
         label: "Detentions",
         children: [
-
-          { label: "Deposit Account Register", href: ROUTES.NEW_SEIZURE_ENTRY },
+          { label: "Deposit Account Register", href: ROUTES.DEPOSIT_ACCOUNT_REGISTER },
         ],
       },
 
