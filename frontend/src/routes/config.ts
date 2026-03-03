@@ -176,228 +176,240 @@ export interface NavGroup {
 /** All nav items in order; split into sections by NAV_SECTIONS */
 const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
   { label: "Dashboard", href: ROUTES.DASHBOARD },
+  {
+    label: "Visitor Management",
+    overviewHref: ROUTES.VISITOR_MANAGEMENT_OVERVIEW,
+    children: [
       {
-        label: "Visitor Management",
-        overviewHref: ROUTES.VISITOR_MANAGEMENT_OVERVIEW,
+        label: "Visitor Registration",
         children: [
-          {
-            label: "Visitor Registration",
-            children: [
-              { label: "Pre-Registration", href: ROUTES.PRE_REGISTRATION },
-              { label: "Walk-In Registration", href: ROUTES.WALK_IN_REGISTRATION },
-              { label: "Calendar View", href: ROUTES.CALENDAR_VIEW },
-            ],
-          },
-          {
-            label: "Security & Screening",
-            children: [
-              { label: "Watchlist Screening", href: ROUTES.WATCHLIST_SCREENING },
-              { label: "Blacklist Management", href: ROUTES.BLACKLIST_MANAGEMENT },
-              { label: "Flagged Visitor Alerts", href: ROUTES.FLAGGED_VISITOR_ALERTS },
-            ],
-          },
-          {
-            label: "Access Control",
-            children: [
-              { label: "Zone Restrictions", href: ROUTES.ZONE_RESTRICTIONS },
-              { label: "Gate Integration", href: ROUTES.GATE_INTEGRATION },
-              { label: "Escort Requirement", href: ROUTES.ESCORT_REQUIREMENT },
-            ],
-          },
-          {
-            label: "Host & Department",
-            children: [
-              { label: "Visitor Notifications", href: ROUTES.VISITOR_NOTIFICATIONS },
-              { label: "Upcoming Visits", href: ROUTES.UPCOMING_VISITS },
-              { label: "Visitor History", href: ROUTES.VISITOR_HISTORY },
-            ],
-          },
-          { label: "Guard & Reception Panel", href: ROUTES.GUARD_RECEPTION_PANEL },
-          {
-            label: "Vehicle & Contractor ",
-            children: [
-              { label: "Vehicle Registration", href: ROUTES.VEHICLE_REGISTRATION },
-              { label: "Vehicle Tracking", href: ROUTES.VEHICLE_TRACKING },
-              { label: "Contractor Passes", href: ROUTES.CONTRACTOR_PASSES },
-              { label: "Cargo/Delivery Logs", href: ROUTES.CARGO_DELIVERY_LOGS },
-            ],
-          },
+          { label: "Pre-Registration", href: ROUTES.PRE_REGISTRATION },
+          { label: "Walk-In Registration", href: ROUTES.WALK_IN_REGISTRATION },
+          { label: "Calendar View", href: ROUTES.CALENDAR_VIEW },
         ],
       },
       {
-        label: "Armory",
+        label: "Security & Screening",
         children: [
-          { label: "Armory Dashboard", href: ROUTES.ARMORY },
+          { label: "Watchlist Screening", href: ROUTES.WATCHLIST_SCREENING },
+          { label: "Blacklist Management", href: ROUTES.BLACKLIST_MANAGEMENT },
+          { label: "Flagged Visitor Alerts", href: ROUTES.FLAGGED_VISITOR_ALERTS },
         ],
       },
       {
-        label: "Litigation Management",
+        label: "Access Control",
         children: [
-          {
-            label: "Cases",
-            children: [
-              { label: "FIR Registration", href: ROUTES.FIR_REGISTRATION },
-              { label: "Case File Creation", href: ROUTES.CASE_FILE_CREATION },
-              { label: "Court Proceedings", href: ROUTES.COURT_PROCEEDINGS },
-              { label: "Legal Documents", href: ROUTES.LEGAL_DOCUMENTS },
-              { label: "Case Status Tracking", href: ROUTES.CASE_STATUS_TRACKING },
-            ],
-          },
+          { label: "Zone Restrictions", href: ROUTES.ZONE_RESTRICTIONS },
+          { label: "Gate Integration", href: ROUTES.GATE_INTEGRATION },
+          { label: "Escort Requirement", href: ROUTES.ESCORT_REQUIREMENT },
         ],
       },
       {
-        label: "Warehouse Management",
+        label: "Host & Department",
         children: [
-          {
-            label: "Dashboard", href: ROUTES.OPERATIONS_DASHBOARD,
-          },
+          { label: "Visitor Notifications", href: ROUTES.VISITOR_NOTIFICATIONS },
+          { label: "Upcoming Visits", href: ROUTES.UPCOMING_VISITS },
+          { label: "Visitor History", href: ROUTES.VISITOR_HISTORY },
+        ],
+      },
+      { label: "Guard & Reception Panel", href: ROUTES.GUARD_RECEPTION_PANEL },
+      {
+        label: "Vehicle & Contractor ",
+        children: [
+          { label: "Vehicle Registration", href: ROUTES.VEHICLE_REGISTRATION },
+          { label: "Vehicle Tracking", href: ROUTES.VEHICLE_TRACKING },
+          { label: "Contractor Passes", href: ROUTES.CONTRACTOR_PASSES },
+          { label: "Cargo/Delivery Logs", href: ROUTES.CARGO_DELIVERY_LOGS },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Armory",
+    children: [
+      { label: "Armory Dashboard", href: ROUTES.ARMORY },
+    ],
+  },
+  {
+    label: "Litigation Management",
+    children: [
+      {
+        label: "Cases",
+        children: [
+          { label: "FIR Registration", href: ROUTES.FIR_REGISTRATION },
+          { label: "Case File Creation", href: ROUTES.CASE_FILE_CREATION },
+          { label: "Court Proceedings", href: ROUTES.COURT_PROCEEDINGS },
+          { label: "Legal Documents", href: ROUTES.LEGAL_DOCUMENTS },
+          { label: "Case Status Tracking", href: ROUTES.CASE_STATUS_TRACKING },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Warehouse Management",
+    children: [
+      {
+        label: "Dashboard", href: ROUTES.OPERATIONS_DASHBOARD,
+      },
 
       {
         label: "Detentions",
         children: [
-         
-              { label: "Deposit Account Register", href: ROUTES.NEW_SEIZURE_ENTRY },
-            ],
-      },
-        
 
-          {
-            label: "Seizure & Receipt",
-            children: [
-              { label: "New Seizure Entry", href: ROUTES.NEW_SEIZURE_ENTRY },
-              { label: "Goods Receipt & Handover", href: ROUTES.GOODS_RECEIPT_HANDOVER },
-              { label: "AI Item Cataloging", href: ROUTES.AI_ITEM_CATALOGING },
-              { label: "QR Code Generation", href: ROUTES.QR_CODE_GENERATION },
-              { label: "Seizure Register", href: ROUTES.SEIZURE_REGISTER },
-            ],
-          },
-          {
-            label: "Warehouse",
-            children: [
-              { label: "Warehouse Setup", href: ROUTES.WAREHOUSE_SETUP },
-              { label: "Zone & Location", href: ROUTES.ZONE_LOCATION_MANAGEMENT },
-              { label: "Storage Allocation", href: ROUTES.STORAGE_ALLOCATION },
-              { label: "Inventory Tracking", href: ROUTES.INVENTORY_TRACKING },
-              { label: "Stock Reconciliation", href: ROUTES.STOCK_RECONCILIATION },
-              { label: "Camera Integration", href: ROUTES.CAMERA_INTEGRATION },
-            ],
-          },
-          {
-            label: "Inventory Management",
-            children: [
-              // { label: "Warehouse Setup", href: ROUTES.WAREHOUSE_SETUP },
-              // { label: "Zone & Location", href: ROUTES.ZONE_LOCATION_MANAGEMENT },
-              // { label: "Storage Allocation", href: ROUTES.STORAGE_ALLOCATION },
-              // { label: "Inventory Tracking", href: ROUTES.INVENTORY_TRACKING },
-              // { label: "Stock Reconciliation", href: ROUTES.STOCK_RECONCILIATION },
-              // { label: "Camera Integration", href: ROUTES.CAMERA_INTEGRATION },
-            ],
-          },
-          {
-            label: "Transfers & Handover",
-            children: [
-              { label: "Inter-Collectorate Transfer", href: ROUTES.INTER_COLLECTORATE_TRANSFER },
-              { label: "Internal Movement", href: ROUTES.INTERNAL_MOVEMENT },
-              { label: "Handover Requests", href: ROUTES.HANDOVER_REQUESTS },
-              { label: "Double Authentication", href: ROUTES.DOUBLE_AUTHENTICATION },
-              { label: "Transfer Tracking", href: ROUTES.TRANSFER_TRACKING },
-            ],
-          },
-          {
-            label: "Perishable Management",
-            children: [
-              { label: "Perishable Register", href: ROUTES.PERISHABLE_REGISTER },
-              { label: "Expiry Tracking", href: ROUTES.EXPIRY_TRACKING },
-              { label: "Priority Disposal Queue", href: ROUTES.PRIORITY_DISPOSAL_QUEUE },
-              { label: "Destruction Orders", href: ROUTES.DESTRUCTION_ORDERS },
-              { label: "Lot Creation", href: ROUTES.LOT_CREATION },
-              { label: "Item Valuation", href: ROUTES.ITEM_VALUATION },
-            ],
-          },
-         
-          {
-            label: "Integration",
-            children: [
-              { label: "WeBOC Sync", href: ROUTES.WEBOC_SYNC },
-              { label: "API Logs", href: ROUTES.API_LOGS },
-            ],
-          },
-          {
-            label: "Download Reports",
-            children: [
-              { label: "Standard Reports", href: ROUTES.STANDARD_REPORTS },
-              { label: "Custom Report Builder", href: ROUTES.CUSTOM_REPORT_BUILDER },
-              { label: "Export Center", href: ROUTES.EXPORT_CENTER },
-            ],
-          },
-         
-         
+          { label: "Deposit Account Register", href: ROUTES.NEW_SEIZURE_ENTRY },
         ],
       },
-      {
-        label: "Auction Management",
-        children: [
-          { label: "ASO Portal Sync", href: ROUTES.ASO_PORTAL_SYNC },
-          { label: "Bidding Management", href: ROUTES.BIDDING_MANAGEMENT },
-          { label: "Sale Completion", href: ROUTES.SALE_COMPLETION },
-          { label: "Revenue Reports", href: ROUTES.REVENUE_REPORTS },
-        ],
-      },
-      {
-        label: "AI Analytics",
-        children: [
-          { label: "Analytics Dashboard", href: ROUTES.ANALYTICS_DASHBOARD },
-          { label: "AI Models", href: ROUTES.AI_MODELS },
-          // {
-          //   label: "Computer Vision",
-          //   children: [
-          //     { label: "Cameras", href: ROUTES.CAMERA_MANAGEMENT },
-          //     { label: "Object Detection", href: ROUTES.OBJECT_DETECTION },
-          //     { label: "ANPR Settings", href: ROUTES.ANPR_SETTINGS },
-          //     { label: "Anomaly Detection", href: ROUTES.ANOMALY_DETECTION },
-          //   ],
-          // },                      
-          { label: "JCP/Toll Plaza Entry (ANPR)", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
 
-          { label: "Zones", href: ROUTES.AI_ZONES },
-          { label: "Rules", href: ROUTES.AI_RULES },
-          { label: "Training", href: ROUTES.AI_TRAINING },
-          { label: "Live View", href: ROUTES.LIVE_CAMERA_GRID },
-          { label: "Playback & Search", href: ROUTES.PLAYBACK_SEARCH },
-          { label: "Thermal Imaging", href: ROUTES.THERMAL_IMAGING },
-          { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
-          { label: "Incident Management", href: ROUTES.INCIDENT_MANAGEMENT },
-          { label: "People Database", href: ROUTES.PEOPLE_DATABASE },
-          { label: "Vehicle Database", href: ROUTES.VEHICLE_DATABASE },
-          { label: "Vehicle Detection", href: ROUTES.VEHICLE_DETECTION },
-          { label: "Reports & Analytics", href: ROUTES.REPORTS },
-          { label: "Predictive Insights", href: ROUTES.PREDICTIVE_INSIGHTS },
-          { label: "Data Visualization", href: ROUTES.DATA_VISUALIZATION },
 
-          { label: "Database Tables", href: ROUTES.DATABASE_TABLES },
+      {
+        label: "Seizure & Receipt",
+        children: [
+          { label: "New Seizure Entry", href: ROUTES.NEW_SEIZURE_ENTRY },
+          { label: "Goods Receipt & Handover", href: ROUTES.GOODS_RECEIPT_HANDOVER },
+          { label: "AI Item Cataloging", href: ROUTES.AI_ITEM_CATALOGING },
+          { label: "QR Code Generation", href: ROUTES.QR_CODE_GENERATION },
+          { label: "Seizure Register", href: ROUTES.SEIZURE_REGISTER },
         ],
       },
       {
-        label: "Human Resource",
+        label: "Warehouse",
         children: [
-          { label: "Employees", href: ROUTES.EMPLOYEES },
-          { label: "Attendance", href: ROUTES.ATTENDANCE },
-          { label: "Leave", href: ROUTES.LEAVE_MANAGEMENT },
-          { label: "Payroll", href: ROUTES.PAYROLL },
-          { label: "Recruitment", href: ROUTES.RECRUITMENT },
+          { label: "Warehouse Setup", href: ROUTES.WAREHOUSE_SETUP },
+          { label: "Zone & Location", href: ROUTES.ZONE_LOCATION_MANAGEMENT },
+          { label: "Storage Allocation", href: ROUTES.STORAGE_ALLOCATION },
+          { label: "Stock Reconciliation", href: ROUTES.STOCK_RECONCILIATION },
+          { label: "Camera Integration", href: ROUTES.CAMERA_INTEGRATION },
         ],
       },
       {
-        label: "System Configuration",
+        label: "Inventory Management",
         children: [
-          { label: "General Settings", href: ROUTES.GENERAL_SETTINGS },
-          { label: "Roles & Permissions", href: ROUTES.USER_ROLE_MANAGEMENT },
-          { label: "Integrations", href: ROUTES.INTEGRATIONS },
-          { label: "Notifications", href: ROUTES.NOTIFICATIONS },
-          { label: "Security & Access", href: ROUTES.SECURITY_ACCESS },
-          { label: "Logs", href: ROUTES.LOGS },
+          {
+            label: "Goods Receipt",
+            href: ROUTES.GOODS_RECEIPT,
+
+          },
+          {
+            label: "Stock Management",
+            href: ROUTES.STOCK_MANAGEMENT,
+
+          },
+          {
+            label: "Cycle Counting & Audit",
+            href: ROUTES.CYCLE_COUNTING,
+
+          },
+          {
+            label: "Inventory Valuation",
+            href: ROUTES.INVENTORY_VALUATION,
+          },
         ],
       },
+      {
+        label: "Transfers & Handover",
+        children: [
+          { label: "Inter-Collectorate Transfer", href: ROUTES.INTER_COLLECTORATE_TRANSFER },
+          { label: "Internal Movement", href: ROUTES.INTERNAL_MOVEMENT },
+          { label: "Handover Requests", href: ROUTES.HANDOVER_REQUESTS },
+          { label: "Double Authentication", href: ROUTES.DOUBLE_AUTHENTICATION },
+          { label: "Transfer Tracking", href: ROUTES.TRANSFER_TRACKING },
+        ],
+      },
+      {
+        label: "Perishable Management",
+        children: [
+          { label: "Perishable Register", href: ROUTES.PERISHABLE_REGISTER },
+          { label: "Expiry Tracking", href: ROUTES.EXPIRY_TRACKING },
+          { label: "Priority Disposal Queue", href: ROUTES.PRIORITY_DISPOSAL_QUEUE },
+          { label: "Destruction Orders", href: ROUTES.DESTRUCTION_ORDERS },
+          { label: "Lot Creation", href: ROUTES.LOT_CREATION },
+          { label: "Item Valuation", href: ROUTES.ITEM_VALUATION },
+        ],
+      },
+
+      {
+        label: "Integration",
+        children: [
+          { label: "WeBOC Sync", href: ROUTES.WEBOC_SYNC },
+          { label: "API Logs", href: ROUTES.API_LOGS },
+        ],
+      },
+      {
+        label: "Download Reports",
+        children: [
+          { label: "Standard Reports", href: ROUTES.STANDARD_REPORTS },
+          { label: "Custom Report Builder", href: ROUTES.CUSTOM_REPORT_BUILDER },
+          { label: "Export Center", href: ROUTES.EXPORT_CENTER },
+        ],
+      },
+
+
+    ],
+  },
+  {
+    label: "Auction Management",
+    children: [
+      { label: "ASO Portal Sync", href: ROUTES.ASO_PORTAL_SYNC },
+      { label: "Bidding Management", href: ROUTES.BIDDING_MANAGEMENT },
+      { label: "Sale Completion", href: ROUTES.SALE_COMPLETION },
+      { label: "Revenue Reports", href: ROUTES.REVENUE_REPORTS },
+    ],
+  },
+  {
+    label: "AI Analytics",
+    children: [
+      { label: "Analytics Dashboard", href: ROUTES.ANALYTICS_DASHBOARD },
+      { label: "AI Models", href: ROUTES.AI_MODELS },
+      // {
+      //   label: "Computer Vision",
+      //   children: [
+      //     { label: "Cameras", href: ROUTES.CAMERA_MANAGEMENT },
+      //     { label: "Object Detection", href: ROUTES.OBJECT_DETECTION },
+      //     { label: "ANPR Settings", href: ROUTES.ANPR_SETTINGS },
+      //     { label: "Anomaly Detection", href: ROUTES.ANOMALY_DETECTION },
+      //   ],
+      // },                      
+      { label: "JCP/Toll Plaza Entry (ANPR)", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
+
+      { label: "Zones", href: ROUTES.AI_ZONES },
+      { label: "Rules", href: ROUTES.AI_RULES },
+      { label: "Training", href: ROUTES.AI_TRAINING },
+      { label: "Live View", href: ROUTES.LIVE_CAMERA_GRID },
+      { label: "Playback & Search", href: ROUTES.PLAYBACK_SEARCH },
+      { label: "Thermal Imaging", href: ROUTES.THERMAL_IMAGING },
+      { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
+      { label: "Incident Management", href: ROUTES.INCIDENT_MANAGEMENT },
+      { label: "People Database", href: ROUTES.PEOPLE_DATABASE },
+      { label: "Vehicle Database", href: ROUTES.VEHICLE_DATABASE },
+      { label: "Vehicle Detection", href: ROUTES.VEHICLE_DETECTION },
+      { label: "Reports & Analytics", href: ROUTES.REPORTS },
+      { label: "Predictive Insights", href: ROUTES.PREDICTIVE_INSIGHTS },
+      { label: "Data Visualization", href: ROUTES.DATA_VISUALIZATION },
+
+      { label: "Database Tables", href: ROUTES.DATABASE_TABLES },
+    ],
+  },
+  {
+    label: "Human Resource",
+    children: [
+      { label: "Employees", href: ROUTES.EMPLOYEES },
+      { label: "Attendance", href: ROUTES.ATTENDANCE },
+      { label: "Leave", href: ROUTES.LEAVE_MANAGEMENT },
+      { label: "Payroll", href: ROUTES.PAYROLL },
+      { label: "Recruitment", href: ROUTES.RECRUITMENT },
+    ],
+  },
+  {
+    label: "System Configuration",
+    children: [
+      { label: "General Settings", href: ROUTES.GENERAL_SETTINGS },
+      { label: "Roles & Permissions", href: ROUTES.USER_ROLE_MANAGEMENT },
+      { label: "Integrations", href: ROUTES.INTEGRATIONS },
+      { label: "Notifications", href: ROUTES.NOTIFICATIONS },
+      { label: "Security & Access", href: ROUTES.SECURITY_ACCESS },
+      { label: "Logs", href: ROUTES.LOGS },
+    ],
+  },
 ]
 
 /** Sidebar navigation sections: each has a title and list of groups or items */

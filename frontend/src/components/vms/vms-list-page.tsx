@@ -31,6 +31,7 @@ type RecordRow = { id: string } & Record<string, string>
 type Column = {
   key: string
   label: string
+  render?: (row: any) => React.ReactNode  // Added render function support
 }
 
 type Field = {
@@ -171,8 +172,8 @@ export function VmsListPage({
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
             <div>
               <CardTitle>{title}</CardTitle>
-              Frontend-only list view with local storage persistence.
-              </div>
+              <CardDescription>Frontend-only list view with local storage persistence.</CardDescription>
+            </div>
             <div className="flex flex-col md:flex-row gap-2">
               <Input
                 value={search}
@@ -218,7 +219,10 @@ export function VmsListPage({
                   filteredRows.map((row) => (
                     <TableRow key={row.id}>
                       {columns.map((c) => (
-                        <TableCell key={`${row.id}-${c.key}`}>{row[c.key] ?? "—"}</TableCell>
+                        <TableCell key={`${row.id}-${c.key}`}>
+                          {/* Use render function if provided, otherwise fallback to raw value */}
+                          {c.render ? c.render(row) : (row[c.key] ?? "—")}
+                        </TableCell>
                       ))}
                     </TableRow>
                   ))
