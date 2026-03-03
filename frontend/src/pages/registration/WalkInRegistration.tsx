@@ -109,6 +109,18 @@ const initialFormData = {
   licenseExpiryDate: "",
   visitorPhotos: [] as string[],
   photoCapture: "",
+  visitorMinors: [] as {
+    name: string
+    relation: string
+    gender: string
+    cnicOrBForm: string
+    passportNumber: string
+    nationality: string
+    dateOfBirth: string
+    mobileNumber: string
+    emailAddress: string
+    residentialAddress: string
+  }[],
   visitPurpose: "",
   department: "",
   hostName: "",
@@ -614,6 +626,7 @@ export default function WalkInRegistrationPage() {
                       licenseExpiryDate: formData.licenseExpiryDate,
                       visitorPhotos: formData.visitorPhotos ?? [],
                       photoCapture: formData.photoCapture,
+                      visitorMinors: formData.visitorMinors ?? [],
                     }}
                     updateFormData={(data) => {
                       updateFormData({
