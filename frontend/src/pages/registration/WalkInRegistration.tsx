@@ -131,10 +131,15 @@ const initialFormData = {
   expiryDate: "",
   frontImage: "",
   backImage: "",
+  backImageFiles: [] as { dataUrl: string; name: string; size: string }[],
   supportDocType: "",
   applicationLetter: "",
   letterRefNo: "",
   additionalDocument: "",
+  authorizationLetter: "",
+  authorizationLetterFiles: [] as { dataUrl: string; name: string; size: string }[],
+  nocDocument: "",
+  nocDocumentFiles: [] as { dataUrl: string; name: string; size: string }[],
   uploadProcedure: "",
   qrCodeId: "",
   securityLevel: "",
@@ -644,8 +649,13 @@ export default function WalkInRegistrationPage() {
                     formData={{
                       frontImage: formData.frontImage,
                       backImage: formData.backImage,
+                      backImageFiles: formData.backImageFiles ?? [],
                       applicationLetter: formData.applicationLetter,
                       additionalDocument: formData.additionalDocument,
+                      authorizationLetter: formData.authorizationLetter ?? "",
+                      authorizationLetterFiles: formData.authorizationLetterFiles ?? [],
+                      nocDocument: formData.nocDocument ?? "",
+                      nocDocumentFiles: formData.nocDocumentFiles ?? [],
                     }}
                     updateFormData={(data) => updateFormData(data)}
                     onCancel={handleCancelForm}
