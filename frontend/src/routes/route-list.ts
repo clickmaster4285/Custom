@@ -108,10 +108,11 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.ACTIVITY_LOGS), page: "SecurityAccess" },
   // HR
   { path: toChildPath(ROUTES.EMPLOYEES), page: "Employees" },
+  { path: "employees/:id", page: "EmployeeDetail" },
+  { path: "employees/:id/edit", page: "EmployeeEdit" },
   { path: toChildPath(ROUTES.ATTENDANCE), page: "Attendance" },
   { path: toChildPath(ROUTES.LEAVE_MANAGEMENT), page: "LeaveManagement" },
   { path: toChildPath(ROUTES.PAYROLL), page: "Payroll" },
-  { path: toChildPath(ROUTES.RECRUITMENT), page: "Recruitment" },
   // Settings
   { path: toChildPath(ROUTES.GENERAL_SETTINGS), page: "GeneralSettings" },
   { path: toChildPath(ROUTES.USER_ROLE_MANAGEMENT), page: "UserRoleManagement" },

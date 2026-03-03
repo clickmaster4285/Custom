@@ -120,10 +120,11 @@ export const ROUTES = {
 
   // HR
   EMPLOYEES: "/employees",
+  /** Path for employee detail; use getEmployeeDetailPath(id) for links */
+  EMPLOYEE_DETAIL: "/employees/:id",
   ATTENDANCE: "/attendance",
   LEAVE_MANAGEMENT: "/leave-management",
   PAYROLL: "/payroll",
-  RECRUITMENT: "/recruitment",
 
   // Settings
   GENERAL_SETTINGS: "/general-settings",
@@ -149,6 +150,11 @@ export const ROUTES = {
 } as const
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
+
+/** Build path to employee detail page */
+export function getEmployeeDetailPath(id: number): string {
+  return `/employees/${id}`
+}
 
 /** Returns true if pathname is the login route */
 export function isLoginRoute(pathname: string): boolean {
@@ -330,8 +336,10 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       {
         label: "Integration",
         children: [
-          { label: "WeBOC Sync", href: ROUTES.WEBOC_SYNC },
-          { label: "API Logs", href: ROUTES.API_LOGS },
+          { label: "Employees", href: ROUTES.EMPLOYEES },
+          { label: "Attendance", href: ROUTES.ATTENDANCE },
+          { label: "Leave", href: ROUTES.LEAVE_MANAGEMENT },
+          { label: "Payroll", href: ROUTES.PAYROLL },
         ],
       },
       {

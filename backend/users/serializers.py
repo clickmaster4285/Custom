@@ -1,5 +1,14 @@
 from rest_framework import serializers
-from .models import User, Staff, Attendance
+from django.utils import timezone
+from .models import (
+    User,
+    Staff,
+    Attendance,
+    LeaveType,
+    LeaveRequest,
+    PayrollRun,
+    PayrollEntry,
+)
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 
@@ -43,68 +52,213 @@ class LoginResponseSerializer(serializers.Serializer):
 
 
 # -----------------------------
-# Staff Create Serializer
+# User Serializer (for creating users)
 # -----------------------------
-class StaffCreateSerializer(serializers.ModelSerializer):
-    # User fields (input only; we create User from these — do NOT send "user")
-    username = serializers.CharField(write_only=True)
-    password = serializers.CharField(write_only=True)
-    email = serializers.EmailField(write_only=True)
-    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, write_only=True)
-    phone = serializers.CharField(write_only=True)
-    profile_image = serializers.ImageField(required=False, allow_null=True)
-
+class UserCreateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Staff
-        fields = [
-            "username",
-            "password",
-            "email",
-            "role",
-            "phone",
-            "full_name",
-            "cnic",
-            "address",
-            "date_of_birth",
-            "joining_date",
-            "department",
-            "designation",
-            "profile_image",
-            "emergency_contact",
-        ]
+        model = User
+        fields = ["id", "username", "email", "password", "role", "phone"]
+        extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
-        username = validated_data.pop("username")
         password = validated_data.pop("password")
-        email = validated_data.pop("email")
-        role = validated_data.pop("role")
-        phone = validated_data.pop("phone")
-
-        user = User.objects.create(
-            username=username,
-            email=email,
-            role=role,
-            phone=phone,
-            password=make_password(password),
-        )
-
-        staff = Staff.objects.create(user=user, **validated_data)
-        return staff
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
 
 
 # -----------------------------
-# Staff Serializer (Update / List)
+# Staff Serializer (Full) – all template fields
 # -----------------------------
 class StaffSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()  # Show username
-    user_id = serializers.IntegerField(source="user.id", read_only=True)
-    role = serializers.CharField(source="user.role")
-    email = serializers.CharField(source="user.email")
-    phone = serializers.CharField(source="user.phone")
+    user_details = serializers.SerializerMethodField(read_only=True)
+    national_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Staff
         fields = "__all__"
+        read_only_fields = ["created_at"]
+
+    def get_national_id(self, obj):
+        return getattr(obj, "national_id", None) or obj.cnic
+
+    def get_user_details(self, obj):
+        if obj.user:
+            return {
+                "id": obj.user.id,
+                "username": obj.user.username,
+                "email": obj.user.email,
+                "role": obj.user.role,
+                "phone": obj.user.phone,
+                "is_active": obj.user.is_active,
+            }
+        return None
+
+
+# -----------------------------
+# Staff Create Serializer
+# Accepts full HR template payload; maps first_name+last_name -> full_name, national_id -> cnic, etc.
+# -----------------------------
+class StaffCreateSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(required=False, write_only=True)
+    last_name = serializers.CharField(required=False, write_only=True)
+    national_id = serializers.CharField(required=False, write_only=True)
+    street_address = serializers.CharField(required=False, write_only=True)
+    emergency_contact_phone = serializers.CharField(required=False, write_only=True)
+    emergency_contact_name = serializers.CharField(required=False, write_only=True)
+    date_of_joining = serializers.DateField(required=False, write_only=True)
+
+    class Meta:
+        model = Staff
+        fields = [
+            "user", "full_name", "first_name", "last_name", "cnic", "national_id",
+            "date_of_birth", "gender", "marital_status", "blood_group", "profile_image",
+            "email", "phone_primary", "phone_alternate", "address", "street_address",
+            "city", "state", "country", "postal_code",
+            "employee_id", "designation", "department", "branch_location", "manager",
+            "employment_type", "joining_date", "probation_end_date",
+            "work_shift_start", "work_shift_end", "job_status",
+            "salary", "bank_account", "iban", "salary_type", "tax_id", "allowances",
+            "role_access_level", "system_permissions",
+            "emergency_contact", "emergency_contact_name", "emergency_contact_relationship",
+            "emergency_contact_phone", "emergency_contact_address",
+            "resume_file", "joining_letter_file", "contract_file", "id_proof_file",
+            "tax_form_file", "certificates_file", "background_check_status",
+            "skills_competencies", "languages_known", "performance_rating",
+            "last_appraisal_date", "leave_balance", "notes", "created_at",
+            "date_of_joining",
+        ]
+        read_only_fields = ["created_at"]
+        extra_kwargs = {
+            "user": {"read_only": True},
+            "full_name": {"required": False},
+            "cnic": {"required": False},
+            "address": {"required": False},
+            "emergency_contact": {"required": False},
+            "joining_date": {"required": False},
+            "department": {"required": False},
+            "designation": {"required": False},
+        }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["national_id"] = getattr(instance, "national_id", None) or instance.cnic
+        for key in ("first_name", "last_name", "street_address", "emergency_contact_phone", "emergency_contact_name", "date_of_joining"):
+            data.pop(key, None)
+        return data
+
+    def validate(self, data):
+        initial = self.initial_data
+
+        full_name = data.get("full_name")
+        if not full_name:
+            first = (initial.get("first_name") or data.get("first_name") or "").strip()
+            last = (initial.get("last_name") or data.get("last_name") or "").strip()
+            full_name = f"{first} {last}".strip() or initial.get("full_name")
+        if not full_name:
+            raise serializers.ValidationError(
+                {"first_name": "Either full_name or first_name and last_name are required."}
+            )
+        data["full_name"] = full_name[:150]
+        data["first_name"] = (initial.get("first_name") or data.get("first_name") or "").strip()[:80] or None
+        data["last_name"] = (initial.get("last_name") or data.get("last_name") or "").strip()[:80] or None
+
+        address = data.get("address") or initial.get("street_address")
+        if not address:
+            parts = [initial.get("city"), initial.get("state"), initial.get("country"), initial.get("postal_code")]
+            address = ", ".join(str(p).strip() for p in parts if p) or initial.get("address")
+        if not address:
+            raise serializers.ValidationError(
+                {"street_address": "Either address or street_address (or city/state/country) is required."}
+            )
+        data["address"] = address
+
+        ec = (
+            data.get("emergency_contact")
+            or initial.get("emergency_contact_phone") or data.get("emergency_contact_phone")
+            or initial.get("emergency_contact_name") or data.get("emergency_contact_name")
+            or initial.get("emergency_contact")
+        )
+        if not ec:
+            raise serializers.ValidationError(
+                {"emergency_contact_phone": "Either emergency_contact or emergency_contact_phone/emergency_contact_name is required."}
+            )
+        data["emergency_contact"] = str(ec)[:100]
+
+        national_id_val = initial.get("national_id") or data.get("national_id") or data.get("cnic")
+        if not national_id_val:
+            raise serializers.ValidationError({"national_id": "National ID / CNIC is required."})
+        cnic_clean = "".join(c for c in str(national_id_val) if c.isdigit())[:15]
+        data["cnic"] = cnic_clean or str(national_id_val)[:15]
+        if Staff.objects.filter(cnic=data["cnic"]).exists():
+            raise serializers.ValidationError({"national_id": "Staff with this National ID already exists."})
+        data["national_id"] = str(national_id_val)[:30]
+
+        doj = initial.get("date_of_joining") or data.get("date_of_joining")
+        if doj:
+            data["joining_date"] = doj
+        if not data.get("joining_date"):
+            data["joining_date"] = timezone.now().date()
+
+        if not data.get("department"):
+            raise serializers.ValidationError({"department": "Department is required."})
+        if not data.get("designation"):
+            raise serializers.ValidationError({"designation": "Designation is required."})
+
+        for key in ("street_address", "emergency_contact_phone", "emergency_contact_name", "date_of_joining"):
+            data.pop(key, None)
+
+        return data
+
+
+# -----------------------------
+# Staff Update Serializer
+# -----------------------------
+class StaffUpdateSerializer(serializers.ModelSerializer):
+    national_id = serializers.CharField(source="cnic", read_only=True)
+
+    class Meta:
+        model = Staff
+        fields = "__all__"
+        read_only_fields = ["created_at", "cnic"]
+
+
+# -----------------------------
+# Staff List Serializer (Lightweight – only fields that exist in original schema so list works before/after migration)
+# -----------------------------
+class StaffListSerializer(serializers.ModelSerializer):
+    national_id = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Staff
+        fields = [
+            "id", "full_name", "cnic", "national_id",
+            "designation", "department", "emergency_contact", "profile_image", "user",
+        ]
+
+    def get_national_id(self, obj):
+        # Prefer model field if present (after migration), else cnic
+        try:
+            return getattr(obj, "national_id", None) or obj.cnic
+        except Exception:
+            return obj.cnic
+
+
+# -----------------------------
+# Link User to Staff Serializer
+# -----------------------------
+class LinkUserToStaffSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    
+    def validate_user_id(self, value):
+        try:
+            user = User.objects.get(id=value)
+            if hasattr(user, 'staff_profile'):
+                raise serializers.ValidationError("This user is already linked to a staff member.")
+            return value
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
 
 
 # -----------------------------
@@ -112,7 +266,85 @@ class StaffSerializer(serializers.ModelSerializer):
 # -----------------------------
 class AttendanceSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
+    staff_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Attendance
-        fields = ["id", "user", "username", "date", "check_in", "check_out", "image"]
+        fields = ["id", "user", "username", "staff_name", "date", "check_in", "check_out", "image"]
+    
+    def get_staff_name(self, obj):
+        if hasattr(obj.user, "staff_profile"):
+            return obj.user.staff_profile.full_name
+        return None
+
+
+# -----------------------------
+# Leave Serializers (government-aligned)
+# -----------------------------
+class LeaveTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeaveType
+        fields = ["id", "name", "code", "max_days_per_year", "requires_approval", "is_paid", "is_active", "created_at"]
+
+
+class LeaveRequestSerializer(serializers.ModelSerializer):
+    staff_name = serializers.CharField(source="staff.full_name", read_only=True)
+    leave_type_name = serializers.CharField(source="leave_type.name", read_only=True)
+    leave_type_code = serializers.CharField(source="leave_type.code", read_only=True)
+
+    class Meta:
+        model = LeaveRequest
+        fields = [
+            "id", "staff", "staff_name", "leave_type", "leave_type_name", "leave_type_code",
+            "from_date", "to_date", "days", "reason", "status",
+            "approved_by", "approved_at", "rejection_reason",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["approved_by", "approved_at"]
+
+
+class LeaveRequestCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeaveRequest
+        fields = ["staff", "leave_type", "from_date", "to_date", "days", "reason"]
+
+
+# -----------------------------
+# Payroll Serializers (government-aligned)
+# -----------------------------
+class PayrollEntrySerializer(serializers.ModelSerializer):
+    staff_name = serializers.CharField(source="staff.full_name", read_only=True)
+    employee_id = serializers.CharField(source="staff.employee_id", read_only=True)
+
+    class Meta:
+        model = PayrollEntry
+        fields = [
+            "id", "run", "staff", "staff_name", "employee_id",
+            "basic_salary", "allowances", "gross_salary",
+            "income_tax", "eobi_or_sss", "other_deductions", "net_salary",
+            "created_at",
+        ]
+
+
+class PayrollRunSerializer(serializers.ModelSerializer):
+    entries = PayrollEntrySerializer(many=True, read_only=True)
+    entries_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PayrollRun
+        fields = [
+            "id", "period_label", "period_start", "period_end", "status",
+            "total_gross", "total_net", "employee_count",
+            "created_by", "created_at", "processed_at",
+            "entries", "entries_count",
+        ]
+
+    def get_entries_count(self, obj):
+        return obj.entries.count()
+
+
+class PayrollRunCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PayrollRun
+        fields = ["period_label", "period_start", "period_end"]
+
