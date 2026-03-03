@@ -460,7 +460,7 @@ export default function FirRegistrationPage() {
                   <Input value={form.propertyValue} onChange={(e) => setFormField("propertyValue", e.target.value)} placeholder="Amount" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Currency</Label>
+                  <Label>Estimated Value</Label>
                   <Select value={form.currency} onValueChange={(v) => setFormField("currency", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>

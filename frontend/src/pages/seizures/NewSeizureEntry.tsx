@@ -364,7 +364,7 @@ export default function NewSeizureEntryPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Currency</Label>
+                <Label>Estimated Value</Label>
                 <Input
                   placeholder="e.g. USD, PKR"
                   value={formData.currency}

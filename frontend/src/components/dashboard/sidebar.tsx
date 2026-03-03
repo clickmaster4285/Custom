@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react"
-import { useLocation, Link, NavLink } from "react-router-dom"
+import { useLocation, useNavigate, Link, NavLink } from "react-router-dom"
 import { ChevronDown, ChevronRight, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAV_SECTIONS, getAncestorMenusForPath, type NavGroup } from "@/routes/config"
@@ -129,6 +129,7 @@ function SidebarChildren({
 
 export function Sidebar() {
   const pathname = useLocation().pathname
+  const navigate = useNavigate()
   const [expandedItems, setExpandedItems] = useState<string[]>(() => getAncestorMenusForPath(pathname))
   const [favorites, setFavorites] = useState<FavoriteItem[]>(loadFavorites)
 
@@ -292,7 +293,10 @@ export function Sidebar() {
                 <div key={getNodeKey(group)}>
                   <button
                     type="button"
-                    onClick={() => toggleExpand(label)}
+                    onClick={() => {
+                      if (group.overviewHref) navigate(group.overviewHref)
+                      toggleExpand(label)
+                    }}
                     aria-expanded={isExpanded(label)}
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200",
