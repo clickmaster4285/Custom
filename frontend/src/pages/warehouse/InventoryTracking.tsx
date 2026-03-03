@@ -32,7 +32,7 @@ const STORAGE_KEY = "wms_inventory_tracking"
 
 type InventoryRow = {
   id: string
-  sku: string
+  QR_Code: string
   product: string
   wh: string
   loc: string
@@ -41,11 +41,11 @@ type InventoryRow = {
 }
 
 const defaultRows: InventoryRow[] = [
-  { id: "1", sku: "SKU-7821", product: "Electronics - Category A", wh: "WH-001", loc: "Z-C03-A-12-04", qty: 450, status: "In Stock" },
-  { id: "2", sku: "SKU-9103", product: "Textiles - Bulk", wh: "WH-001", loc: "Z-B02-B-08-01", qty: 1200, status: "In Stock" },
-  { id: "3", sku: "SKU-4452", product: "Pharma - Temp Control", wh: "WH-005", loc: "Z-CLD-01-02", qty: 85, status: "Low Stock" },
-  { id: "4", sku: "SKU-2298", product: "General Merchandise", wh: "WH-002", loc: "Z-A01-N-05-03", qty: 320, status: "In Stock" },
-  { id: "5", sku: "SKU-6671", product: "Automotive Parts", wh: "WH-001", loc: "Z-B02-C-15-02", qty: 12, status: "Reorder" },
+  { id: "1", QR_Code: "QR_Code-7821", product: "Electronics - Category A", wh: "Peshawar", loc: "Z-C03-A-12-04", qty: 450, status: "In Stock" },
+  { id: "2", QR_Code: "QR_Code-9103", product: "Textiles - Bulk", wh: "Peshawar", loc: "Z-B02-B-08-01", qty: 1200, status: "In Stock" },
+  { id: "3", QR_Code: "QR_Code-4452", product: "Pharma - Temp Control", wh: "DI Khan", loc: "Z-CLD-01-02", qty: 85, status: "Low Stock" },
+  { id: "4", QR_Code: "QR_Code-2298", product: "General Merchandise", wh: "Yarik", loc: "Z-A01-N-05-03", qty: 320, status: "In Stock" },
+  { id: "5", QR_Code: "QR_Code-6671", product: "Automotive Parts", wh: "Peshawar", loc: "Z-B02-C-15-02", qty: 12, status: "Reorder" },
 ]
 
 function loadRows(): InventoryRow[] {
@@ -68,7 +68,7 @@ const STATUSES = ["In Stock", "Low Stock", "Reorder"]
 export default function InventoryTrackingPage() {
   const [rows, setRows] = useState<InventoryRow[]>([])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ sku: "", product: "", wh: "WH-001", loc: "", qty: 0, status: "In Stock" })
+  const [form, setForm] = useState({ QR_Code: "", product: "", wh: "Peshawar", loc: "", qty: 0, status: "In Stock" })
 
   useEffect(() => {
     setRows(loadRows())
@@ -79,15 +79,15 @@ export default function InventoryTrackingPage() {
   }, [rows])
 
   const openAdd = () => {
-    setForm({ sku: "", product: "", wh: "WH-001", loc: "", qty: 0, status: "In Stock" })
+    setForm({ QR_Code: "", product: "", wh: "Peshawar", loc: "", qty: 0, status: "In Stock" })
     setOpen(true)
   }
 
   const onSave = () => {
-    if (!form.sku.trim() || !form.product.trim() || !form.loc.trim()) return
+    if (!form.QR_Code.trim() || !form.product.trim() || !form.loc.trim()) return
     const newRow: InventoryRow = {
       id: `inv-${Date.now()}`,
-      sku: form.sku.trim(),
+      QR_Code: form.QR_Code.trim(),
       product: form.product.trim(),
       wh: form.wh,
       loc: form.loc.trim(),
@@ -98,7 +98,7 @@ export default function InventoryTrackingPage() {
     setOpen(false)
   }
 
-  const totalSkus = rows.length
+  const totalQR_Codes = rows.length
   const totalUnits = rows.reduce((s, r) => s + r.qty, 0)
   const lowStock = rows.filter((r) => r.status === "Low Stock" || r.status === "Reorder").length
 
@@ -112,11 +112,11 @@ export default function InventoryTrackingPage() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total SKUs</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total QR_Codes</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalSkus}</div>
+              <div className="text-2xl font-bold">{totalQR_Codes}</div>
               <p className="text-xs text-muted-foreground mt-1">Active products</p>
             </CardContent>
           </Card>
@@ -159,7 +159,7 @@ export default function InventoryTrackingPage() {
               <CardDescription>Current stock levels per warehouse and zone. Data in localStorage.</CardDescription>
             </div>
             <div className="flex gap-2 flex-shrink-0">
-              <Input placeholder="Search SKU or product..." className="w-48" />
+              <Input placeholder="Search QR_Code or product..." className="w-48" />
               <Button variant="outline">Export</Button>
               <Button variant="outline">Refresh</Button>
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={openAdd}>
@@ -172,7 +172,7 @@ export default function InventoryTrackingPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>SKU</TableHead>
+                  <TableHead>QR_Code</TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Warehouse</TableHead>
                   <TableHead>Location</TableHead>
@@ -183,7 +183,7 @@ export default function InventoryTrackingPage() {
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.sku}</TableCell>
+                    <TableCell className="font-medium">{row.QR_Code}</TableCell>
                     <TableCell>{row.product}</TableCell>
                     <TableCell>{row.wh}</TableCell>
                     <TableCell className="font-mono text-xs">{row.loc}</TableCell>
@@ -217,8 +217,8 @@ export default function InventoryTrackingPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>SKU</Label>
-              <Input value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} placeholder="e.g. SKU-1234" />
+              <Label>QR_Code</Label>
+              <Input value={form.QR_Code} onChange={(e) => setForm((f) => ({ ...f, QR_Code: e.target.value }))} placeholder="e.g. QR_Code-1234" />
             </div>
             <div className="grid gap-2">
               <Label>Product</Label>
@@ -226,7 +226,7 @@ export default function InventoryTrackingPage() {
             </div>
             <div className="grid gap-2">
               <Label>Warehouse</Label>
-              <Input value={form.wh} onChange={(e) => setForm((f) => ({ ...f, wh: e.target.value }))} placeholder="WH-001" />
+              <Input value={form.wh} onChange={(e) => setForm((f) => ({ ...f, wh: e.target.value }))} placeholder="Peshawar" />
             </div>
             <div className="grid gap-2">
               <Label>Location</Label>

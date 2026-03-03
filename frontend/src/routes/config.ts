@@ -20,6 +20,7 @@ export const ROUTES = {
   HOST_SELECTION: "/host-selection",
   VISIT_PURPOSE: "/visit-purpose",
   CALENDAR_VIEW: "/calendar-view",
+  VISITOR_MANAGEMENT_OVERVIEW: "/visitor-management",
   // VMS other modules
   SECURITY_SCREENING: "/security-screening",
   WATCHLIST_SCREENING: "/watchlist-screening",
@@ -165,10 +166,11 @@ export interface NavItem {
   href: RoutePath
 }
 
-/** Nav group for sidebar (with children; children can be items or nested groups) */
+/** Nav group for sidebar (with children; children can be items or nested groups). Optional overviewHref: when user clicks the group, navigate here and expand. */
 export interface NavGroup {
   label: string
   children: (NavItem | NavGroup)[]
+  overviewHref?: RoutePath
 }
 
 /** All nav items in order; split into sections by NAV_SECTIONS */
@@ -176,6 +178,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
   { label: "Dashboard", href: ROUTES.DASHBOARD },
       {
         label: "Visitor Management",
+        overviewHref: ROUTES.VISITOR_MANAGEMENT_OVERVIEW,
         children: [
           {
             label: "Visitor Registration",
@@ -248,11 +251,20 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
           {
             label: "Dashboard", href: ROUTES.OPERATIONS_DASHBOARD,
           },
+
+      {
+        label: "Detentions",
+        children: [
+         
+              { label: "Deposit Account Register", href: ROUTES.NEW_SEIZURE_ENTRY },
+            ],
+      },
+        
+
           {
             label: "Seizure & Receipt",
             children: [
               { label: "New Seizure Entry", href: ROUTES.NEW_SEIZURE_ENTRY },
-              { label: "JCP/Toll Plaza Entry (ANPR)", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
               { label: "Goods Receipt & Handover", href: ROUTES.GOODS_RECEIPT_HANDOVER },
               { label: "AI Item Cataloging", href: ROUTES.AI_ITEM_CATALOGING },
               { label: "QR Code Generation", href: ROUTES.QR_CODE_GENERATION },
@@ -268,6 +280,17 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
               { label: "Inventory Tracking", href: ROUTES.INVENTORY_TRACKING },
               { label: "Stock Reconciliation", href: ROUTES.STOCK_RECONCILIATION },
               { label: "Camera Integration", href: ROUTES.CAMERA_INTEGRATION },
+            ],
+          },
+          {
+            label: "Inventory Management",
+            children: [
+              // { label: "Warehouse Setup", href: ROUTES.WAREHOUSE_SETUP },
+              // { label: "Zone & Location", href: ROUTES.ZONE_LOCATION_MANAGEMENT },
+              // { label: "Storage Allocation", href: ROUTES.STORAGE_ALLOCATION },
+              // { label: "Inventory Tracking", href: ROUTES.INVENTORY_TRACKING },
+              // { label: "Stock Reconciliation", href: ROUTES.STOCK_RECONCILIATION },
+              // { label: "Camera Integration", href: ROUTES.CAMERA_INTEGRATION },
             ],
           },
           {
@@ -291,15 +314,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
               { label: "Item Valuation", href: ROUTES.ITEM_VALUATION },
             ],
           },
-          {
-            label: "Computer Vision",
-            children: [
-              { label: "Cameras", href: ROUTES.CAMERA_MANAGEMENT },
-              { label: "Object Detection", href: ROUTES.OBJECT_DETECTION },
-              { label: "ANPR Settings", href: ROUTES.ANPR_SETTINGS },
-              { label: "Anomaly Detection", href: ROUTES.ANOMALY_DETECTION },
-            ],
-          },
+         
           {
             label: "Integration",
             children: [
@@ -308,7 +323,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
             ],
           },
           {
-            label: "Reports",
+            label: "Download Reports",
             children: [
               { label: "Standard Reports", href: ROUTES.STANDARD_REPORTS },
               { label: "Custom Report Builder", href: ROUTES.CUSTOM_REPORT_BUILDER },
@@ -316,14 +331,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
             ],
           },
          
-          {
-            label: "User",
-            children: [
-              { label: "User Accounts", href: ROUTES.USER_ACCOUNTS },
-              { label: "Roles & Permissions", href: ROUTES.ROLES_PERMISSIONS },
-              { label: "Activity Logs", href: ROUTES.ACTIVITY_LOGS },
-            ],
-          },
+         
         ],
       },
       {
@@ -340,6 +348,17 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         children: [
           { label: "Analytics Dashboard", href: ROUTES.ANALYTICS_DASHBOARD },
           { label: "AI Models", href: ROUTES.AI_MODELS },
+          // {
+          //   label: "Computer Vision",
+          //   children: [
+          //     { label: "Cameras", href: ROUTES.CAMERA_MANAGEMENT },
+          //     { label: "Object Detection", href: ROUTES.OBJECT_DETECTION },
+          //     { label: "ANPR Settings", href: ROUTES.ANPR_SETTINGS },
+          //     { label: "Anomaly Detection", href: ROUTES.ANOMALY_DETECTION },
+          //   ],
+          // },                      
+          { label: "JCP/Toll Plaza Entry (ANPR)", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
+
           { label: "Zones", href: ROUTES.AI_ZONES },
           { label: "Rules", href: ROUTES.AI_RULES },
           { label: "Training", href: ROUTES.AI_TRAINING },
@@ -408,9 +427,10 @@ export function getParentMenuForPath(pathname: string): string | null {
   return ancestors.length > 0 ? ancestors[0]! : null
 }
 
-/** All group labels that contain this path (top to leaf), for expanding nested sidebar. */
+/** All group labels that contain this path (top to leaf), for expanding nested sidebar. Includes groups with matching overviewHref. */
 export function getAncestorMenusForPath(pathname: string): string[] {
   function findInGroup(group: NavGroup, parents: string[]): string[] | null {
+    if (group.overviewHref === pathname) return [...parents, group.label]
     for (const child of group.children) {
       if ("href" in child) {
         if (child.href === pathname) return [...parents, group.label]

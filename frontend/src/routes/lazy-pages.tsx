@@ -8,6 +8,7 @@ export const PAGES = {
   NotFound: lazy(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound }))),
   Login: lazy(() => import("@/pages/auth/login").then((m) => ({ default: m.default }))),
   Dashboard: lazy(() => import("@/pages/dashboard/Dashboard").then((m) => ({ default: m.Dashboard }))),
+  VisitorManagementOverview: lazy(() => import("@/pages/vms/VisitorManagementOverview").then((m) => ({ default: m.VisitorManagementOverview }))),
   PreRegistration: lazy(() => import("@/pages/registration/PreRegistration").then((m) => ({ default: m.default }))),
   WalkInRegistration: lazy(() => import("@/pages/registration/WalkInRegistration").then((m) => ({ default: m.default }))),
   StreamedUpload: lazy(() => import("@/pages/registration/StreamedUpload").then((m) => ({ default: m.default }))),

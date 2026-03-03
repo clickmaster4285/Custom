@@ -58,7 +58,7 @@ function ensureCameraShape(r: Record<string, unknown>): CameraRow {
     id: String(r.id ?? ""),
     name: String(r.name ?? r.location ?? ""),
     location: String(r.location ?? ""),
-    wh: String(r.wh ?? "WH-001"),
+    wh: String(r.wh ?? "Peshawar"),
     zone: String(r.zone ?? "Z-A01"),
     cameraType: (r.cameraType as CameraType) ?? "Fixed",
     status: (r.status as CameraStatus) ?? "Online",
@@ -73,12 +73,12 @@ function ensureCameraShape(r: Record<string, unknown>): CameraRow {
 }
 
 const defaultCameras: CameraRow[] = [
-  { id: "CAM-WH001-01", name: "Main Gate", location: "Main Gate", wh: "WH-001", zone: "Z-A01", cameraType: "Fixed", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-01", aiModelApplied: "Object Detection", active: true },
-  { id: "CAM-WH001-02", name: "Receiving Dock", location: "Receiving Dock", wh: "WH-001", zone: "Z-A01", cameraType: "PTZ", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-02", aiModelApplied: "ANPR", active: true },
-  { id: "CAM-WH001-03", name: "Bulk Storage A", location: "Bulk Storage A", wh: "WH-001", zone: "Z-B02", cameraType: "Fixed", status: "Offline", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1280x720", frameRate: "25", recording: false, storagePath: "/recordings/wh001-03", aiModelApplied: "", active: false },
-  { id: "CAM-WH001-04", name: "Picking Zone", location: "Picking Zone", wh: "WH-001", zone: "Z-C03", cameraType: "Fixed", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-04", aiModelApplied: "Object Detection", active: true },
-  { id: "CAM-WH001-05", name: "Staging Area", location: "Staging Area", wh: "WH-001", zone: "Z-C03", cameraType: "360°", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-05", aiModelApplied: "Anomaly Detection", active: true },
-  { id: "CAM-WH001-06", name: "Loading Dock", location: "Loading Dock", wh: "WH-001", zone: "Z-A01", cameraType: "Fixed", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-06", aiModelApplied: "ANPR", active: true },
+  { id: "CAM-WH001-01", name: "Main Gate", location: "Main Gate", wh: "Peshawar", zone: "Z-A01", cameraType: "Fixed", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-01", aiModelApplied: "Object Detection", active: true },
+  { id: "CAM-WH001-02", name: "Receiving Dock", location: "Receiving Dock", wh: "Peshawar", zone: "Z-A01", cameraType: "PTZ", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-02", aiModelApplied: "ANPR", active: true },
+  { id: "CAM-WH001-03", name: "Bulk Storage A", location: "Bulk Storage A", wh: "Peshawar", zone: "Z-B02", cameraType: "Fixed", status: "Offline", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1280x720", frameRate: "25", recording: false, storagePath: "/recordings/wh001-03", aiModelApplied: "", active: false },
+  { id: "CAM-WH001-04", name: "Picking Zone", location: "Picking Zone", wh: "Peshawar", zone: "Z-C03", cameraType: "Fixed", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-04", aiModelApplied: "Object Detection", active: true },
+  { id: "CAM-WH001-05", name: "Staging Area", location: "Staging Area", wh: "Peshawar", zone: "Z-C03", cameraType: "360°", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-05", aiModelApplied: "Anomaly Detection", active: true },
+  { id: "CAM-WH001-06", name: "Loading Dock", location: "Loading Dock", wh: "Peshawar", zone: "Z-A01", cameraType: "Fixed", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-06", aiModelApplied: "ANPR", active: true },
 ]
 
 function loadCameras(): CameraRow[] {
@@ -101,7 +101,7 @@ type FormState = Omit<CameraRow, "id">
 const emptyForm = (): FormState => ({
   name: "",
   location: "",
-  wh: "WH-001",
+  wh: "Peshawar",
   zone: "Z-A01",
   cameraType: "Fixed",
   status: "Online",
@@ -388,8 +388,8 @@ export default function CameraIntegrationPage() {
                 <Select value={form.wh} onValueChange={(v) => setForm((p) => ({ ...p, wh: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="WH-001">WH-001</SelectItem>
-                    <SelectItem value="WH-002">WH-002</SelectItem>
+                    <SelectItem value="Peshawar">Peshawar</SelectItem>
+                    <SelectItem value="Yarik">Yarik</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

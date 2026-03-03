@@ -41,10 +41,10 @@ type JobRow = {
 }
 
 const defaultRows: JobRow[] = [
-  { id: "RC-2024-0892", wh: "WH-001", zone: "Z-C03", type: "Cycle Count", status: "Completed", variance: "0" },
-  { id: "RC-2024-0893", wh: "WH-001", zone: "Z-B02", type: "Full Count", status: "In Progress", variance: "—" },
-  { id: "RC-2024-0891", wh: "WH-002", zone: "Z-A01-N", type: "Cycle Count", status: "Variance", variance: "-3" },
-  { id: "RC-2024-0889", wh: "WH-001", zone: "Z-D04", type: "Spot Check", status: "Completed", variance: "0" },
+  { id: "RC-2024-0892", wh: "Peshawar", zone: "Z-C03", type: "Cycle Count", status: "Completed", variance: "0" },
+  { id: "RC-2024-0893", wh: "Peshawar", zone: "Z-B02", type: "Full Count", status: "In Progress", variance: "—" },
+  { id: "RC-2024-0891", wh: "Yarik", zone: "Z-A01-N", type: "Cycle Count", status: "Variance", variance: "-3" },
+  { id: "RC-2024-0889", wh: "Peshawar", zone: "Z-D04", type: "Spot Check", status: "Completed", variance: "0" },
 ]
 
 function loadRows(): JobRow[] {
@@ -68,7 +68,7 @@ const STATUSES = ["Pending", "In Progress", "Completed", "Variance"]
 export default function StockReconciliationPage() {
   const [rows, setRows] = useState<JobRow[]>([])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ id: "", wh: "WH-001", zone: "Z-A01", type: "Cycle Count", status: "Pending", variance: "—" })
+  const [form, setForm] = useState({ id: "", wh: "Peshawar", zone: "Z-A01", type: "Cycle Count", status: "Pending", variance: "—" })
 
   useEffect(() => {
     setRows(loadRows())
@@ -79,7 +79,7 @@ export default function StockReconciliationPage() {
   }, [rows])
 
   const openAdd = () => {
-    setForm({ id: "", wh: "WH-001", zone: "Z-A01", type: "Cycle Count", status: "Pending", variance: "—" })
+    setForm({ id: "", wh: "Peshawar", zone: "Z-A01", type: "Cycle Count", status: "Pending", variance: "—" })
     setOpen(true)
   }
 
@@ -220,7 +220,7 @@ export default function StockReconciliationPage() {
             </div>
             <div className="grid gap-2">
               <Label>Warehouse</Label>
-              <Input value={form.wh} onChange={(e) => setForm((f) => ({ ...f, wh: e.target.value }))} placeholder="WH-001" />
+              <Input value={form.wh} onChange={(e) => setForm((f) => ({ ...f, wh: e.target.value }))} placeholder="Peshawar" />
             </div>
             <div className="grid gap-2">
               <Label>Zone</Label>

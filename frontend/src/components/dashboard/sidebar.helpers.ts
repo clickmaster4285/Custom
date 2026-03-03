@@ -7,6 +7,7 @@ export function isNavGroup(node: SidebarNode): node is NavGroup {
 }
 
 export function hasActiveDescendant(group: NavGroup, pathname: string): boolean {
+  if (group.overviewHref === pathname) return true
   return group.children.some((child) =>
     isNavGroup(child) ? hasActiveDescendant(child, pathname) : child.href === pathname
   )

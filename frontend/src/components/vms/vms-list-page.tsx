@@ -171,8 +171,8 @@ export function VmsListPage({
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
             <div>
               <CardTitle>{title}</CardTitle>
-              <CardDescription>Frontend-only list view with local storage persistence.</CardDescription>
-            </div>
+              Frontend-only list view with local storage persistence.
+              </div>
             <div className="flex flex-col md:flex-row gap-2">
               <Input
                 value={search}

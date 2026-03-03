@@ -34,7 +34,7 @@ export default function PredictiveInsightsPage() {
               <AlertTriangle className="h-4 w-4 text-amber-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12 SKUs</div>
+              <div className="text-2xl font-bold">12 QR Codes</div>
               <p className="text-xs text-muted-foreground mt-1">Next 14 days</p>
             </CardContent>
           </Card>
@@ -62,7 +62,7 @@ export default function PredictiveInsightsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { title: "Reorder suggested for SKU-4452 (Pharma)", type: "Stock", priority: "High" },
+              { title: "Reorder suggested for QR Code-4452 (Pharma)", type: "Stock", priority: "High" },
               { title: "Peak visitor hours next week: Tue–Thu 10:00–12:00", type: "VMS", priority: "Info" },
               { title: "Zone Z-B02 utilization will exceed 90% by month end", type: "WMS", priority: "Medium" },
             ].map((item, i) => (

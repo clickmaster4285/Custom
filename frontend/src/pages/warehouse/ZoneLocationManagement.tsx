@@ -40,11 +40,11 @@ type ZoneRow = {
 }
 
 const defaultRows: ZoneRow[] = [
-  { id: "1", code: "Z-A01", name: "Receiving Zone", warehouse: "WH-001", locations: 320, type: "Receiving" },
-  { id: "2", code: "Z-B02", name: "Bulk Storage", warehouse: "WH-001", locations: 850, type: "Bulk" },
-  { id: "3", code: "Z-C03", name: "Picking Zone", warehouse: "WH-001", locations: 420, type: "Picking" },
-  { id: "4", code: "Z-D04", name: "Shipping Zone", warehouse: "WH-001", locations: 180, type: "Shipping" },
-  { id: "5", code: "Z-A01-N", name: "North Receiving", warehouse: "WH-002", locations: 250, type: "Receiving" },
+  { id: "1", code: "Z-A01", name: "Receiving Zone", warehouse: "Peshawar", locations: 320, type: "Receiving" },
+  { id: "2", code: "Z-B02", name: "Bulk Storage", warehouse: "Peshawar", locations: 850, type: "Bulk" },
+  { id: "3", code: "Z-C03", name: "Picking Zone", warehouse: "Peshawar", locations: 420, type: "Picking" },
+  { id: "4", code: "Z-D04", name: "Shipping Zone", warehouse: "Peshawar", locations: 180, type: "Shipping" },
+  { id: "5", code: "Z-A01-N", name: "North Receiving", warehouse: "Yarik", locations: 250, type: "Receiving" },
 ]
 
 function loadRows(): ZoneRow[] {
@@ -67,7 +67,7 @@ const ZONE_TYPES = ["Receiving", "Bulk", "Picking", "Shipping", "Staging", "Quar
 export default function ZoneLocationManagementPage() {
   const [rows, setRows] = useState<ZoneRow[]>([])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ code: "", name: "", warehouse: "WH-001", locations: 0, type: "Receiving" })
+  const [form, setForm] = useState({ code: "", name: "", warehouse: "Peshawar", locations: 0, type: "Receiving" })
 
   useEffect(() => {
     setRows(loadRows())
@@ -78,7 +78,7 @@ export default function ZoneLocationManagementPage() {
   }, [rows])
 
   const openAdd = () => {
-    setForm({ code: "", name: "", warehouse: "WH-001", locations: 0, type: "Receiving" })
+    setForm({ code: "", name: "", warehouse: "Peshawar", locations: 0, type: "Receiving" })
     setOpen(true)
   }
 
@@ -198,7 +198,7 @@ export default function ZoneLocationManagementPage() {
             </div>
             <div className="grid gap-2">
               <Label>Warehouse</Label>
-              <Input value={form.warehouse} onChange={(e) => setForm((f) => ({ ...f, warehouse: e.target.value }))} placeholder="e.g. WH-001" />
+              <Input value={form.warehouse} onChange={(e) => setForm((f) => ({ ...f, warehouse: e.target.value }))} placeholder="e.g. Peshawar" />
             </div>
             <div className="grid gap-2">
               <Label>Locations (count)</Label>

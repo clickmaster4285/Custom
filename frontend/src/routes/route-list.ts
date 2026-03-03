@@ -8,6 +8,8 @@ export const toChildPath = (r: string | undefined) => (r ?? "").replace(/^\//, "
 
 export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] = [
   { index: true, page: "Dashboard" },
+  // Visitor Management Overview (first under Visitor Management dropdown)
+  { path: toChildPath(ROUTES.VISITOR_MANAGEMENT_OVERVIEW), page: "VisitorManagementOverview" },
   // Registration
   { path: toChildPath(ROUTES.PRE_REGISTRATION), page: "PreRegistration" },
   { path: toChildPath(ROUTES.WALK_IN_REGISTRATION), page: "WalkInRegistration" },
