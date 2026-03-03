@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react"
 import { useLocation, Link, NavLink } from "react-router-dom"
-import { Eye, ChevronDown, ChevronRight, Star } from "lucide-react"
+import { ChevronDown, ChevronRight, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAV_SECTIONS, getAncestorMenusForPath, type NavGroup } from "@/routes/config"
 import { getNodeKey, hasActiveDescendant, isNavGroup, type SidebarNode } from "@/components/dashboard/sidebar.helpers"
@@ -57,7 +57,7 @@ function SidebarChildren({
               key={getNodeKey(node)}
               className={cn(
                 "group/link flex items-center gap-1 rounded-none",
-                pathname === node.href && "bg-[#F3F7FF]",
+                pathname === node.href && "bg-[#EBF2FF]",
                 "hover:bg-[#F3F7FF]"
               )}
             >
@@ -96,14 +96,14 @@ function SidebarChildren({
                 onClick={() => onToggle(label)}
                 aria-expanded={isExpanded}
                 className={cn(
-                  "w-full flex items-center justify-between px-2 py-1.5 rounded-none text-[14px] transition-all duration-200 border border-transparent border-l-0",
+                  "w-full flex items-center justify-between px-2 py-1.5 rounded-none transition-all duration-200 border border-transparent border-l-0",
                   isActive
-                    ? "sidebar-submenu-active"
-                    : "text-muted-foreground hover:text-[#3366FF] hover:bg-[#F5F8FF]"
+                    ? "sidebar-nested-module-selected"
+                    : "text-[14px] text-muted-foreground hover:text-[#155DFC] hover:bg-[#F5F8FF]"
                 )}
               >
                 <span className="flex items-center whitespace-nowrap text-left pl-1">{label}</span>
-                {isExpanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
+                {isExpanded ? <ChevronDown size={16} aria-hidden className={isActive ? "text-[#155DFC]" : undefined} /> : <ChevronRight size={16} aria-hidden className={isActive ? "text-[#155DFC]" : undefined} />}
               </button>
             </div>
             {isExpanded && (
@@ -175,10 +175,17 @@ export function Sidebar() {
     <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[333px] h-screen bg-[#FFFFFF] border-r border-[#E5E7EB] flex flex-col shrink-0 pt-[15px] pr-[3px] pl-[15px]">
       <div className="pb-4 border-b border-[#E5E7EB] shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-[#5B9AFF] to-white flex items-center justify-center">
-            <Eye className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 flex items-center justify-center shrink-0" aria-hidden>
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Outermost: solid blue diamond */}
+              <path d="M16 2 L30 16 L16 30 L2 16 Z" fill="#155DFC" />
+              {/* Middle: white diamond (creates white band) */}
+              <path d="M16 5 L27 16 L16 27 L5 16 Z" fill="white" />
+              {/* Innermost: solid blue diamond */}
+              <path d="M16 8 L24 16 L16 24 L8 16 Z" fill="#155DFC" />
+            </svg>
           </div>
-          <span className="font-semibold text-lg text-[#1F2937]">TekEye</span>
+          <span className="sidebar-app-name">TekEye</span>
         </div>
       </div>
 
@@ -195,8 +202,8 @@ export function Sidebar() {
                   <div
                     key={fav.href}
                     className={cn(
-                      "group/link flex items-center gap-1 rounded-xl border border-transparent transition-all",
-                      active && "sidebar-active-gradient border-[#5A82E8]",
+                      "group/link flex items-center gap-1 rounded-xl transition-all",
+                      active && "sidebar-active-gradient",
                       "hover:bg-[#D2DCF5]/80"
                     )}
                   >
@@ -246,8 +253,8 @@ export function Sidebar() {
                   <div
                     key={getNodeKey(item)}
                     className={cn(
-                      "group/link flex items-center gap-1 rounded-xl border border-transparent transition-all",
-                      isLinkActive && "sidebar-active-gradient border-[#5A82E8]",
+                      "group/link flex items-center gap-1 rounded-xl transition-all",
+                      isLinkActive && "sidebar-active-gradient",
                       "hover:bg-[#D2DCF5]/80"
                     )}
                   >
@@ -288,22 +295,22 @@ export function Sidebar() {
                     onClick={() => toggleExpand(label)}
                     aria-expanded={isExpanded(label)}
                     className={cn(
-                      "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all duration-200 border border-transparent",
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200",
                       isActive
-                        ? "sidebar-active-gradient text-[#2860C8] font-medium border-[#5A82E8]"
-                        : "text-[#4B5563] hover:text-[#2860C8] hover:bg-[#D2DCF5]/80"
+                        ? "sidebar-active-gradient sidebar-main-module-selected"
+                        : "text-sm text-[#4B5563] hover:text-[#2860C8] hover:bg-[#D2DCF5]/80"
                     )}
                   >
                     <div className="flex items-center gap-3">
                       <span className="w-6 shrink-0 flex items-center justify-start" aria-hidden>
-                        {renderMenuIcon(label, 18, isActive ? "shrink-0 text-[#2860C8]" : "shrink-0 text-[#6B7280]")}
+                        {renderMenuIcon(label, 16, isActive ? "shrink-0 text-[#155DFC]" : "shrink-0 text-[#6B7280]")}
                       </span>
                       <span className="whitespace-nowrap text-left">{label}</span>
                     </div>
                     {isExpanded(label) ? (
-                      <ChevronDown size={16} aria-hidden className={isActive ? "text-[#2860C8]" : "text-[#6B7280]"} />
+                      <ChevronDown size={16} aria-hidden className={isActive ? "text-[#155DFC]" : "text-[#6B7280]"} />
                     ) : (
-                      <ChevronRight size={16} aria-hidden className={isActive ? "text-[#2860C8]" : "text-[#6B7280]"} />
+                      <ChevronRight size={16} aria-hidden className={isActive ? "text-[#155DFC]" : "text-[#6B7280]"} />
                     )}
                   </button>
                   {isExpanded(label) && (
