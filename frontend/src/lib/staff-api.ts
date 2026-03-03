@@ -1,142 +1,302 @@
+import { API_BASE_URL, getAuthHeaders, getAuthHeadersFormData } from "@/lib/api";
+
+/** Staff record as returned by the backend (list/detail). */
 export type StaffRecord = {
   id: number;
-  user: string;
-  user_id?: number;  // User id (for attendance marking)
-  role: string;
-  email: string;
-  phone: string;
+  user: number | null;
   full_name: string;
+  first_name?: string | null;
+  last_name?: string | null;
   cnic: string;
-  address: string;
-  date_of_birth: string;
-  joining_date: string;
-  department: string;
-  designation: string;
+  national_id?: string;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  marital_status?: string | null;
+  blood_group?: string | null;
   profile_image: string | null;
-  emergency_contact: string;
-  created_at: string;
+  email?: string | null;
+  phone_primary?: string | null;
+  phone_alternate?: string | null;
+  address?: string | null;
+  street_address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postal_code?: string | null;
+  employee_id?: string | null;
+  designation: string;
+  department: string;
+  branch_location?: string | null;
+  manager?: string | null;
+  employment_type?: string | null;
+  joining_date?: string;
+  probation_end_date?: string | null;
+  work_shift_start?: string | null;
+  work_shift_end?: string | null;
+  job_status?: string | null;
+  salary?: string | null;
+  bank_account?: string | null;
+  iban?: string | null;
+  salary_type?: string | null;
+  tax_id?: string | null;
+  allowances?: string | null;
+  role_access_level?: string | null;
+  system_permissions?: string | null;
+  emergency_contact?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_relationship?: string | null;
+  emergency_contact_phone?: string | null;
+  emergency_contact_address?: string | null;
+  resume_file?: string | null;
+  joining_letter_file?: string | null;
+  contract_file?: string | null;
+  id_proof_file?: string | null;
+  tax_form_file?: string | null;
+  certificates_file?: string | null;
+  background_check_status?: string | null;
+  skills_competencies?: string | null;
+  languages_known?: string | null;
+  performance_rating?: string | null;
+  last_appraisal_date?: string | null;
+  leave_balance?: number | null;
+  notes?: string | null;
+  created_at?: string;
+  user_details?: {
+    id: number;
+    username: string;
+    email: string;
+    role: string;
+    phone: string;
+    is_active: boolean;
+  } | null;
 };
 
-const STAFF_STORAGE_KEY = "hr_staff_local";
-
-const INITIAL_STAFF: StaffRecord[] = [
-  {
-    id: 1,
-    user: "admin",
-    user_id: 1,
-    role: "ADMIN",
-    email: "admin@tekeye.local",
-    phone: "0300-0000001",
-    full_name: "System Admin",
-    cnic: "35202-1234567-1",
-    address: "Islamabad",
-    date_of_birth: "1990-01-01",
-    joining_date: "2023-01-01",
-    department: "Administration",
-    designation: "Administrator",
-    profile_image: null,
-    emergency_contact: "0300-0000010",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    user: "hr",
-    user_id: 2,
-    role: "HR",
-    email: "hr@tekeye.local",
-    phone: "0300-0000002",
-    full_name: "HR Manager",
-    cnic: "35202-7654321-1",
-    address: "Lahore",
-    date_of_birth: "1992-06-15",
-    joining_date: "2023-03-10",
-    department: "Human Resources",
-    designation: "Manager HR",
-    profile_image: null,
-    emergency_contact: "0300-0000020",
-    created_at: new Date().toISOString(),
-  },
-];
-
-function readStaff(): StaffRecord[] {
-  if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(STAFF_STORAGE_KEY);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as StaffRecord[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeStaff(rows: StaffRecord[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(rows));
-}
-
-function ensureSeedData(): StaffRecord[] {
-  const rows = readStaff();
-  if (rows.length > 0) return rows;
-  writeStaff(INITIAL_STAFF);
-  return INITIAL_STAFF;
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("Failed to read image file."));
-    reader.readAsDataURL(file);
-  });
-}
+const STAFF_ENDPOINT = `${API_BASE_URL}/api/staff/`;
 
 export async function fetchStaff(): Promise<StaffRecord[]> {
-  return ensureSeedData();
+  const response = await fetch(STAFF_ENDPOINT, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (response.status === 401) {
+    throw new Error("Unauthorized");
+  }
+  if (!response.ok) {
+    throw new Error(`Failed to load staff (${response.status})`);
+  }
+  const data = await response.json();
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray((data as { results?: StaffRecord[] }).results))
+    return (data as { results: StaffRecord[] }).results;
+  return [];
 }
 
+export async function fetchStaffById(id: number): Promise<StaffRecord> {
+  const response = await fetch(`${STAFF_ENDPOINT}${id}/`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (response.status === 401) throw new Error("Unauthorized");
+  if (response.status === 404) throw new Error("Staff not found");
+  if (!response.ok) throw new Error(`Failed to load staff (${response.status})`);
+  return response.json();
+}
+
+/** URL for downloading a staff document (requires auth when used via fetch). */
+export function getStaffDocumentDownloadUrl(staffId: number, field: string): string {
+  return `${STAFF_ENDPOINT}${staffId}/document/${field}/`;
+}
+
+/** Trigger download of a staff document (uses auth). */
+export async function downloadStaffDocument(
+  staffId: number,
+  field: string,
+  fileName: string
+): Promise<void> {
+  const url = getStaffDocumentDownloadUrl(staffId, field);
+  const response = await fetch(url, { headers: getAuthHeaders() });
+  if (!response.ok) throw new Error("Download failed");
+  const blob = await response.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName || "document";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+const FILE_KEYS = [
+  "profile_image",
+  "resume_file",
+  "joining_letter_file",
+  "contract_file",
+  "id_proof_file",
+  "tax_form_file",
+  "certificates_file",
+] as const;
+
+/** Full HR template payload accepted by backend. */
 export type CreateStaffPayload = {
-  username: string;
-  password: string;
-  email: string;
-  role: string;
-  phone: string;
-  full_name: string;
-  cnic: string;
-  address: string;
-  date_of_birth: string;
-  joining_date: string;
-  department: string;
+  first_name: string;
+  last_name: string;
+  national_id: string;
+  date_of_birth?: string;
+  gender?: string;
+  marital_status?: string;
+  blood_group?: string;
+  email?: string;
+  phone_primary?: string;
+  phone_alternate?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
+  employee_id?: string;
   designation: string;
-  emergency_contact: string;
+  department: string;
+  branch_location?: string;
+  manager?: string;
+  employment_type?: string;
+  date_of_joining?: string;
+  probation_end_date?: string;
+  work_shift_start?: string;
+  work_shift_end?: string;
+  job_status?: string;
+  salary?: string;
+  bank_account?: string;
+  iban?: string;
+  salary_type?: string;
+  tax_id?: string;
+  allowances?: string;
+  role_access_level?: string;
+  system_permissions?: string;
+  emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_address?: string;
+  resume_file?: File | null;
+  joining_letter_file?: File | null;
+  contract_file?: File | null;
+  id_proof_file?: File | null;
+  tax_form_file?: File | null;
+  certificates_file?: File | null;
+  background_check_status?: string;
+  skills_competencies?: string;
+  languages_known?: string;
+  performance_rating?: string;
+  last_appraisal_date?: string;
+  leave_balance?: number | string;
+  notes?: string;
   profile_image?: File | null;
 };
 
+function buildBody(payload: CreateStaffPayload): { body: string | FormData; useFormData: boolean } {
+  const hasFile = FILE_KEYS.some((k) => payload[k as keyof CreateStaffPayload] instanceof File);
+  if (hasFile) {
+    const form = new FormData();
+    Object.entries(payload).forEach(([k, v]) => {
+      if (v === undefined || v === null || v === "") return;
+      if (v instanceof File) form.append(k, v);
+      else form.append(k, String(v));
+    });
+    return { body: form, useFormData: true };
+  }
+  const obj: Record<string, unknown> = {};
+  Object.entries(payload).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    if (!(v instanceof File)) obj[k] = v;
+  });
+  return { body: JSON.stringify(obj), useFormData: false };
+}
+
 export async function createStaff(payload: CreateStaffPayload): Promise<StaffRecord> {
-  const rows = ensureSeedData();
-  const nextId = rows.length === 0 ? 1 : Math.max(...rows.map((r) => r.id)) + 1;
-  const profileImage =
-    payload.profile_image instanceof File ? await fileToDataUrl(payload.profile_image) : null;
+  const { body, useFormData } = buildBody(payload);
+  const headers = useFormData ? getAuthHeadersFormData() : getAuthHeaders();
+  const response = await fetch(STAFF_ENDPOINT, {
+    method: "POST",
+    headers,
+    body,
+  });
+  if (response.status === 401) throw new Error("Unauthorized");
+  if (response.status === 403) throw new Error("Only Admin or HR can add staff.");
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const msg =
+      typeof data === "object" && data !== null
+        ? Object.entries(data)
+            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
+            .join("; ")
+        : `Failed to create staff (${response.status})`;
+    throw new Error(msg);
+  }
+  return response.json();
+}
 
-  const newRow: StaffRecord = {
-    id: nextId,
-    user: payload.username,
-    user_id: nextId,
-    role: payload.role,
-    email: payload.email,
-    phone: payload.phone,
-    full_name: payload.full_name,
-    cnic: payload.cnic,
-    address: payload.address,
-    date_of_birth: payload.date_of_birth,
-    joining_date: payload.joining_date,
-    department: payload.department,
-    designation: payload.designation,
-    profile_image: profileImage,
-    emergency_contact: payload.emergency_contact,
-    created_at: new Date().toISOString(),
-  };
+/** Update staff (PATCH). Supports partial payload and file fields via FormData. */
+export async function updateStaff(
+  id: number,
+  payload: Partial<CreateStaffPayload>
+): Promise<StaffRecord> {
+  const hasFile = FILE_KEYS.some((k) => payload[k as keyof CreateStaffPayload] instanceof File);
+  const url = `${STAFF_ENDPOINT}${id}/`;
+  if (hasFile) {
+    const form = new FormData();
+    Object.entries(payload).forEach(([k, v]) => {
+      if (v === undefined || v === null) return;
+      if (v instanceof File) form.append(k, v);
+      else form.append(k, String(v));
+    });
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: getAuthHeadersFormData(),
+      body: form,
+    });
+    if (response.status === 401) throw new Error("Unauthorized");
+    if (response.status === 404) throw new Error("Staff not found");
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      const msg =
+        typeof data === "object" && data !== null
+          ? Object.entries(data)
+              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
+              .join("; ")
+          : `Failed to update staff (${response.status})`;
+      throw new Error(msg);
+    }
+    return response.json();
+  }
+  const obj: Record<string, unknown> = {};
+  Object.entries(payload).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
+    if (!(v instanceof File)) obj[k] = v;
+  });
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(obj),
+  });
+  if (response.status === 401) throw new Error("Unauthorized");
+  if (response.status === 404) throw new Error("Staff not found");
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    const msg =
+      typeof data === "object" && data !== null
+        ? Object.entries(data)
+            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
+            .join("; ")
+        : `Failed to update staff (${response.status})`;
+    throw new Error(msg);
+  }
+  return response.json();
+}
 
-  writeStaff([newRow, ...rows]);
-  return newRow;
+/** Delete staff (hard delete). */
+export async function deleteStaff(id: number): Promise<void> {
+  const response = await fetch(`${STAFF_ENDPOINT}${id}/`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (response.status === 401) throw new Error("Unauthorized");
+  if (response.status === 404) throw new Error("Staff not found");
+  if (!response.ok) throw new Error(`Failed to delete staff (${response.status})`);
 }

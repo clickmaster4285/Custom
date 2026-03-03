@@ -1,3 +1,4 @@
+import React from "react"
 import { Link } from "react-router-dom"
 import {
   Breadcrumb,
@@ -37,20 +38,24 @@ export function ModulePageLayout({
             </BreadcrumbLink>
           </BreadcrumbItem>
           {breadcrumbs.map((item, i) => (
-            <BreadcrumbItem key={i}>
-              <BreadcrumbSeparator />
-              {i === breadcrumbs.length - 1 ? (
-                <BreadcrumbPage className="text-[#3b82f6] font-medium">
-                  {item.label}
-                </BreadcrumbPage>
-              ) : item.href ? (
-                <BreadcrumbLink asChild>
-                  <Link to={item.href}>{item.label}</Link>
-                </BreadcrumbLink>
-              ) : (
-                <span className="text-muted-foreground">{item.label}</span>
-              )}
-            </BreadcrumbItem>
+            <React.Fragment key={i}>
+              <BreadcrumbItem>
+                <BreadcrumbSeparator />
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                {i === breadcrumbs.length - 1 ? (
+                  <BreadcrumbPage className="text-[#3b82f6] font-medium">
+                    {item.label}
+                  </BreadcrumbPage>
+                ) : item.href ? (
+                  <BreadcrumbLink asChild>
+                    <Link to={item.href}>{item.label}</Link>
+                  </BreadcrumbLink>
+                ) : (
+                  <span className="text-muted-foreground">{item.label}</span>
+                )}
+              </BreadcrumbItem>
+            </React.Fragment>
           ))}
         </BreadcrumbList>
       </Breadcrumb>

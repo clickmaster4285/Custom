@@ -57,6 +57,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'django_filters',  # Add this line
+
 
     # Third-party
     "corsheaders",
