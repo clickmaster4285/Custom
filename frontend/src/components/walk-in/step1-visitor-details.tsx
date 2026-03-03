@@ -11,12 +11,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { User, Briefcase, Wrench, Search, Calendar, Check } from "lucide-react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { User, Briefcase, Wrench, Search, Calendar, Check, Camera, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useFormik } from "formik"
 import * as Yup from "yup"
 import { isCnicExists } from "@/lib/visitor-api"
 
+
+const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024 // 2MB
+const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/jpg", "image/png"]
+const MAX_VISITOR_PHOTOS = 5
 
 export interface WalkInStep1VisitorDetailsFormData {
   visitorCategory: string
@@ -42,6 +48,10 @@ export interface WalkInStep1VisitorDetailsFormData {
   licenseNo: string
   licenseIssueDate: string
   licenseExpiryDate: string
+  /** Up to 5 visitor images for detection/recognition (displayed on the right of capture box) */
+  visitorPhotos: string[]
+  /** Kept for payload: first of visitorPhotos or legacy single capture */
+  photoCapture?: string
 }
 
 interface WalkInStep1VisitorDetailsProps {
@@ -73,6 +83,15 @@ const visitorTypes = [
   },
 ] as const
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ""))
+    reader.onerror = () => reject(new Error("Failed to read file"))
+    reader.readAsDataURL(file)
+  })
+}
+
 export function WalkInStep1VisitorDetails({
   formData,
   updateFormData,
@@ -80,11 +99,109 @@ export function WalkInStep1VisitorDetails({
   onReset,
   onSaveAndContinue,
 }: WalkInStep1VisitorDetailsProps) {
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+  const [cameraLoading, setCameraLoading] = useState(false)
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+  }, [])
+
+  useEffect(() => {
+    if (!cameraOpen) {
+      stopCamera()
+      return
+    }
+    setCameraError(null)
+    setCameraLoading(true)
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "user" } })
+      .then((stream) => {
+        streamRef.current = stream
+        if (videoRef.current) videoRef.current.srcObject = stream
+        setCameraError(null)
+      })
+      .catch((err) => {
+        setCameraError(err instanceof Error ? err.message : "Could not access camera.")
+      })
+      .finally(() => setCameraLoading(false))
+    return () => {
+      stopCamera()
+    }
+  }, [cameraOpen, stopCamera])
+
+  const visitorPhotos = Array.isArray(formData.visitorPhotos) ? formData.visitorPhotos : []
+
+  const addPhoto = (dataUrl: string) => {
+    if (visitorPhotos.length >= MAX_VISITOR_PHOTOS) return
+    updateFormData({ visitorPhotos: [...visitorPhotos, dataUrl], photoCapture: dataUrl })
+  }
+
+  const removePhoto = (index: number) => {
+    const next = visitorPhotos.filter((_, i) => i !== index)
+    updateFormData({
+      visitorPhotos: next,
+      photoCapture: next[0],
+    })
+  }
+
+  const captureFromCamera = () => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !streamRef.current || !canvas) return
+    const w = video.videoWidth
+    const h = video.videoHeight
+    if (!w || !h) {
+      setCameraError("Camera not ready. Wait a moment and try again.")
+      return
+    }
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    canvas.width = w
+    canvas.height = h
+    ctx.drawImage(video, 0, 0, w, h)
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92)
+    addPhoto(dataUrl)
+    setCameraOpen(false)
+    stopCamera()
+  }
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    setPhotoError(null)
+    if (!file) return
+    if (visitorPhotos.length >= MAX_VISITOR_PHOTOS) {
+      setPhotoError(`Maximum ${MAX_VISITOR_PHOTOS} images.`)
+      return
+    }
+    if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+      setPhotoError("Format must be JPG or PNG.")
+      return
+    }
+    if (file.size > MAX_PHOTO_SIZE_BYTES) {
+      setPhotoError("Image size must be max 2MB.")
+      return
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      addPhoto(dataUrl)
+    } catch {
+      setPhotoError("Failed to read image.")
+    }
+    e.target.value = ""
+  }
+
   const formik = useFormik({
     initialValues: {
       fullName: formData.fullName || "",
       mobileNumber: formData.mobileNumber || "",
-      cnicNumber: formData.cnicNumber || formData.cnicPassport || "",
+      cnicNumber: formData.cnicNumber || "",
       passportNumber: formData.passportNumber || "",
     },
     enableReinitialize: true,
@@ -103,7 +220,7 @@ export function WalkInStep1VisitorDetails({
             async function (val) {
               if (!val) return true // allow empty (will be caught by required)
               const cnic = val.trim()
-              const original = formData.cnicNumber || formData.cnicPassport || ""
+              const original = formData.cnicNumber || ""
               // Only check uniqueness if CNIC changed
               if (cnic === original) return true
               // Debounce: small delay to avoid hammering API
@@ -222,6 +339,125 @@ export function WalkInStep1VisitorDetails({
       {/* Personal Details */}
       <div className="space-y-4">
         <Label className="text-[22px] font-bold text-foreground">Personal Details</Label>
+
+        {/* Photograph Upload – capture from camera; captured images on the right for recognition */}
+        <div className="space-y-2">
+          <Label className="text-base font-medium text-foreground">Photograph Upload</Label>
+          <div className="flex flex-col sm:flex-row gap-4 items-start">
+            {/* Left: capture box */}
+            <div
+              className={cn(
+                "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed bg-muted/20 py-6 px-3 transition-colors min-w-0 shrink-0",
+                "border-muted-foreground/30 hover:border-primary/40 hover:bg-muted/30 max-w-[280px]"
+              )}
+            >
+              {!cameraOpen ? (
+                <>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                    <Camera className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground text-center">Upload a Visitor Photograph</p>
+                  <p className="text-xs text-muted-foreground text-center">Image size: Max 2MB, Format JPG/PNG. Up to {MAX_VISITOR_PHOTOS} images for recognition.</p>
+                  <div className="flex flex-col gap-2 w-full">
+                    <Button
+                      type="button"
+                      onClick={() => setCameraOpen(true)}
+                      disabled={cameraLoading || visitorPhotos.length >= MAX_VISITOR_PHOTOS}
+                      className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 w-full"
+                    >
+                      {cameraLoading ? "Opening camera…" : "Capture from camera"}
+                    </Button>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png"
+                      className="sr-only"
+                      onChange={handlePhotoUpload}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={visitorPhotos.length >= MAX_VISITOR_PHOTOS}
+                      className="rounded-md px-4 py-2 text-sm font-medium w-full"
+                    >
+                      Upload Photo
+                    </Button>
+                  </div>
+                  {photoError && (
+                    <p className="text-sm text-destructive text-center">{photoError}</p>
+                  )}
+                </>
+              ) : (
+                <div className="w-full space-y-2">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full max-h-40 rounded-md bg-muted object-cover"
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+                  {cameraError && (
+                    <p className="text-sm text-destructive text-center">{cameraError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={captureFromCamera}
+                      disabled={cameraLoading || !!cameraError || visitorPhotos.length >= MAX_VISITOR_PHOTOS}
+                      className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                    >
+                      Take photo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => { setCameraOpen(false); setCameraError(null); stopCamera(); }}
+                      className="rounded-md py-2 text-sm font-medium"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right: captured images for recognition (up to 5) */}
+            <div className="flex flex-col gap-2 min-w-0">
+              <p className="text-sm font-medium text-muted-foreground">Captured images</p>
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: MAX_VISITOR_PHOTOS }, (_, i) => (
+                  <div key={i} className="relative">
+                    {visitorPhotos[i] ? (
+                      <>
+                        <img
+                          src={visitorPhotos[i]}
+                          alt={`Visitor ${i + 1}`}
+                          className="h-58 w-52 rounded-md border border-border object-cover bg-muted"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(i)}
+                          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          aria-label="Remove photo"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="h-58 w-52 rounded-md border border-dashed border-muted-foreground/40 bg-muted/20 flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">{i + 1}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">{visitorPhotos.length} / {MAX_VISITOR_PHOTOS} images</p>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="text-base text-foreground">Full Name (as per CNIC/Passport)</Label>

@@ -41,12 +41,10 @@ interface WalkInStep3VisitDetailsProps {
 }
 
 const visitPurposeOptions = [
-  { value: "meeting", label: "Meeting" },
-  { value: "interview", label: "Interview" },
-  { value: "delivery", label: "Delivery" },
-  { value: "maintenance", label: "Maintenance" },
-  { value: "consultation", label: "Consultation" },
-  { value: "other", label: "Other" },
+  { value: "hearing-and-adjudication", label: "Hearing and Adjudication" },
+  { value: "license-renewal", label: "License Renewal" },
+  { value: "auction-verification", label: "Auction verification" },
+  { value: "vehicle-verification", label: "Vehicle Verification" },
 ]
 
 const departmentOptions = [
@@ -123,7 +121,7 @@ export function WalkInStep3VisitDetails({
             }}
           >
             <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-              <SelectValue placeholder="Meeting" />
+              <SelectValue placeholder="Select visit purpose" />
             </SelectTrigger>
             <SelectContent>
               {visitPurposeOptions.map((o) => (

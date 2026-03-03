@@ -203,7 +203,7 @@ export function WalkInStep2DocumentsUpload({
       <Label className="text-[22px] font-bold text-foreground">Documents Upload</Label>
 
       {/* Photograph – capture from camera or upload */}
-      <div className="space-y-3">
+      {/* <div className="space-y-3">
         <p className="text-base font-medium text-foreground">Visitor Photograph</p>
         <div className="flex flex-col sm:flex-row gap-4">
           {formData.frontImage && isImageDataUrl(formData.frontImage) && (
@@ -237,7 +237,7 @@ export function WalkInStep2DocumentsUpload({
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* ID Document – capture or upload */}
       <div className="space-y-3 border-t border-border pt-6">
