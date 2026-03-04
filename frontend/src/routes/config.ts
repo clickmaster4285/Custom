@@ -51,6 +51,7 @@ export const ROUTES = {
   INVENTORY_TRACKING: "/inventory-tracking",
   STOCK_RECONCILIATION: "/stock-reconciliation",
   RELEASE_INVENTORY: "/release-inventory",
+  HS_CODES_FILE: "/hs-codes-file",
   // Inventory Management (sidebar sub-items)
   GOODS_RECEIPT: "/goods-receipt",
   STOCK_MANAGEMENT: "/stock-management",
@@ -389,7 +390,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
           { label: "Export Center", href: ROUTES.EXPORT_CENTER },
         ],
       },
-
+      { label: "HS Codes file", href: ROUTES.HS_CODES_FILE },
 
     ],
   },

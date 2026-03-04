@@ -34,10 +34,17 @@ const STORAGE_KEY = "wms_user_accounts"
 type UserRow = { user: string; email: string; role: string; status: string }
 
 const defaultUsers: UserRow[] = [
-  { user: "admin", email: "admin@customs.gov.pk", role: "Administrator", status: "Active" },
-  { user: "sarah.martin", email: "sarah@customs.gov.pk", role: "Manager", status: "Active" },
-  { user: "ahmed.khan", email: "ahmed@customs.gov.pk", role: "Operator", status: "Active" },
-  { user: "fatima.ali", email: "fatima@customs.gov.pk", role: "HR", status: "Active" },
+  { user: "admin", email: "admin@customs.gov.pk", role: "System Administrator", status: "Active" },
+  { user: "sarah.martin", email: "sarah@customs.gov.pk", role: "Operations Manager", status: "Active" },
+  { user: "ahmed.khan", email: "ahmed@customs.gov.pk", role: "Operations Officer", status: "Active" },
+  { user: "fatima.ali", email: "fatima@customs.gov.pk", role: "Human Resource Manager", status: "Active" },
+  { user: "ali.ahmed", email: "ali@customs.gov.pk", role: "Warehouse Manager", status: "Active" },
+  { user: "sara.khan", email: "sara@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
+  { user: "muhammad.ali", email: "muhammad@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
+  { user: "ahmed.ali", email: "ahmed@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
+  { user: "ali.ahmed", email: "ali@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
+  { user: "muhammad.ali", email: "muhammad@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
+  { user: "ahmed.ali", email: "ahmed@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
 ]
 
 function loadRows(): UserRow[] {
@@ -55,12 +62,22 @@ function saveRows(rows: UserRow[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
 }
 
-const ROLES = ["Administrator", "Manager", "Operator", "HR", "Viewer"]
+const ROLES = [
+  { value: "Admin", label: "Admin" },
+  { value: "Inspector", label: "Inspector" },
+  { value: "Collector", label: "Collector" },
+  { value: "Deputy Collector", label: "Deputy Collector" },
+  { value: "Assistant Collector", label: "Assistant Collector" },
+  { value: "Receptionist", label: "Receptionist" },
+  { value: "Human Resource", label: "Human Resource" },
+  { value: "Warehouse Officer", label: "Warehouse Officer" },
+  { value: "Detection Officer", label: "Detection Officer" },
+]
 
 export default function UserRoleManagementPage() {
   const [users, setUsers] = useState<UserRow[]>([])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ user: "", email: "", role: "Operator", status: "Active" })
+  const [form, setForm] = useState({ user: "", email: "", role: "Admin", status: "Active" })
   const [search, setSearch] = useState("")
 
   useEffect(() => {
@@ -72,7 +89,7 @@ export default function UserRoleManagementPage() {
   }, [users])
 
   const openAddForm = () => {
-    setForm({ user: "", email: "", role: "Operator", status: "Active" })
+    setForm({ user: "", email: "", role: "Admin", status: "Active" })
     setOpen(true)
   }
 
@@ -83,7 +100,7 @@ export default function UserRoleManagementPage() {
       { user: form.user.trim(), email: form.email.trim(), role: form.role, status: form.status },
       ...prev,
     ])
-    setForm({ user: "", email: "", role: "Operator", status: "Active" })
+    setForm({ user: "", email: "", role: "Admin", status: "Active" })
     setOpen(false)
   }
 
@@ -122,7 +139,7 @@ export default function UserRoleManagementPage() {
               <Shield className="h-4 w-4 text-[#3b82f6]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">8</div>
+              <div className="text-2xl font-bold">{ROLES.length}</div>
               <p className="text-xs text-muted-foreground mt-1">Defined roles</p>
             </CardContent>
           </Card>
@@ -207,10 +224,15 @@ export default function UserRoleManagementPage() {
                   </TableHeader>
                   <TableBody>
                     {[
-                      { name: "Administrator", desc: "Full system access", users: 2 },
-                      { name: "Manager", desc: "VMS, WMS, Reports", users: 12 },
-                      { name: "Operator", desc: "VMS, WMS daily ops", users: 45 },
-                      { name: "HR", desc: "HR module only", users: 8 },
+                      { name: "Admin", desc: "Full system access", users: 2 },
+                      { name: "Inspector", desc: "Inspection and field ops", users: 0 },
+                      { name: "Collector", desc: "Collectorate level access", users: 0 },
+                      { name: "Deputy Collector", desc: "Deputy collectorate duties", users: 0 },
+                      { name: "Assistant Collector", desc: "Assistant collectorate duties", users: 0 },
+                      { name: "Receptionist", desc: "Reception and front desk", users: 0 },
+                      { name: "Human Resource", desc: "HR module and personnel", users: 0 },
+                      { name: "Warehouse Officer", desc: "Warehouse and inventory", users: 0 },
+                      { name: "Detection Officer", desc: "Detection and enforcement", users: 0 },
                     ].map((row) => (
                       <TableRow key={row.name}>
                         <TableCell className="font-medium">{row.name}</TableCell>
@@ -231,7 +253,7 @@ export default function UserRoleManagementPage() {
         </Card>
       </div>
 
-      <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ user: "", email: "", role: "Operator", status: "Active" }) }}>
+      <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ user: "", email: "", role: "Admin", status: "Active" }) }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add User</DialogTitle>
@@ -263,7 +285,7 @@ export default function UserRoleManagementPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

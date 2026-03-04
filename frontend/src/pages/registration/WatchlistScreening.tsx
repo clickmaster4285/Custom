@@ -95,7 +95,7 @@ export default function WatchlistScreeningPage() {
           visitor: "Ayesha Malik",
           email: "ayesha.malik@example.com",
           phone: "+92-301-7654321",
-          location: "Lahore, Pakistan",
+          location: "Yarik, Pakistan",
           last_visit: "2026-02-20",
           document: "35201-9876543-2",
           match: "No",
