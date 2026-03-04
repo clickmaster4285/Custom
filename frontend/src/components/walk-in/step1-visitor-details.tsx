@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { User, Briefcase, Wrench, Search, Check, Camera, X, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import CongratulationsModal from "@/components/visitor/CongratulationsModal"
 import { cn } from "@/lib/utils"
 import { useFormik } from "formik"
 import * as Yup from "yup"
@@ -159,6 +160,7 @@ export function WalkInStep1VisitorDetails({
   const [minorCameraLoading, setMinorCameraLoading] = useState(false)
   const [minorPhotoError, setMinorPhotoError] = useState<string | null>(null)
   const [minorUploadTarget, setMinorUploadTarget] = useState<number | null>(null)
+  const [showCongratsModal, setShowCongratsModal] = useState(false)
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -484,10 +486,7 @@ export function WalkInStep1VisitorDetails({
         cnicNumber: values.cnicNumber,
         passportNumber: values.passportNumber,
       })
-      if (onSaveAndContinue) {
-        console.log("Calling onSaveAndContinue")
-        onSaveAndContinue()
-      }
+      setShowCongratsModal(true)
     },
   })
   return (
@@ -1424,6 +1423,14 @@ export function WalkInStep1VisitorDetails({
           </button>
         )}
       </div>
+
+      <CongratulationsModal
+        open={showCongratsModal}
+        onClose={() => {
+          setShowCongratsModal(false)
+          onSaveAndContinue?.()
+        }}
+      />
     </div>
   )
 }

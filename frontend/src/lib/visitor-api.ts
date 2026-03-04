@@ -40,9 +40,27 @@ function readVisitors(source: RegistrationSource): VisitorRecord[] {
   }
 }
 
-function writeVisitors(source: RegistrationSource, rows: VisitorRecord[]) {
+/** User-facing message when localStorage is full and there are existing entries. */
+export const STORAGE_QUOTA_MESSAGE =
+  "Storage full. Please delete some old entries from the list and try again.";
+
+/** When list is empty (0 registrations), the single payload is too large. */
+export const STORAGE_QUOTA_SINGLE_MESSAGE =
+  "Registration is too large for storage (too many or large photos/documents). Try using fewer or smaller images and try again.";
+
+function writeVisitors(source: RegistrationSource, rows: VisitorRecord[], previousCount?: number) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(getStorageKey(source), JSON.stringify(rows));
+  const key = getStorageKey(source);
+  try {
+    window.localStorage.setItem(key, JSON.stringify(rows));
+  } catch (err) {
+    const isQuota = err instanceof DOMException && (err.name === "QuotaExceededError" || err.code === 22);
+    if (isQuota) {
+      const noExisting = previousCount === 0;
+      throw new Error(noExisting ? STORAGE_QUOTA_SINGLE_MESSAGE : STORAGE_QUOTA_MESSAGE);
+    }
+    throw err;
+  }
 }
 
 /** Fetch visitors for a specific source. Use "walk-in" or "pre-registration" so lists stay separate. */
@@ -81,7 +99,7 @@ export async function createVisitor(
   /** Store full payload in localStorage for both walk-in and pre-registration so detail page can show all data. */
   const newRow: VisitorRecord = ({ ...payload, ...base, registration_status: "approved" } as VisitorRecord);
 
-  writeVisitors(source, [newRow, ...rows]);
+  writeVisitors(source, [newRow, ...rows], rows.length);
   return newRow;
 }
 
@@ -115,7 +133,7 @@ export async function saveDraftToStore(
 
   const newRow: VisitorRecord = ({ ...payload, ...base, registration_status: "draft" } as VisitorRecord);
 
-  writeVisitors(source, [newRow, ...rows]);
+  writeVisitors(source, [newRow, ...rows], rows.length);
   return newRow;
 }
 
@@ -160,7 +178,7 @@ export async function updateVisitor(
 
   const next = [...rows];
   next[index] = updated;
-  writeVisitors(source, next);
+  writeVisitors(source, next, rows.length);
   return updated;
 }
 
@@ -179,7 +197,7 @@ export async function deleteVisitor(
   source: RegistrationSource = "walk-in"
 ): Promise<void> {
   const rows = readVisitors(source).filter((r) => r.id !== id);
-  writeVisitors(source, rows);
+  writeVisitors(source, rows, undefined);
 }
 
 /** Check if a CNIC already exists in walk-in or pre-registration lists (local only). */
@@ -196,5 +214,7 @@ export async function isCnicExists(cnic: string): Promise<boolean> {
 export function getErrorToastMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
+  const s = String(err);
+  if (/quota|exceeded|setItem.*Storage/i.test(s)) return STORAGE_QUOTA_MESSAGE;
   return "Something went wrong. Please try again.";
 }

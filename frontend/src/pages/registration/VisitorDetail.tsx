@@ -42,14 +42,19 @@ function val(
   return "—"
 }
 
-function DocPreview({ label, src }: { label: string; src: string | undefined }) {
-  if (!src || !isImageUrl(src)) return null
+function DocPreview({ label, src, alwaysShow = false }: { label: string; src: string | undefined; alwaysShow?: boolean }) {
+  const hasImage = src && isImageUrl(src)
+  if (!alwaysShow && !hasImage) return null
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium text-muted-foreground">{label}</p>
-      <div className="rounded-lg border border-border bg-muted/20 overflow-hidden inline-block max-w-full">
-        <img src={src} alt={label} className="max-h-64 w-auto object-contain" />
-      </div>
+      {hasImage ? (
+        <div className="rounded-lg border border-border bg-muted/20 overflow-hidden inline-block max-w-full">
+          <img src={src} alt={label} className="max-h-64 w-auto object-contain" />
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">No document uploaded</p>
+      )}
     </div>
   )
 }
@@ -80,12 +85,12 @@ function SectionCard({
   )
 }
 
-function InfoGrid({ entries }: { entries: { label: string; value: string }[] }) {
-  const filtered = entries.filter((e) => e.value !== "—")
-  if (filtered.length === 0) return <p className="text-sm text-muted-foreground">No information provided.</p>
+function InfoGrid({ entries, showAll = true }: { entries: { label: string; value: string }[]; showAll?: boolean }) {
+  const list = showAll ? entries : entries.filter((e) => e.value !== "—")
+  if (list.length === 0) return <p className="text-sm text-muted-foreground">No information provided.</p>
   return (
     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-      {filtered.map(({ label, value }) => (
+      {list.map(({ label, value }) => (
         <div key={label}>
           <dt className="text-muted-foreground">{label}</dt>
           <dd className="font-medium text-foreground">{value}</dd>
@@ -161,6 +166,8 @@ export default function VisitorDetailPage() {
       : []
 
   const basicEntries = [
+    { label: "Visitor category", value: val(v, "visitor_category", "visitorCategory") },
+    { label: "Visitor search", value: val(v, "visitor_search", "visitorSearch") },
     { label: "Full name", value: fullName },
     { label: "Visitor type", value: val(v, "visitor_type", "visitorType") },
     { label: "Gender", value: val(v, "gender") },
@@ -257,7 +264,6 @@ export default function VisitorDetailPage() {
   const listBackLabel = source === "pre-registration" ? "Pre-Registration" : "Walk-In Registration"
   const vehicleImagesList = Array.isArray(v.vehicle_images) ? (v.vehicle_images as string[]) : []
   const vehicleImageSingle = v.vehicle_image ?? v.vehicleImage
-  const hasVehicleImages = vehicleImagesList.length > 0 || (typeof vehicleImageSingle === "string" && isImageUrl(vehicleImageSingle))
 
   return (
     <div className="w-full px-4">
@@ -291,82 +297,87 @@ export default function VisitorDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SectionCard title="Basic information" icon={User}>
-          <InfoGrid entries={basicEntries} />
+          <InfoGrid entries={basicEntries} showAll />
         </SectionCard>
 
         <SectionCard title="Contact & address" icon={Mail}>
-          <InfoGrid entries={contactEntries} />
+          <InfoGrid entries={contactEntries} showAll />
         </SectionCard>
 
-        <SectionCard title="Visitor photo" icon={ImageIcon}>
-          {mainPhoto && isImageUrl(mainPhoto) ? (
-            <div className="space-y-4">
-              <div className="rounded-lg border border-border overflow-hidden inline-block bg-muted/20">
-                <img src={mainPhoto} alt="Visitor" className="max-h-64 w-auto object-contain" />
-              </div>
-              {visitorPhotos.length > 1 && (
-                <div className="flex flex-wrap gap-2">
-                  {visitorPhotos.slice(1, 5).map((url, i) =>
-                    isImageUrl(url) ? (
-                      <div key={i} className="rounded-md border border-border overflow-hidden w-20 h-20 bg-muted/20">
-                        <img src={url} alt={`Photo ${i + 2}`} className="w-full h-full object-cover" />
-                      </div>
-                    ) : null
-                  )}
+        <SectionCard title="Visitor photos (all)" icon={ImageIcon}>
+          {(() => {
+            const allPhotos = visitorPhotos.length > 0
+              ? visitorPhotos.filter((url) => isImageUrl(url))
+              : mainPhoto && isImageUrl(mainPhoto)
+                ? [mainPhoto]
+                : capturedPhoto && isImageUrl(capturedPhoto)
+                  ? [capturedPhoto]
+                  : []
+            if (allPhotos.length === 0) {
+              return <p className="text-sm text-muted-foreground">No photo captured.</p>
+            }
+            return (
+              <div className="space-y-4">
+                <p className="text-sm font-medium text-muted-foreground">{allPhotos.length} photo(s)</p>
+                <div className="flex flex-wrap gap-3">
+                  {allPhotos.map((url, i) => (
+                    <div key={i} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                      <img src={url} alt={`Visitor photo ${i + 1}`} className="max-h-64 w-auto object-contain" />
+                      <p className="text-xs text-center py-1 text-muted-foreground">Photo {i + 1}</p>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          ) : capturedPhoto && isImageUrl(capturedPhoto) ? (
-            <div className="rounded-lg border border-border overflow-hidden inline-block bg-muted/20">
-              <img src={capturedPhoto} alt="Visitor" className="max-h-64 w-auto object-contain" />
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No photo captured.</p>
-          )}
+              </div>
+            )
+          })()}
         </SectionCard>
 
         <SectionCard title="Organization" icon={Building2}>
-          <InfoGrid entries={orgEntries} />
+          <InfoGrid entries={orgEntries} showAll />
         </SectionCard>
 
         <SectionCard title="Vehicle & license" icon={Car}>
-          <InfoGrid entries={vehicleEntries} />
-          {hasVehicleImages && (
-            <div className="space-y-2 pt-2 border-t border-border">
-              <p className="text-sm font-medium text-muted-foreground">Vehicle images</p>
-              <div className="flex flex-wrap gap-2">
-                {vehicleImagesList.length > 0
-                  ? vehicleImagesList.map((url, i) =>
-                      isImageUrl(url) ? (
-                        <div key={i} className="rounded-lg border border-border overflow-hidden bg-muted/20">
-                          <img src={url} alt={`Vehicle ${i + 1}`} className="max-h-40 w-auto object-contain" />
-                        </div>
-                      ) : null
-                    )
-                  : typeof vehicleImageSingle === "string" && isImageUrl(vehicleImageSingle) && (
-                      <div className="rounded-lg border border-border overflow-hidden bg-muted/20">
-                        <img src={vehicleImageSingle} alt="Vehicle" className="max-h-40 w-auto object-contain" />
-                      </div>
-                    )}
-              </div>
-            </div>
-          )}
+          <InfoGrid entries={vehicleEntries} showAll />
+          <div className="space-y-2 pt-2 border-t border-border mt-2">
+            <p className="text-sm font-medium text-muted-foreground">Vehicle images (all)</p>
+            {(() => {
+              const allVehicleImgs =
+                vehicleImagesList.length > 0
+                  ? vehicleImagesList.filter((url) => isImageUrl(url))
+                  : typeof vehicleImageSingle === "string" && isImageUrl(vehicleImageSingle)
+                    ? [vehicleImageSingle]
+                    : []
+              if (allVehicleImgs.length === 0) {
+                return <p className="text-sm text-muted-foreground italic">No vehicle image uploaded.</p>
+              }
+              return (
+                <div className="flex flex-wrap gap-3">
+                  {allVehicleImgs.map((url, i) => (
+                    <div key={i} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                      <img src={url} alt={`Vehicle ${i + 1}`} className="max-h-48 w-auto object-contain" />
+                      <p className="text-xs text-center py-1 text-muted-foreground">Vehicle image {i + 1}</p>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+          </div>
         </SectionCard>
 
         <SectionCard title="Visit & host details" icon={Calendar}>
-          <InfoGrid entries={visitEntries} />
+          <InfoGrid entries={visitEntries} showAll />
         </SectionCard>
 
         <SectionCard title="Access & pass" icon={QrCode}>
-          <InfoGrid entries={accessEntries} />
+          <InfoGrid entries={accessEntries} showAll />
         </SectionCard>
 
         <SectionCard title="Screening & status" icon={Shield}>
-          <InfoGrid entries={screeningEntries} />
+          <InfoGrid entries={screeningEntries} showAll />
         </SectionCard>
 
         <SectionCard title="Document & visit metadata" icon={ListChecks}>
-          <InfoGrid entries={metadataEntries} />
+          <InfoGrid entries={metadataEntries} showAll />
         </SectionCard>
       </div>
 
@@ -374,41 +385,44 @@ export default function VisitorDetailPage() {
         <Card className="mt-6">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-[18px] font-semibold">
-              <Users className="h-5 w-5 text-[#3b82f6]" /> Accompanying minors
+              <Users className="h-5 w-5 text-[#3b82f6]" /> Accompanying minors (all details)
             </CardTitle>
-            <CardDescription>{minors.length} minor(s) registered with this visitor.</CardDescription>
+            <CardDescription>{minors.length} minor(s) registered with this visitor. Every field and photo shown below.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             {minors.map((m, i) => {
-              const minorPhotos = Array.isArray(m.photos) ? (m.photos as string[]) : []
-              const hasMinorPhotos = minorPhotos.some((url) => typeof url === "string" && isImageUrl(url))
+              const minorPhotos = Array.isArray(m.photos) ? (m.photos as string[]).filter((url) => typeof url === "string" && isImageUrl(url)) : []
               return (
-                <div key={i} className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
-                  <p className="font-medium text-foreground">
+                <div key={i} className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+                  <p className="font-medium text-foreground text-lg">
                     {val(m, "name") !== "—" ? val(m, "name") : `Minor ${i + 1}`}
                   </p>
-                  <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                    <div><dt className="text-muted-foreground">Relation</dt><dd>{val(m, "relation")}</dd></div>
-                    <div><dt className="text-muted-foreground">Gender</dt><dd>{val(m, "gender")}</dd></div>
-                    <div><dt className="text-muted-foreground">CNIC / B-form</dt><dd>{val(m, "cnic_or_b_form", "cnicOrBForm")}</dd></div>
-                    <div><dt className="text-muted-foreground">DOB</dt><dd>{val(m, "date_of_birth", "dateOfBirth")}</dd></div>
-                    <div><dt className="text-muted-foreground">Mobile</dt><dd>{val(m, "mobile_number", "mobileNumber")}</dd></div>
-                    <div><dt className="text-muted-foreground">Email</dt><dd>{val(m, "email_address", "emailAddress")}</dd></div>
+                  <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                    <div><dt className="text-muted-foreground">Relation</dt><dd className="font-medium">{val(m, "relation")}</dd></div>
+                    <div><dt className="text-muted-foreground">Gender</dt><dd className="font-medium">{val(m, "gender")}</dd></div>
+                    <div><dt className="text-muted-foreground">CNIC / B-form</dt><dd className="font-medium">{val(m, "cnic_or_b_form", "cnicOrBForm")}</dd></div>
+                    <div><dt className="text-muted-foreground">Passport</dt><dd className="font-medium">{val(m, "passport_number", "passportNumber")}</dd></div>
+                    <div><dt className="text-muted-foreground">Nationality</dt><dd className="font-medium">{val(m, "nationality")}</dd></div>
+                    <div><dt className="text-muted-foreground">DOB</dt><dd className="font-medium">{val(m, "date_of_birth", "dateOfBirth")}</dd></div>
+                    <div><dt className="text-muted-foreground">Mobile</dt><dd className="font-medium">{val(m, "mobile_number", "mobileNumber")}</dd></div>
+                    <div><dt className="text-muted-foreground">Email</dt><dd className="font-medium">{val(m, "email_address", "emailAddress")}</dd></div>
+                    <div className="sm:col-span-2"><dt className="text-muted-foreground">Residential address</dt><dd className="font-medium">{val(m, "residential_address", "residentialAddress")}</dd></div>
                   </dl>
-                  {hasMinorPhotos && (
-                    <div className="pt-2 border-t border-border space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">Photographs</p>
-                      <div className="flex flex-wrap gap-2">
-                        {minorPhotos.map((url, j) =>
-                          typeof url === "string" && isImageUrl(url) ? (
-                            <div key={j} className="rounded-lg border border-border overflow-hidden bg-muted/20">
-                              <img src={url} alt={`Minor ${i + 1} – ${j + 1}`} className="max-h-40 w-auto object-contain" />
-                            </div>
-                          ) : null
-                        )}
+                  <div className="pt-2 border-t border-border space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">Photographs ({minorPhotos.length})</p>
+                    {minorPhotos.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">No photo uploaded.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-3">
+                        {minorPhotos.map((url, j) => (
+                          <div key={j} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                            <img src={url} alt={`Minor ${i + 1} – photo ${j + 1}`} className="max-h-48 w-auto object-contain" />
+                            <p className="text-xs text-center py-1 text-muted-foreground">Photo {j + 1}</p>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -425,13 +439,77 @@ export default function VisitorDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <DocPreview label="ID front / Visitor photograph" src={(v.front_image ?? v.frontImage) as string} />
-            <DocPreview label="ID back / Proof of identification" src={(v.back_image ?? v.backImage) as string} />
-            <DocPreview label="Application letter" src={(v.application_letter ?? v.applicationLetter) as string} />
-            <DocPreview label="Additional document" src={(v.additional_document ?? v.additionalDocument) as string} />
-            <DocPreview label="Authorization letter" src={(v.authorization_letter ?? v.authorizationLetter) as string} />
-            <DocPreview label="NOC document" src={(v.noc_document ?? v.nocDocument) as string} />
+            <DocPreview label="ID front / Visitor photograph" src={(v.front_image ?? v.frontImage) as string} alwaysShow />
+            <DocPreview label="ID back / Proof of identification" src={(v.back_image ?? v.backImage) as string} alwaysShow />
+            <DocPreview label="Application letter" src={(v.application_letter ?? v.applicationLetter) as string} alwaysShow />
+            <DocPreview label="Additional document" src={(v.additional_document ?? v.additionalDocument) as string} alwaysShow />
+            <DocPreview label="Authorization letter" src={(v.authorization_letter ?? v.authorizationLetter) as string} alwaysShow />
+            <DocPreview label="NOC document" src={(v.noc_document ?? v.nocDocument) as string} alwaysShow />
           </div>
+          {(() => {
+            const backFiles = (v.back_image_files ?? v.backImageFiles) as { dataUrl?: string; name?: string }[] | undefined
+            const authFiles = (v.authorization_letter_files ?? v.authorizationLetterFiles) as { dataUrl?: string; name?: string }[] | undefined
+            const nocFiles = (v.noc_document_files ?? v.nocDocumentFiles) as { dataUrl?: string; name?: string }[] | undefined
+            const docImages = (v.document_images ?? v.documentImages) as string[] | undefined
+            const hasExtra = (Array.isArray(backFiles) && backFiles.length > 1) || (Array.isArray(authFiles) && authFiles.length > 1) || (Array.isArray(nocFiles) && nocFiles.length > 1) || (Array.isArray(docImages) && docImages.length > 0)
+            if (!hasExtra) return null
+            return (
+              <div className="mt-6 pt-6 border-t border-border space-y-4">
+                {Array.isArray(backFiles) && backFiles.length > 1 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Proof of identification (all pages)</p>
+                    <div className="flex flex-wrap gap-3">
+                      {backFiles.map((f, i) => f?.dataUrl && isImageUrl(f.dataUrl) && (
+                        <div key={i} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                          <img src={f.dataUrl} alt={f.name ?? `ID back ${i + 1}`} className="max-h-64 w-auto object-contain" />
+                          <p className="text-xs text-center py-1 text-muted-foreground">{f.name ?? `Page ${i + 1}`}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {Array.isArray(authFiles) && authFiles.length > 1 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Authorization letter (all pages)</p>
+                    <div className="flex flex-wrap gap-3">
+                      {authFiles.map((f, i) => f?.dataUrl && isImageUrl(f.dataUrl) && (
+                        <div key={i} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                          <img src={f.dataUrl} alt={f.name ?? `Auth ${i + 1}`} className="max-h-64 w-auto object-contain" />
+                          <p className="text-xs text-center py-1 text-muted-foreground">{f.name ?? `Page ${i + 1}`}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {Array.isArray(nocFiles) && nocFiles.length > 1 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">NOC document (all pages)</p>
+                    <div className="flex flex-wrap gap-3">
+                      {nocFiles.map((f, i) => f?.dataUrl && isImageUrl(f.dataUrl) && (
+                        <div key={i} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                          <img src={f.dataUrl} alt={f.name ?? `NOC ${i + 1}`} className="max-h-64 w-auto object-contain" />
+                          <p className="text-xs text-center py-1 text-muted-foreground">{f.name ?? `Page ${i + 1}`}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {Array.isArray(docImages) && docImages.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Other document images</p>
+                    <div className="flex flex-wrap gap-3">
+                      {docImages.map((url, i) => isImageUrl(url) && (
+                        <div key={i} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                          <img src={url} alt={`Document ${i + 1}`} className="max-h-64 w-auto object-contain" />
+                          <p className="text-xs text-center py-1 text-muted-foreground">Document {i + 1}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </CardContent>
       </Card>
 

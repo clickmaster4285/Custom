@@ -357,8 +357,12 @@ export default function WalkInRegistrationPage() {
       setShowForm(false)
       setCurrentStep(1)
       setFormData({ ...initialFormData })
-    } catch {
-      toast({ title: "Could not save draft", variant: "destructive" })
+    } catch (err) {
+      toast({
+        title: "Could not save draft",
+        description: getErrorToastMessage(err),
+        variant: "destructive",
+      })
     }
   }
 

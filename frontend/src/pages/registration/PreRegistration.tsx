@@ -369,8 +369,12 @@ export default function PreRegistrationPage() {
       setShowForm(false)
       setCurrentStep(1)
       setFormData({ ...initialFormData })
-    } catch {
-      toast({ title: "Could not save draft", variant: "destructive" })
+    } catch (err) {
+      toast({
+        title: "Could not save draft",
+        description: getErrorToastMessage(err),
+        variant: "destructive",
+      })
     }
   }
 
@@ -585,7 +589,7 @@ export default function PreRegistrationPage() {
       }
     } catch (err) {
       toast({
-        title: "Validation failed",
+        title: "Save failed",
         description: getErrorToastMessage(err),
         variant: "destructive",
       })
