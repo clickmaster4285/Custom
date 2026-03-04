@@ -49,10 +49,10 @@ type DepositRow = {
 }
 
 const defaultRows: DepositRow[] = [
-  { id: "1", treasuryChallanNo: "TCH-2024-001", depositType: "Bail", caseSeizureRef: "SZ-2024-001", firNo: "FIR-2024-0841", customsStation: "Customs Karachi", amount: "125,000", depositDate: "2024-02-01", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Bail against release of consignment" },
+  { id: "1", treasuryChallanNo: "TCH-2024-001", depositType: "Bail", caseSeizureRef: "SZ-2024-001", firNo: "FIR-2024-0841", customsStation: "DI Khan", amount: "125,000", depositDate: "2024-02-01", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Bail against release of consignment" },
   { id: "2", treasuryChallanNo: "TCH-2024-002", depositType: "Security", caseSeizureRef: "SZ-2024-002", firNo: "FIR-2024-0842", customsStation: "Customs Peshawar", amount: "50,000", depositDate: "2024-02-03", bankTreasuryName: "National Treasury", status: "Pending", remarks: "" },
-  { id: "3", treasuryChallanNo: "TCH-2024-003", depositType: "Duty", caseSeizureRef: "GD-2024-0156", firNo: "", customsStation: "Customs Port Qasim", amount: "275,000", depositDate: "2024-02-05", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Provisional duty deposit" },
-  { id: "4", treasuryChallanNo: "TCH-2024-004", depositType: "Detention", caseSeizureRef: "SZ-2024-003", firNo: "FIR-2024-0845", customsStation: "Customs Lahore", amount: "75,000", depositDate: "2024-02-07", bankTreasuryName: "Customs House Lahore", status: "Pending", remarks: "Detention charges" },
+  { id: "3", treasuryChallanNo: "TCH-2024-003", depositType: "Duty", caseSeizureRef: "GD-2024-0156", firNo: "", customsStation: "Yarik", amount: "275,000", depositDate: "2024-02-05", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Provisional duty deposit" },
+  { id: "4", treasuryChallanNo: "TCH-2024-004", depositType: "Detention", caseSeizureRef: "SZ-2024-003", firNo: "FIR-2024-0845", customsStation: "Mardan", amount: "75,000", depositDate: "2024-02-07", bankTreasuryName: "Customs House Peshawar", status: "Pending", remarks: "Detention charges" },
 ]
 
 function loadRows(): DepositRow[] {
@@ -78,7 +78,7 @@ export default function DepositAccountRegisterPage() {
     depositType: "Bail",
     caseSeizureRef: "",
     firNo: "",
-    customsStation: "Customs Karachi",
+    customsStation: "DI Khan",
     amount: "",
     depositDate: new Date().toISOString().slice(0, 10),
     bankTreasuryName: "",
@@ -100,7 +100,7 @@ export default function DepositAccountRegisterPage() {
       depositType: "Bail",
       caseSeizureRef: "",
       firNo: "",
-      customsStation: "Customs Karachi",
+      customsStation: "DI Khan",
       amount: "",
       depositDate: new Date().toISOString().slice(0, 10),
       bankTreasuryName: "",
@@ -159,7 +159,7 @@ export default function DepositAccountRegisterPage() {
                   <TableHead>Case/Seizure Ref</TableHead>
                   <TableHead>FIR No</TableHead>
                   <TableHead>Customs Station</TableHead>
-                  <TableHead>Amount (PKR)</TableHead>
+                  <TableHead>Average Value</TableHead>
                   <TableHead>Deposit Date</TableHead>
                   <TableHead>Bank/Treasury</TableHead>
                   <TableHead>Status</TableHead>

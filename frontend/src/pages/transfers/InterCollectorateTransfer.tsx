@@ -26,8 +26,8 @@ const STORAGE_KEY = "wms_inter_collectorate_transfer"
 type TransferRow = { ref: string; from: string; to: string; status: string }
 
 const defaultRows: TransferRow[] = [
-  { ref: "TR-2024-0841", from: "Karachi", to: "Lahore", status: "Pending" },
-  { ref: "TR-2024-0840", from: "Peshawar", to: "Karachi", status: "In Transit" },
+  { ref: "TR-2024-0841", from: "Yarik", to: "Peshawar", status: "Pending" },
+  { ref: "TR-2024-0840", from: "Peshawar", to: "Yarik", status: "In Transit" },
 ]
 
 function loadRows(): TransferRow[] {
@@ -45,13 +45,13 @@ function saveRows(rows: TransferRow[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
 }
 
-const LOCATIONS = ["Karachi", "Lahore", "Islamabad", "Rawalpindi","Peshawar", "Faisalabad", "Multan"]
+const LOCATIONS = ["Yarik", "Peshawar", "Peshawar", "Rawalpindi","Peshawar", "Faisalabad", "Multan"]
 const STATUSES = ["Pending", "In Transit", "Completed"]
 
 export default function InterCollectorateTransferPage() {
   const [rows, setRows] = useState<TransferRow[]>([])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ from: "Karachi", to: "Lahore", status: "Pending" })
+  const [form, setForm] = useState({ from: "Yarik", to: "Peshawar", status: "Pending" })
 
   useEffect(() => {
     setRows(loadRows())
@@ -62,14 +62,14 @@ export default function InterCollectorateTransferPage() {
   }, [rows])
 
   const openAddForm = () => {
-    setForm({ from: "Karachi", to: "Lahore", status: "Pending" })
+    setForm({ from: "Yarik", to: "Peshawar", status: "Pending" })
     setOpen(true)
   }
 
   const onSave = () => {
     const ref = `TR-2024-${String(Date.now()).slice(-4)}`
     setRows((prev) => [{ ref, ...form }, ...prev])
-    setForm({ from: "Karachi", to: "Lahore", status: "Pending" })
+    setForm({ from: "Yarik", to: "Peshawar", status: "Pending" })
     setOpen(false)
   }
 
@@ -153,7 +153,7 @@ export default function InterCollectorateTransferPage() {
         </Card>
       </div>
 
-      <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ from: "Karachi", to: "Lahore", status: "Pending" }) }}>
+      <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ from: "Yarik", to: "Peshawar", status: "Pending" }) }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>New Transfer Request</DialogTitle>

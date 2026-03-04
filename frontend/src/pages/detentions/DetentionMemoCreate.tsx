@@ -46,7 +46,7 @@ const WAREHOUSES = [
 ] as const
 /** Radix Select does not allow value=""; use this for placeholder and treat as empty when saving */
 const SELECT_WAREHOUSE_PLACEHOLDER = "__select_warehouse__"
-const DIRECTORATES = ["MCC D.I Khan AFU Import", "MCC Peshawar", "MCC Karachi", "MCC Lahore"] as const
+const DIRECTORATES = ["MCC D.I Khan AFU Import", "MCC Peshawar", "MCC YARIK", "MCC DI Khan"] as const
 const GOODS_CONDITIONS = ["Seized", "Detained", "Under Examination", "Pending Clearance", "Unclaimed"] as const
 const GOODS_UNITS = ["PCS", "KGS", "LTR", "MTR", "CTN", "BOX", "BAG", "DOZ", "SET", "Other"] as const
 

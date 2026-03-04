@@ -55,9 +55,9 @@ type GoodsReceiptRow = {
 }
 
 const defaultRows: GoodsReceiptRow[] = [
-  { id: "1", qrCodeNumber: "QR-GR-2024-001", grNo: "GR-2024-001", gdNo: "GD-2024-001", customsStation: "Customs Karachi", portOfEntry: "Port Qasim", caseSeizureRef: "SZ-2024-001", consigneeImporterName: "ABC Imports (Pvt) Ltd", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", quantity: "500", unit: "PCS", receiptDate: "2024-02-01", godownWarehouse: "Bonded Godown A", examiningOfficerName: "Inspector M. Khan", status: "Examined" },
+  { id: "1", qrCodeNumber: "QR-GR-2024-001", grNo: "GR-2024-001", gdNo: "GD-2024-001", customsStation: "Kohat", portOfEntry: "Port Qasim", caseSeizureRef: "SZ-2024-001", consigneeImporterName: "ABC Imports (Pvt) Ltd", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", quantity: "500", unit: "PCS", receiptDate: "2024-02-01", godownWarehouse: "Bonded Godown A", examiningOfficerName: "Inspector M. Khan", status: "Examined" },
   { id: "2", qrCodeNumber: "QR-GR-2024-002", grNo: "GR-2024-002", gdNo: "GD-2024-002", customsStation: "Customs Peshawar", portOfEntry: "Torkham", caseSeizureRef: "SZ-2024-002", consigneeImporterName: "XYZ Trading Co", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", quantity: "2000", unit: "PCS", receiptDate: "2024-02-03", godownWarehouse: "Transit Shed B", examiningOfficerName: "ASI Ahmed Raza", status: "Pending" },
-  { id: "3", qrCodeNumber: "QR-GR-2024-003", grNo: "GR-2024-003", gdNo: "GD-2024-003", customsStation: "Customs Port Qasim", portOfEntry: "Port Qasim", caseSeizureRef: "", consigneeImporterName: "Faisal Impex", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", quantity: "120", unit: "KGS", receiptDate: "2024-02-05", godownWarehouse: "Bonded Godown C", examiningOfficerName: "Inspector S. Ali", status: "Received" },
+  { id: "3", qrCodeNumber: "QR-GR-2024-003", grNo: "GR-2024-003", gdNo: "GD-2024-003", customsStation: "Noshera", portOfEntry: "Port Qasim", caseSeizureRef: "", consigneeImporterName: "Faisal Impex", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", quantity: "120", unit: "KGS", receiptDate: "2024-02-05", godownWarehouse: "Bonded Godown C", examiningOfficerName: "Inspector S. Ali", status: "Received" },
 ]
 
 function loadRows(): GoodsReceiptRow[] {
@@ -84,7 +84,7 @@ export default function GoodsReceiptPage() {
     qrCodeNumber: "",
     grNo: "",
     gdNo: "",
-    customsStation: "Customs Karachi",
+    customsStation: "Kohat",
     portOfEntry: "",
     caseSeizureRef: "",
     consigneeImporterName: "",
@@ -111,7 +111,7 @@ export default function GoodsReceiptPage() {
       qrCodeNumber: "",
       grNo: "",
       gdNo: "",
-      customsStation: "Customs Karachi",
+      customsStation: "Kohat",
       portOfEntry: "",
       caseSeizureRef: "",
       consigneeImporterName: "",

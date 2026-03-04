@@ -26,8 +26,8 @@ const STORAGE_KEY = "wms_handover_requests"
 type HandoverRow = { ref: string; by: string; date: string; status: string }
 
 const defaultRows: HandoverRow[] = [
-  { ref: "HO-2024-0841", by: "Karachi Collectorate", date: "2024-02-04", status: "Pending" },
-  { ref: "HO-2024-0840", by: "Lahore Collectorate", date: "2024-02-03", status: "Completed" },
+  { ref: "HO-2024-0841", by: "Yarik Collectorate", date: "2024-02-04", status: "Pending" },
+  { ref: "HO-2024-0840", by: "Peshawar Collectorate", date: "2024-02-03", status: "Completed" },
 ]
 
 function loadRows(): HandoverRow[] {
@@ -45,13 +45,13 @@ function saveRows(rows: HandoverRow[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
 }
 
-const REQUESTERS = ["Karachi Collectorate", "Lahore Collectorate", "Islamabad Collectorate", "Rawalpindi Collectorate"]
+const REQUESTERS = ["Yarik Collectorate", "Peshawar Collectorate", "Peshawar Collectorate", "Rawalpindi Collectorate"]
 const STATUSES = ["Pending", "Completed"]
 
 export default function HandoverRequestsPage() {
   const [rows, setRows] = useState<HandoverRow[]>([])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ by: "Karachi Collectorate", date: "", status: "Pending" })
+  const [form, setForm] = useState({ by: "Yarik Collectorate", date: "", status: "Pending" })
 
   useEffect(() => {
     setRows(loadRows())
@@ -62,7 +62,7 @@ export default function HandoverRequestsPage() {
   }, [rows])
 
   const openAddForm = () => {
-    setForm({ by: "Karachi Collectorate", date: new Date().toISOString().slice(0, 10), status: "Pending" })
+    setForm({ by: "Yarik Collectorate", date: new Date().toISOString().slice(0, 10), status: "Pending" })
     setOpen(true)
   }
 
@@ -70,7 +70,7 @@ export default function HandoverRequestsPage() {
     const ref = `HO-2024-${String(Date.now()).slice(-4)}`
     const date = form.date || new Date().toISOString().slice(0, 10)
     setRows((prev) => [{ ref, by: form.by, date, status: form.status }, ...prev])
-    setForm({ by: "Karachi Collectorate", date: "", status: "Pending" })
+    setForm({ by: "Yarik Collectorate", date: "", status: "Pending" })
     setOpen(false)
   }
 
@@ -122,7 +122,7 @@ export default function HandoverRequestsPage() {
         </Card>
       </div>
 
-      <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ by: "Karachi Collectorate", date: "", status: "Pending" }) }}>
+      <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ by: "Yarik Collectorate", date: "", status: "Pending" }) }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>New Handover Request</DialogTitle>

@@ -111,8 +111,8 @@ function ensureFirShape(r: Record<string, unknown>): StoredFir {
 }
 
 const defaultRows: StoredFir[] = [
-  { ...emptyForm(), id: "fir-1", firNumber: "FIR-2024-0841", registrationDate: "2024-02-04", customsOfficeStation: "Customs Karachi", complainantName: "Customs Dept", accusedName: "Accused A", placeOfOccurrence: "Port Qasim", sectionOfLaw: "Customs Act S.2", investigationOfficerName: "IO Khan", seizureReference: "SZ-2024-001", status: "Registered" },
-  { ...emptyForm(), id: "fir-2", firNumber: "FIR-2024-0840", registrationDate: "2024-02-03", customsOfficeStation: "Customs Lahore", complainantName: "Customs Dept", accusedName: "Accused B", placeOfOccurrence: "Lahore", sectionOfLaw: "Customs Act", investigationOfficerName: "IO Ahmed", status: "Under Investigation" },
+  { ...emptyForm(), id: "fir-1", firNumber: "FIR-2024-0841", registrationDate: "2024-02-04", customsOfficeStation: "Kohat", complainantName: "Customs Dept", accusedName: "Accused A", placeOfOccurrence: "Port Qasim", sectionOfLaw: "Customs Act S.2", investigationOfficerName: "IO Khan", seizureReference: "SZ-2024-001", status: "Registered" },
+  { ...emptyForm(), id: "fir-2", firNumber: "FIR-2024-0840", registrationDate: "2024-02-03", customsOfficeStation: "Mardan", complainantName: "Customs Dept", accusedName: "Accused B", placeOfOccurrence: "Peshawar", sectionOfLaw: "Customs Act", investigationOfficerName: "IO Ahmed", status: "Under Investigation" },
 ]
 
 function loadRows(): StoredFir[] {
@@ -319,7 +319,7 @@ export default function FirRegistrationPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>District / Region</Label>
-                  <Input value={form.districtRegion} onChange={(e) => setFormField("districtRegion", e.target.value)} placeholder="e.g. Karachi South" />
+                  <Input value={form.districtRegion} onChange={(e) => setFormField("districtRegion", e.target.value)} placeholder="e.g. Yarik South" />
                 </div>
                 <div className="space-y-2">
                   <Label>Seizure Reference</Label>

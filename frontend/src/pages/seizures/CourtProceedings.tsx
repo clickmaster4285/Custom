@@ -64,7 +64,7 @@ export default function CourtProceedingsPage() {
               </TableHeader>
               <TableBody>
                 {[
-                  { id: "CF-2024-0841", court: "Customs Court Karachi", date: "2024-02-15", status: "Scheduled" },
+                  { id: "CF-2024-0841", court: "Customs Court Yarik", date: "2024-02-15", status: "Scheduled" },
                 ].map((row) => (
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">{row.id}</TableCell>

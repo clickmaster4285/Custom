@@ -140,12 +140,14 @@ export const CASE_TABLE_COLUMNS = [
 ] as const
 
 export const CUSTOMS_STATIONS = [
-  "Customs Karachi",
-  "Customs Lahore",
-  "Customs Islamabad",
-  "Customs Rawalpindi",
-  "Customs Faisalabad",
+  // "Kohat",
+  // "Mardan",
+  // "Custom Peshawar",
+  // "Noshera",
+  // "Customs Faisalabad",
+  "Yarik",
+  "DI Khan",
   "Customs Peshawar",
-  "Customs Quetta",
-  "Customs Port Qasim",
+  // "Customs Quetta",
+  // "Noshera",
 ] as const

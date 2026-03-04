@@ -47,6 +47,7 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.STORAGE_ALLOCATION), page: "StorageAllocation" },
   { path: toChildPath(ROUTES.INVENTORY_TRACKING), page: "InventoryTracking" },
   { path: toChildPath(ROUTES.STOCK_RECONCILIATION), page: "StockReconciliation" },
+  { path: toChildPath(ROUTES.RELEASE_INVENTORY), page: "ReleaseInventory" },
   { path: toChildPath(ROUTES.DEPOSIT_ACCOUNT_REGISTER), page: "DepositAccountRegister" },
   { path: toChildPath(ROUTES.DETENTION_MEMO), page: "DetentionMemo" },
   { path: "detention-memo/create", page: "DetentionMemoCreate" },

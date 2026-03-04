@@ -54,9 +54,9 @@ type StockRow = {
 }
 
 const defaultRows: StockRow[] = [
-  { id: "1", qrCodeNumber: "QR-STK-2024-001", seizureCaseRef: "SZ-2024-001", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", customsStation: "Customs Karachi", godownWarehouse: "Bonded Godown A", quantity: "450", unitOfMeasure: "PCS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector M. Khan", status: "In Custody" },
+  { id: "1", qrCodeNumber: "QR-STK-2024-001", seizureCaseRef: "SZ-2024-001", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", customsStation: "Kohat", godownWarehouse: "Bonded Godown A", quantity: "450", unitOfMeasure: "PCS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector M. Khan", status: "In Custody" },
   { id: "2", qrCodeNumber: "QR-STK-2024-002", seizureCaseRef: "SZ-2024-002", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", customsStation: "Customs Peshawar", godownWarehouse: "Transit Shed B", quantity: "85", unitOfMeasure: "PCS", condition: "Detained", custody: "Transit Shed", custodianOfficerName: "ASI Ahmed Raza", status: "In Custody" },
-  { id: "3", qrCodeNumber: "QR-STK-2024-003", seizureCaseRef: "SZ-2024-003", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", customsStation: "Customs Port Qasim", godownWarehouse: "Bonded Godown C", quantity: "12", unitOfMeasure: "KGS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector S. Ali", status: "In Custody" },
+  { id: "3", qrCodeNumber: "QR-STK-2024-003", seizureCaseRef: "SZ-2024-003", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", customsStation: "Noshera", godownWarehouse: "Bonded Godown C", quantity: "12", unitOfMeasure: "KGS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector S. Ali", status: "In Custody" },
 ]
 
 function loadRows(): StockRow[] {
@@ -84,7 +84,7 @@ export default function StockManagementPage() {
     seizureCaseRef: "",
     pctCode: "",
     descriptionOfGoods: "",
-    customsStation: "Customs Karachi",
+    customsStation: "Kohat",
     godownWarehouse: "",
     quantity: "",
     unitOfMeasure: "PCS",
@@ -108,7 +108,7 @@ export default function StockManagementPage() {
       seizureCaseRef: "",
       pctCode: "",
       descriptionOfGoods: "",
-      customsStation: "Customs Karachi",
+      customsStation: "Kohat",
       godownWarehouse: "",
       quantity: "",
       unitOfMeasure: "PCS",
