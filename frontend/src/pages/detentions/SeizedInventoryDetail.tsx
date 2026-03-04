@@ -12,9 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ROUTES } from "@/routes/config"
+import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
 
-const STORAGE_KEY = "wms_detention_memo"
+const STORAGE_KEY = "wms_seized_inventory"
 
 type GoodsLineItem = {
   id: string
@@ -29,8 +29,10 @@ type GoodsLineItem = {
   itemNotes: string
 }
 
-type DetentionMemoRow = {
+type SeizedRow = {
   id: string
+  sourceDetentionId: string
+  seizedAt: string
   caseNo: string
   firNumber?: string
   referenceNumber: string
@@ -57,7 +59,7 @@ type DetentionMemoRow = {
   updatedAt?: string
 }
 
-function loadById(id: string): DetentionMemoRow | null {
+function loadById(id: string): SeizedRow | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
@@ -79,19 +81,29 @@ function DetailRow({ label, value }: { label: string; value: string | undefined 
   )
 }
 
-export default function DetentionMemoDetailPage() {
+function formatSeizedDate(d: string) {
+  if (!d) return "—"
+  try {
+    const date = new Date(d)
+    return date.toLocaleString()
+  } catch {
+    return d
+  }
+}
+
+export default function SeizedInventoryDetailPage() {
   const { id } = useParams<{ id: string }>()
   const row = id ? loadById(id) : null
 
   if (!id || !row) {
     return (
       <ModulePageLayout
-        title="Detention Memo Not Found"
+        title="Seized Item Not Found"
         description="The requested record could not be found."
         breadcrumbs={[
           { label: "WMS" },
-          { label: "Detentions" },
-          { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
+          { label: "Seizure & Receipt" },
+          { label: "Seizure Register", href: ROUTES.SEIZURE_REGISTER },
           { label: "Detail" },
         ]}
       >
@@ -99,9 +111,9 @@ export default function DetentionMemoDetailPage() {
           <CardContent className="pt-6">
             <p className="text-muted-foreground mb-4">Record not found or has been removed.</p>
             <Button asChild variant="outline">
-              <Link to={ROUTES.DETENTION_MEMO}>
+              <Link to={ROUTES.SEIZURE_REGISTER}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Detention Memo
+                Back to Seizure Register
               </Link>
             </Button>
           </CardContent>
@@ -112,12 +124,12 @@ export default function DetentionMemoDetailPage() {
 
   return (
     <ModulePageLayout
-      title={`Detention Memo: ${row.caseNo}`}
-      description="Pakistan Customs detention memo details. Data from localStorage."
+      title={`Seized: ${row.caseNo}`}
+      description="Pakistan Customs seized inventory details (transferred from detention). Data from localStorage."
       breadcrumbs={[
         { label: "WMS" },
-        { label: "Detentions" },
-        { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
+        { label: "Seizure & Receipt" },
+        { label: "Seizure Register", href: ROUTES.SEIZURE_REGISTER },
         { label: row.caseNo },
       ]}
     >
@@ -127,18 +139,27 @@ export default function DetentionMemoDetailPage() {
             <FileText className="h-5 w-5" />
             {row.caseNo}
           </CardTitle>
-          <Badge variant={row.verificationStatus === "Verified" ? "default" : "secondary"}>
-            {row.verificationStatus}
-          </Badge>
+          <Badge variant="default">Seized</Badge>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
+            <h4 className="text-sm font-medium mb-2">Seized Information</h4>
+            <div className="rounded-lg border p-4">
+              <DetailRow label="Seized Date" value={formatSeizedDate(row.seizedAt)} />
+              <div className="grid grid-cols-[180px_1fr] gap-2 py-2 border-b border-border/50 last:border-0">
+                <span className="text-sm text-muted-foreground">Source Detention</span>
+                <span className="text-sm font-medium">
+                  <Link to={getDetentionMemoDetailPath(row.sourceDetentionId)} className="text-primary hover:underline">
+                    View original detention memo
+                  </Link>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div>
             <h4 className="text-sm font-medium mb-2">Basic Information</h4>
             <div className="rounded-lg border p-4">
-              <div className="grid grid-cols-[180px_1fr] gap-2 py-2 border-b border-border/50">
-                <span className="text-sm text-muted-foreground">Memo (came after detention)</span>
-                <span className="text-sm font-medium">Yes — this memo was prepared after the detention.</span>
-              </div>
               <DetailRow label="Case No." value={row.caseNo} />
               <DetailRow label="FIR Number" value={row.firNumber} />
               <DetailRow label="Reference Number" value={row.referenceNumber} />
@@ -151,8 +172,6 @@ export default function DetentionMemoDetailPage() {
               <DetailRow label="Reason for detention" value={row.reasonForDetention} />
               <DetailRow label="Where deposited" value={row.whereDeposited} />
               <DetailRow label="Settlement Status" value={row.settlementStatus} />
-              <DetailRow label="Posting Date" value={row.createdAt} />
-              <DetailRow label="Updation Date" value={row.updatedAt ?? row.createdAt} />
             </div>
           </div>
 
@@ -250,9 +269,9 @@ export default function DetentionMemoDetailPage() {
           )}
 
           <Button asChild variant="outline">
-            <Link to={ROUTES.DETENTION_MEMO}>
+            <Link to={ROUTES.SEIZURE_REGISTER}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to list
+              Back to Seizure Register
             </Link>
           </Button>
         </CardContent>

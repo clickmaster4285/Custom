@@ -170,7 +170,7 @@ export default function DetentionMemoCreatePage() {
   return (
     <ModulePageLayout
       title="Detention Memo / Create"
-      description="Add a new detention memo. All fields as per Pakistan Customs detention memo. Data stored in localStorage."
+      description="Add a new detention memo (prepared after the detention). All fields as per Pakistan Customs detention memo. Data stored in localStorage."
       breadcrumbs={[
         { label: "WMS" },
         { label: "Detentions" },
@@ -188,6 +188,9 @@ export default function DetentionMemoCreatePage() {
             </Link>
           </Button>
         </div>
+        <p className="mb-4 text-sm text-muted-foreground rounded-md bg-muted/60 px-3 py-2 border border-border/50">
+          This detention memo is prepared <strong>after</strong> the detention. Record all details of the detention event and goods for customs record.
+        </p>
 
         <div className="space-y-4 w-full">
           {/* Basic Information */}

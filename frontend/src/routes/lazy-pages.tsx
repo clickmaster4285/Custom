@@ -47,6 +47,8 @@ export const PAGES = {
   DetentionMemo: lazy(() => import("@/pages/detentions/DetentionMemo").then((m) => ({ default: m.default }))),
   DetentionMemoCreate: lazy(() => import("@/pages/detentions/DetentionMemoCreate").then((m) => ({ default: m.default }))),
   DetentionMemoDetail: lazy(() => import("@/pages/detentions/DetentionMemoDetail").then((m) => ({ default: m.default }))),
+  SeizedInventory: lazy(() => import("@/pages/detentions/SeizedInventory").then((m) => ({ default: m.default }))),
+  SeizedInventoryDetail: lazy(() => import("@/pages/detentions/SeizedInventoryDetail").then((m) => ({ default: m.default }))),
   GoodsReceipt: lazy(() => import("@/pages/inventory/GoodsReceipt").then((m) => ({ default: m.default }))),
   GoodsReceiptDetail: lazy(() => import("@/pages/inventory/GoodsReceiptDetail").then((m) => ({ default: m.default }))),
   StockManagement: lazy(() => import("@/pages/inventory/StockManagement").then((m) => ({ default: m.default }))),

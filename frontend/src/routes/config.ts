@@ -77,6 +77,7 @@ export const ROUTES = {
   DEPOSIT_ACCOUNT_REGISTER: "/deposit-account-register",
   DETENTION_MEMO: "/detention-memo",
   DETENTION_MEMO_CREATE: "/detention-memo/create",
+  SEIZED_INVENTORY: "/seized-inventory",
   // Seizures & cases
   NEW_SEIZURE_ENTRY: "/new-seizure-entry",
   JCP_TOLL_PLAZA_ENTRY: "/jcp-toll-plaza-entry",
@@ -181,6 +182,9 @@ export function getInventoryValuationDetailPath(id: string): string {
 }
 export function getDetentionMemoDetailPath(id: string): string {
   return `${ROUTES.DETENTION_MEMO}/${encodeURIComponent(id)}`
+}
+export function getSeizedInventoryDetailPath(id: string): string {
+  return `${ROUTES.SEIZED_INVENTORY}/${encodeURIComponent(id)}`
 }
 
 /** Returns true if pathname is the login route */
