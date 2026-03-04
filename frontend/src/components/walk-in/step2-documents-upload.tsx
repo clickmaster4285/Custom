@@ -31,11 +31,25 @@ function getCameraErrorMessage(err: unknown): string {
 
 type DocumentField = keyof WalkInStep2DocumentsFormData
 
+export interface UploadedFileItem {
+  dataUrl: string
+  name: string
+  size: string
+}
+
 export interface WalkInStep2DocumentsFormData {
   frontImage: string
   backImage: string
   applicationLetter: string
   additionalDocument: string
+  authorizationLetter: string
+  nocDocument: string
+  /** Multiple files for Proof of Identification (backImage = first item for API) */
+  backImageFiles?: UploadedFileItem[]
+  /** Multiple files for Authorization letter */
+  authorizationLetterFiles?: UploadedFileItem[]
+  /** Multiple files for NOC */
+  nocDocumentFiles?: UploadedFileItem[]
 }
 
 interface UploadedFile {
@@ -70,21 +84,43 @@ export function WalkInStep2DocumentsUpload({
   const photoInputRef = useRef<HTMLInputElement>(null)
   const idInputRef = useRef<HTMLInputElement>(null)
   const supportingInputRef = useRef<HTMLInputElement>(null)
+  const authorizationLetterInputRef = useRef<HTMLInputElement>(null)
+  const nocDocumentInputRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    field: keyof WalkInStep2DocumentsFormData
+    field: "backImage" | "authorizationLetter" | "nocDocument"
   ) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      const dataUrl = await readFileAsDataUrl(file)
-      updateFormData({ [field]: dataUrl })
-    } catch {
-      console.error("Failed to read uploaded file", file)
+    const files = e.target.files
+    if (!files?.length) return
+    const newItems: UploadedFileItem[] = []
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
       try {
-        toast({ title: "Upload failed", description: "Could not read the selected file.", variant: "destructive" })
-      } catch {}
+        const dataUrl = await readFileAsDataUrl(file)
+        const sizeStr = `${(file.size / 1024 / 1024).toFixed(1)}MB`
+        newItems.push({ dataUrl, name: file.name, size: sizeStr })
+      } catch {
+        console.error("Failed to read uploaded file", file.name)
+        toast({ title: "Upload failed", description: `Could not read ${file.name}.`, variant: "destructive" })
+      }
+    }
+    if (newItems.length === 0) {
+      e.target.value = ""
+      return
+    }
+    if (field === "backImage") {
+      const prev = formData.backImageFiles ?? []
+      const next = [...prev, ...newItems]
+      updateFormData({ backImageFiles: next, backImage: next[0]?.dataUrl ?? "" })
+    } else if (field === "authorizationLetter") {
+      const prev = formData.authorizationLetterFiles ?? []
+      const next = [...prev, ...newItems]
+      updateFormData({ authorizationLetterFiles: next, authorizationLetter: next[0]?.dataUrl ?? "" })
+    } else if (field === "nocDocument") {
+      const prev = formData.nocDocumentFiles ?? []
+      const next = [...prev, ...newItems]
+      updateFormData({ nocDocumentFiles: next, nocDocument: next[0]?.dataUrl ?? "" })
     }
     e.target.value = ""
   }
@@ -181,7 +217,22 @@ export function WalkInStep2DocumentsUpload({
     canvas.height = h
     ctx.drawImage(video, 0, 0, w, h)
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92)
-    updateFormData({ [cameraFor]: dataUrl })
+    const approxBytes = Math.round((dataUrl.length * 3) / 4)
+    const sizeStr = approxBytes >= 1024 * 1024 ? `${(approxBytes / 1024 / 1024).toFixed(1)}MB` : `${(approxBytes / 1024).toFixed(1)}KB`
+    const newItem: UploadedFileItem = { dataUrl, name: "Captured image.jpg", size: sizeStr }
+    if (cameraFor === "backImage") {
+      const prev = formData.backImageFiles ?? []
+      const next = [...prev, newItem]
+      updateFormData({ backImageFiles: next, backImage: next[0]?.dataUrl ?? "" })
+    } else if (cameraFor === "authorizationLetter") {
+      const prev = formData.authorizationLetterFiles ?? []
+      const next = [...prev, newItem]
+      updateFormData({ authorizationLetterFiles: next, authorizationLetter: next[0]?.dataUrl ?? "" })
+    } else if (cameraFor === "nocDocument") {
+      const prev = formData.nocDocumentFiles ?? []
+      const next = [...prev, newItem]
+      updateFormData({ nocDocumentFiles: next, nocDocument: next[0]?.dataUrl ?? "" })
+    }
     stopCamera()
     setCameraFor(null)
     setCameraError(null)
@@ -203,7 +254,7 @@ export function WalkInStep2DocumentsUpload({
       <Label className="text-[22px] font-bold text-foreground">Documents Upload</Label>
 
       {/* Photograph – capture from camera or upload */}
-      <div className="space-y-3">
+      {/* <div className="space-y-3">
         <p className="text-base font-medium text-foreground">Visitor Photograph</p>
         <div className="flex flex-col sm:flex-row gap-4">
           {formData.frontImage && isImageDataUrl(formData.frontImage) && (
@@ -237,35 +288,172 @@ export function WalkInStep2DocumentsUpload({
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
-      {/* ID Document – capture or upload */}
+      {/* ID Document – Proof of Identification */}
       <div className="space-y-3 border-t border-border pt-6">
         <p className="text-base font-medium text-foreground">Proof of Identification</p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          {formData.backImage && isImageDataUrl(formData.backImage) && (
-            <div className="rounded-lg border border-border overflow-hidden bg-muted/20 shrink-0">
-              <img src={formData.backImage} alt="ID document" className="h-40 w-auto object-contain" />
-            </div>
-          )}
-          <div className={uploadBoxClass + " flex-1 min-w-0"}>
-            <input
-              ref={idInputRef}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,image/*"
-              className="hidden"
-              onChange={(e) => handleUpload(e, "backImage")}
-            />
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => openCameraFor("backImage")} className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white flex items-center gap-2">
-                <Camera className="h-4 w-4" /> Capture from camera
-              </button>
-              <button type="button" onClick={() => idInputRef.current?.click()} className="rounded-md border border-[#3366FF] bg-white px-4 py-2.5 text-base text-[#3366FF] flex items-center gap-2">
-                <Upload className="h-4 w-4" /> Upload from device
-              </button>
-            </div>
+        <div className={uploadBoxClass + " w-full"}>
+          <input
+            ref={idInputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handleUpload(e, "backImage")}
+          />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#dbeafe] ring-2 ring-[#3b82f6]">
+            <Camera className="h-6 w-6 text-[#2563eb]" />
+          </div>
+          <p className="text-base font-medium text-foreground">Upload a Proof of Identification</p>
+          <p className="text-sm text-muted-foreground">Image size: Max 5MB, Format: PDF, JPG</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <button type="button" onClick={() => openCameraFor("backImage")} className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white flex items-center gap-2 transition-colors hover:bg-[#2952CC]">
+              <Camera className="h-4 w-4" /> Capture from camera
+            </button>
+            <button type="button" onClick={() => idInputRef.current?.click()} className="rounded-md border border-[#3366FF] bg-white px-4 py-2.5 text-base text-[#3366FF] flex items-center gap-2 transition-colors hover:bg-gray-50">
+              <Upload className="h-4 w-4" /> Upload from device
+            </button>
           </div>
         </div>
+        {(formData.backImageFiles ?? []).map((file, idx) => (
+          <div key={idx} className="flex items-center gap-4 rounded-lg border border-[#93c5fd] bg-white px-4 py-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#dbeafe]">
+              <FileText className="h-5 w-5 text-[#2563eb]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-medium text-foreground">{file.name}</p>
+              <p className="text-sm text-muted-foreground">File size: {file.size}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = (formData.backImageFiles ?? []).filter((_, i) => i !== idx)
+                updateFormData({ backImageFiles: next, backImage: next[0]?.dataUrl ?? "" })
+              }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3366FF] text-white hover:bg-[#2952CC] focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Remove file"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Authorization letter (if applicable) */}
+      <div className="space-y-3 border-t border-border pt-6">
+        <p className="text-base font-medium text-foreground">Authorization letter (if applicable)</p>
+        <div className="rounded-lg border-2 border-dashed border-border bg-muted/20 py-8 px-6 flex flex-col items-center justify-center gap-3">
+          <input
+            ref={authorizationLetterInputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handleUpload(e, "authorizationLetter")}
+          />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#dbeafe] ring-2 ring-[#3b82f6]">
+            <Camera className="h-6 w-6 text-[#2563eb]" />
+          </div>
+          <p className="text-base font-medium text-foreground">Upload a Proof of Identification</p>
+          <p className="text-sm text-muted-foreground">Image size: Max 5MB, Format: PDF, JPG</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <button
+              type="button"
+              onClick={() => openCameraFor("authorizationLetter")}
+              className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white flex items-center gap-2 transition-colors hover:bg-[#2952CC]"
+            >
+              <Camera className="h-4 w-4" /> Capture from camera
+            </button>
+            <button
+              type="button"
+              onClick={() => authorizationLetterInputRef.current?.click()}
+              className="rounded-md border border-[#3366FF] bg-white px-4 py-2.5 text-base text-[#3366FF] flex items-center gap-2 transition-colors hover:bg-gray-50"
+            >
+              <Upload className="h-4 w-4" /> Upload from device
+            </button>
+          </div>
+        </div>
+        {(formData.authorizationLetterFiles ?? []).map((file, idx) => (
+          <div key={idx} className="flex items-center gap-4 rounded-lg border border-[#93c5fd] bg-white px-4 py-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#dbeafe]">
+              <FileText className="h-5 w-5 text-[#2563eb]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-medium text-foreground">{file.name}</p>
+              <p className="text-sm text-muted-foreground">File size: {file.size}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = (formData.authorizationLetterFiles ?? []).filter((_, i) => i !== idx)
+                updateFormData({ authorizationLetterFiles: next, authorizationLetter: next[0]?.dataUrl ?? "" })
+              }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3366FF] text-white hover:bg-[#2952CC] focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Remove file"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* NOC from Relevant Authority (if required) */}
+      <div className="space-y-3 border-t border-border pt-6">
+        <p className="text-base font-medium text-foreground">NOC from Relevant Authority (if required)</p>
+        <div className="rounded-lg border-2 border-dashed border-border bg-muted/20 py-8 px-6 flex flex-col items-center justify-center gap-3">
+          <input
+            ref={nocDocumentInputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handleUpload(e, "nocDocument")}
+          />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#dbeafe] ring-2 ring-[#3b82f6]">
+            <Camera className="h-6 w-6 text-[#2563eb]" />
+          </div>
+          <p className="text-base font-medium text-foreground">Upload a Proof of Identification</p>
+          <p className="text-sm text-muted-foreground">Image size: Max 5MB, Format: PDF, JPG</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <button
+              type="button"
+              onClick={() => openCameraFor("nocDocument")}
+              className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white flex items-center gap-2 transition-colors hover:bg-[#2952CC]"
+            >
+              <Camera className="h-4 w-4" /> Capture from camera
+            </button>
+            <button
+              type="button"
+              onClick={() => nocDocumentInputRef.current?.click()}
+              className="rounded-md border border-[#3366FF] bg-white px-4 py-2.5 text-base text-[#3366FF] flex items-center gap-2 transition-colors hover:bg-gray-50"
+            >
+              <Upload className="h-4 w-4" /> Upload from device
+            </button>
+          </div>
+        </div>
+        {(formData.nocDocumentFiles ?? []).map((file, idx) => (
+          <div key={idx} className="flex items-center gap-4 rounded-lg border border-[#93c5fd] bg-white px-4 py-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#dbeafe]">
+              <FileText className="h-5 w-5 text-[#2563eb]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-medium text-foreground">{file.name}</p>
+              <p className="text-sm text-muted-foreground">File size: {file.size}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = (formData.nocDocumentFiles ?? []).filter((_, i) => i !== idx)
+                updateFormData({ nocDocumentFiles: next, nocDocument: next[0]?.dataUrl ?? "" })
+              }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3366FF] text-white hover:bg-[#2952CC] focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Remove file"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* Supporting Documents */}

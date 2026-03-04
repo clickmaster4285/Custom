@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { WalkInStepIndicator } from "@/components/walk-in/step-indicator"
 import { WalkInStep1VisitorDetails } from "@/components/walk-in/step1-visitor-details"
@@ -8,10 +8,12 @@ import { WalkInStep3VisitDetails } from "@/components/walk-in/step3-visit-detail
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
-import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, getErrorToastMessage, type VisitorRecord } from "@/lib/visitor-api"
+import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, getErrorToastMessage, saveDraftToStore, updateVisitor, type VisitorRecord } from "@/lib/visitor-api"
+import { getVisitorPhotoUrl } from "@/lib/image-match"
 import { PrintQROnSave } from "@/components/visitor/print-qr-on-save"
-import { ChevronLeft, ChevronRight, MoreHorizontal, Printer, UserPlus, Trash2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Printer, UserPlus, Trash2 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
+import { getVisitorDetailPath } from "@/routes/config"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,8 +45,13 @@ type RegistrationEntry = {
   avatar: string;
   type: "Walk-In";
   department: string;
-  status: "Checked In" | "Approved" | "Pending Docs";
+  status: "Checked In" | "Approved" | "Pending Docs" | "Draft" | "Sent";
   time: string;
+  date: string;
+  cnic: string;
+  contact: string;
+  visitPurpose: string;
+  host: string;
 };
 
 function formatTime(value: string) {
@@ -58,17 +65,38 @@ function formatTime(value: string) {
   });
 }
 
-function mapVisitorToRegistration(visitor: VisitorRecord): RegistrationEntry {
+function formatDate(value: string) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function mapVisitorToRegistration(visitor: VisitorRecord & Record<string, unknown>): RegistrationEntry {
   const name = visitor.full_name || "Unknown Visitor";
+  const mobile = visitor.phone ?? (visitor as Record<string, unknown>).mobile_number ?? "";
+  const email = visitor.email ?? (visitor as Record<string, unknown>).email_address ?? "";
+  const contact = [String(mobile || ""), String(email || "")].filter(Boolean).join(" · ") || "—";
+  const cnicRaw = visitor.cnic_number ?? (visitor as Record<string, unknown>).cnic_number;
+  const cnic = cnicRaw != null && typeof cnicRaw === "string" ? cnicRaw : String(cnicRaw ?? "");
+  const visitPurpose = (visitor as Record<string, unknown>).visit_purpose ?? (visitor as Record<string, unknown>).visitPurpose ?? "";
+  const host = (visitor as Record<string, unknown>).host_officer_name ?? (visitor as Record<string, unknown>).hostFullName ?? (visitor as Record<string, unknown>).host_name ?? "";
+  const regStatus = (visitor as Record<string, unknown>).registration_status as string | undefined;
+  const status = regStatus === "draft" ? "Draft" : regStatus === "sent" ? "Sent" : regStatus === "approved" ? "Approved" : "Approved";
   return {
     id: visitor.id,
     name,
     initials: getInitials(name),
-    avatar: "",
+    avatar: getVisitorPhotoUrl(visitor as Record<string, unknown>) ?? "",
     type: "Walk-In",
     department: visitor.department_to_visit || "—",
-    status: "Approved",
+    status,
     time: formatTime(visitor.created_at),
+    date: formatDate(visitor.created_at),
+    cnic: cnic.trim() || "—",
+    contact,
+    visitPurpose: String(visitPurpose || "").trim() || "—",
+    host: String(host || "").trim() || "—",
   };
 }
 
@@ -76,6 +104,8 @@ function getStatusStyle(status: string) {
   switch (status) {
     case "Checked In": return "bg-[#dbeafe] text-[#3b82f6]"
     case "Approved": return "bg-[#dcfce7] text-[#22c55e]"
+    case "Sent": return "bg-[#dcfce7] text-[#22c55e]"
+    case "Draft": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
     case "Pending Docs": return "bg-[#fef9c3] text-[#ca8a04]"
     default: return "bg-muted text-muted-foreground"
   }
@@ -107,7 +137,22 @@ const initialFormData = {
   licenseNo: "",
   licenseIssueDate: "",
   licenseExpiryDate: "",
+  vehicleImages: [] as string[],
+  visitorPhotos: [] as string[],
   photoCapture: "",
+  visitorMinors: [] as {
+    name: string
+    relation: string
+    gender: string
+    cnicOrBForm: string
+    passportNumber: string
+    nationality: string
+    dateOfBirth: string
+    mobileNumber: string
+    emailAddress: string
+    residentialAddress: string
+    photos?: string[]
+  }[],
   visitPurpose: "",
   department: "",
   hostName: "",
@@ -118,10 +163,15 @@ const initialFormData = {
   expiryDate: "",
   frontImage: "",
   backImage: "",
+  backImageFiles: [] as { dataUrl: string; name: string; size: string }[],
   supportDocType: "",
   applicationLetter: "",
   letterRefNo: "",
   additionalDocument: "",
+  authorizationLetter: "",
+  authorizationLetterFiles: [] as { dataUrl: string; name: string; size: string }[],
+  nocDocument: "",
+  nocDocumentFiles: [] as { dataUrl: string; name: string; size: string }[],
   uploadProcedure: "",
   qrCodeId: "",
   securityLevel: "",
@@ -160,6 +210,8 @@ const initialFormData = {
   guardRemarks: "",
 }
 
+const WALKIN_DRAFT_KEY = "vms_walkin_draft"
+
 export default function WalkInRegistrationPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -184,9 +236,134 @@ export default function WalkInRegistrationPage() {
   const [formData, setFormData] = useState({
     ...initialFormData,
   })
+  const [editingDraftId, setEditingDraftId] = useState<number | null>(null)
 
   const updateFormData = (data: Partial<typeof formData>) => {
     setFormData((prev) => ({ ...prev, ...data }))
+  }
+
+  const buildPayload = (): Record<string, unknown> => ({
+    visitor_type: formData.visitorType || "individual",
+    full_name: formData.fullName || "Unknown Visitor",
+    gender: formData.gender,
+    cnic_number: formData.cnicNumber || formData.cnicPassport,
+    passport_number: formData.passportNumber,
+    nationality: formData.nationality,
+    date_of_birth: formData.dateOfBirth,
+    mobile_number: formData.mobileNumber,
+    email_address: formData.emailAddress,
+    residential_address: formData.residentialAddress,
+    organization_name: formData.organizationName,
+    organization_type: formData.organizationType,
+    ntn_registration_no: formData.ntnRegistrationNo,
+    designation: formData.designation,
+    office_address: formData.officeAddress,
+    vehicle_type: formData.vehicleType,
+    vehicle_number: formData.vehicleNumber,
+    vehicle_registration_no: formData.vehicleRegistrationNo,
+    license_no: formData.licenseNo,
+    license_issue_date: formData.licenseIssueDate,
+    license_expiry_date: formData.licenseExpiryDate,
+    vehicle_images: formData.vehicleImages ?? [],
+    vehicle_image: (formData.vehicleImages?.length ? formData.vehicleImages[0] : undefined) ?? "",
+    visitor_photos: formData.visitorPhotos ?? [],
+    photo_capture: formData.photoCapture,
+    captured_photo: (formData.visitorPhotos?.length ? formData.visitorPhotos[0] : formData.photoCapture) ?? "",
+    visitor_minors: formData.visitorMinors ?? [],
+    visit_purpose: formData.visitPurpose,
+    visit_purpose_description: formData.visitPurposeDescription,
+    visit_type: formData.visitType,
+    department_to_visit: formData.department || formData.departmentForSlot || "admin",
+    host_officer_name: formData.hostFullName || formData.hostName,
+    host_name: formData.hostName,
+    host_id: formData.hostId,
+    host_officer_designation: formData.hostDesignation,
+    host_department: formData.hostDepartment,
+    host_email: formData.hostEmail,
+    host_contact_number: formData.hostContactNumber,
+    preferred_visit_date: formData.preferredDate,
+    preferred_time_slot: formData.preferredTimeSlot,
+    department_for_slot: formData.departmentForSlot,
+    slot_duration: formData.slotDuration,
+    priority_level: formData.priorityLevel,
+    visit_date: formData.visitDate,
+    location: formData.location,
+    document_type: formData.documentType,
+    document_no: formData.documentNo,
+    issuing_authority: formData.issuingAuthority,
+    expiry_date: formData.expiryDate,
+    front_image: formData.frontImage,
+    back_image: formData.backImage,
+    application_letter: formData.applicationLetter,
+    letter_ref_no: formData.letterRefNo,
+    additional_document: formData.additionalDocument,
+    authorization_letter: formData.authorizationLetter,
+    noc_document: formData.nocDocument,
+    support_doc_type: formData.supportDocType,
+    upload_procedure: formData.uploadProcedure,
+    time_validity_start: formData.timeValidityStart,
+    time_validity_end: formData.timeValidityEnd,
+    access_zone: formData.accessZone,
+    entry_gate: formData.entryGate,
+    qr_code_id: formData.qrCodeId,
+    visitor_ref_number: formData.visitorRefNumber,
+    reference_number: formData.referenceNumber,
+    security_level: formData.securityLevel,
+    max_visit_duration: formData.maxVisitDuration,
+    allowed_departments: formData.allowedDepartments,
+    allowed_zones: formData.allowedZones,
+    additional_remarks: formData.additionalRemarks,
+    escort_mandatory: formData.escortMandatory,
+    watchlist_check_status: formData.watchlistCheckStatus,
+    guard_remarks: formData.guardRemarks,
+    approver_required: formData.approverRequired,
+    temporary_access_granted: formData.temporaryAccessGranted,
+    expiry_status: formData.expiryStatus,
+    scan_count: formData.scanCount,
+    generated_on: formData.generatedOn,
+    generated_by: formData.generatedBy,
+  })
+
+  useEffect(() => {
+    if (!showForm || !editingDraftId) return
+    getVisitor(editingDraftId, "walk-in").then((v: VisitorRecord | null) => {
+      if (!v) return
+      const draftForm = (v as Record<string, unknown>).draft_form_data
+      if (draftForm && typeof draftForm === "object") {
+        setFormData({ ...initialFormData, ...draftForm } as typeof formData)
+      }
+      setCurrentStep(1)
+    })
+  }, [showForm, editingDraftId])
+
+  const saveDraft = async () => {
+    try {
+      const payload = buildPayload()
+      ;(payload as Record<string, unknown>).draft_form_data = formData
+      if (editingDraftId != null) {
+        const updated = await updateVisitor(editingDraftId, payload as Record<string, unknown>, "walk-in", { registrationStatus: "draft" })
+        if (!updated) {
+          toast({ title: "Could not save draft", variant: "destructive" })
+          return
+        }
+        await queryClient.invalidateQueries({ queryKey: ["visitors", "walk-in"] })
+        toast({ title: "Draft updated", description: "Draft has been saved to the list." })
+      } else {
+        await saveDraftToStore(payload as Record<string, unknown>, "walk-in")
+        await queryClient.invalidateQueries({ queryKey: ["visitors", "walk-in"] })
+        toast({ title: "Draft saved", description: "Draft has been saved to the list. You can continue or submit later." })
+      }
+      setEditingDraftId(null)
+      setShowForm(false)
+      setCurrentStep(1)
+      setFormData({ ...initialFormData })
+    } catch (err) {
+      toast({
+        title: "Could not save draft",
+        description: getErrorToastMessage(err),
+        variant: "destructive",
+      })
+    }
   }
 
   const validateStep = (step: number) => {
@@ -264,6 +441,10 @@ export default function WalkInRegistrationPage() {
         qrCodeId: formData.qrCodeId || "",
       })
       setFormData({ ...initialFormData })
+      setEditingDraftId(null)
+      try {
+        window.localStorage.removeItem(WALKIN_DRAFT_KEY)
+      } catch {}
     },
     onError: (mutationError) => {
       toast({
@@ -274,43 +455,46 @@ export default function WalkInRegistrationPage() {
     },
   })
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     try {
-      const payload: Record<string, unknown> = {
-        visitor_type: formData.visitorType || "individual",
-        full_name: formData.fullName || "Unknown Visitor",
-        gender: formData.gender,
-        cnic_number: formData.cnicNumber || formData.cnicPassport,
-        passport_number: formData.passportNumber,
-        nationality: formData.nationality,
-        mobile_number: formData.mobileNumber,
-        email_address: formData.emailAddress,
-        residential_address: formData.residentialAddress,
-        visit_purpose: formData.visitPurpose,
-        visit_description: formData.visitPurposeDescription,
-        department_to_visit: formData.department || formData.departmentForSlot || "admin",
-        host_officer_name: formData.hostFullName || formData.hostName,
-        host_officer_designation: formData.hostDesignation,
-        host_department: formData.hostDepartment,
-        preferred_visit_date: formData.preferredDate,
-        preferred_time_slot: formData.preferredTimeSlot,
-        slot_duration: formData.slotDuration,
-        document_type: formData.documentType,
-        document_no: formData.documentNo,
-        front_image: formData.frontImage,
-        back_image: formData.backImage,
-        application_letter: formData.applicationLetter,
-        additional_document: formData.additionalDocument,
-        captured_photo: formData.photoCapture,
-        time_validity_start: formData.timeValidityStart,
-        time_validity_end: formData.timeValidityEnd,
-        access_zone: formData.accessZone,
-        entry_gate: formData.entryGate,
-        qr_code_id: formData.qrCodeId,
-        visitor_ref_number: formData.visitorRefNumber,
-        visit_date: formData.visitDate,
+      const payload = buildPayload()
+      if (editingDraftId != null) {
+        ;(payload as Record<string, unknown>).draft_form_data = formData
+        const updated = await updateVisitor(editingDraftId, payload, "walk-in", { registrationStatus: "sent" })
+        if (!updated) {
+          toast({ title: "Update failed", variant: "destructive" })
+          return
+        }
+        await queryClient.invalidateQueries({ queryKey: ["visitors", "walk-in"] })
+        toast({ title: "Registration sent", description: "Draft has been submitted and status updated." })
+        setShowForm(false)
+        setCurrentStep(1)
+        const validFrom = (formData.timeValidityStart || "00:00").trim() || "00:00"
+        const validTo = (formData.timeValidityEnd || "23:59").trim() || "23:59"
+        const qrPayload = JSON.stringify({
+          name: updated.full_name,
+          cnic: updated.cnic_number,
+          id: updated.id,
+          validFrom,
+          validTo,
+          qrCodeId: formData.qrCodeId || "",
+        })
+        setPrintQRData({
+          qrPayload,
+          visitorName: formData.fullName || updated.full_name || "Visitor",
+          visitorCNIC: formData.cnicPassport || formData.cnicNumber || updated.cnic_number || "",
+          validFrom,
+          validTo,
+          qrCodeId: formData.qrCodeId || "",
+        })
+        setFormData({ ...initialFormData })
+        setEditingDraftId(null)
+        try {
+          window.localStorage.removeItem(WALKIN_DRAFT_KEY)
+        } catch {}
+      } else {
+        createVisitorMutation.mutate(payload)
       }
-      createVisitorMutation.mutate(payload)
     } catch (err) {
       toast({
         title: "Validation failed",
@@ -324,6 +508,7 @@ export default function WalkInRegistrationPage() {
     setShowForm(false)
     setCurrentStep(1)
     setFormData({ ...initialFormData })
+    setEditingDraftId(null)
   }
 
   const handlePrintQR = () => {
@@ -401,7 +586,12 @@ export default function WalkInRegistrationPage() {
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visitor Name</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Type</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Department</th>
+                        <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">CNIC / ID</th>
+                        <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Contact</th>
+                        <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Visit Purpose</th>
+                        <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Host</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                        <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Date</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Time</th>
                         <th className="text-right px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-18">Action</th>
                       </tr>
@@ -409,19 +599,19 @@ export default function WalkInRegistrationPage() {
                     <tbody>
                       {isLoading ? (
                         <tr className="border-b border-border last:border-0">
-                          <td colSpan={6} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                          <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">
                             Loading registrations…
                           </td>
                         </tr>
                       ) : isError ? (
                         <tr className="border-b border-border last:border-0">
-                          <td colSpan={6} className="px-4 py-6 text-center text-sm text-destructive">
+                          <td colSpan={11} className="px-4 py-6 text-center text-sm text-destructive">
                             {error instanceof Error ? error.message : "Failed to load registrations."}
                           </td>
                         </tr>
                       ) : registrations.length === 0 ? (
                         <tr className="border-b border-border last:border-0">
-                          <td colSpan={6} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                          <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">
                             No registrations found.
                           </td>
                         </tr>
@@ -430,7 +620,7 @@ export default function WalkInRegistrationPage() {
                           <tr
                             key={reg.id}
                             className="border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer"
-                            onClick={() => navigate(`/visitors/${reg.id}`)}
+                            onClick={() => navigate(getVisitorDetailPath(reg.id))}
                           >
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
@@ -447,10 +637,25 @@ export default function WalkInRegistrationPage() {
                             <td className="px-4 py-3 hidden lg:table-cell">
                               <span className="text-sm text-muted-foreground">{reg.department || "—"}</span>
                             </td>
+                            <td className="px-4 py-3 hidden xl:table-cell">
+                              <span className="text-sm text-muted-foreground font-mono">{reg.cnic}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden lg:table-cell max-w-[140px] truncate" title={reg.contact}>
+                              <span className="text-sm text-muted-foreground">{reg.contact}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden xl:table-cell max-w-[120px] truncate" title={reg.visitPurpose}>
+                              <span className="text-sm text-muted-foreground">{reg.visitPurpose}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden xl:table-cell max-w-[120px] truncate" title={reg.host}>
+                              <span className="text-sm text-muted-foreground">{reg.host}</span>
+                            </td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(reg.status)}`}>
                                 {reg.status}
                               </span>
+                            </td>
+                            <td className="px-4 py-3 hidden sm:table-cell">
+                              <span className="text-sm text-muted-foreground">{reg.date}</span>
                             </td>
                             <td className="px-4 py-3 hidden sm:table-cell">
                               <span className="text-sm text-muted-foreground">{reg.time}</span>
@@ -467,9 +672,20 @@ export default function WalkInRegistrationPage() {
                                   </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => navigate(`/visitors/${reg.id}`)}>
+                                  <DropdownMenuItem onClick={() => navigate(getVisitorDetailPath(reg.id))}>
                                     View details
                                   </DropdownMenuItem>
+                                  {reg.status === "Draft" && (
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setEditingDraftId(reg.id)
+                                        setShowForm(true)
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4 mr-2" />
+                                      Edit draft
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem
                                     onClick={() => setDeleteId(reg.id)}
                                     className="text-destructive focus:text-destructive"
@@ -611,6 +827,10 @@ export default function WalkInRegistrationPage() {
                       licenseNo: formData.licenseNo,
                       licenseIssueDate: formData.licenseIssueDate,
                       licenseExpiryDate: formData.licenseExpiryDate,
+                      vehicleImages: formData.vehicleImages ?? [],
+                      visitorPhotos: formData.visitorPhotos ?? [],
+                      photoCapture: formData.photoCapture,
+                      visitorMinors: formData.visitorMinors ?? [],
                     }}
                     updateFormData={(data) => {
                       updateFormData({
@@ -619,8 +839,14 @@ export default function WalkInRegistrationPage() {
                       })
                     }}
                     onCancel={handleCancelForm}
-                    onReset={() => setFormData({ ...initialFormData })}
+                    onReset={() => {
+                      setFormData({ ...initialFormData })
+                      try {
+                        window.localStorage.removeItem(WALKIN_DRAFT_KEY)
+                      } catch {}
+                    }}
                     onSaveAndContinue={nextStep}
+                    onSaveToDraft={saveDraft}
                   />
                 )}
                 {currentStep === 2 && (
@@ -628,8 +854,13 @@ export default function WalkInRegistrationPage() {
                     formData={{
                       frontImage: formData.frontImage,
                       backImage: formData.backImage,
+                      backImageFiles: formData.backImageFiles ?? [],
                       applicationLetter: formData.applicationLetter,
                       additionalDocument: formData.additionalDocument,
+                      authorizationLetter: formData.authorizationLetter ?? "",
+                      authorizationLetterFiles: formData.authorizationLetterFiles ?? [],
+                      nocDocument: formData.nocDocument ?? "",
+                      nocDocumentFiles: formData.nocDocumentFiles ?? [],
                     }}
                     updateFormData={(data) => updateFormData(data)}
                     onCancel={handleCancelForm}

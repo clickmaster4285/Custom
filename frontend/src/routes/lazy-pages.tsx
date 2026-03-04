@@ -11,6 +11,7 @@ export const PAGES = {
   VisitorManagementOverview: lazy(() => import("@/pages/vms/VisitorManagementOverview").then((m) => ({ default: m.VisitorManagementOverview }))),
   PreRegistration: lazy(() => import("@/pages/registration/PreRegistration").then((m) => ({ default: m.default }))),
   WalkInRegistration: lazy(() => import("@/pages/registration/WalkInRegistration").then((m) => ({ default: m.default }))),
+  VisitorDetail: lazy(() => import("@/pages/registration/VisitorDetail").then((m) => ({ default: m.default }))),
   StreamedUpload: lazy(() => import("@/pages/registration/StreamedUpload").then((m) => ({ default: m.default }))),
   PhotoCapture: lazy(() => import("@/pages/registration/PhotoCapture").then((m) => ({ default: m.default }))),
   QRCodeGeneration: lazy(() => import("@/pages/registration/QRCodeGeneration").then((m) => ({ default: m.default }))),
