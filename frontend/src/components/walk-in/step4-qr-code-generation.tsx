@@ -1,9 +1,15 @@
 "use client"
 
-import { useMemo, useEffect, useState } from "react"
-import { toDataURL } from "qrcode"
+import { useMemo } from "react"
+import { QRCodeCanvas } from "qrcode.react"
 import { Label } from "@/components/ui/label"
 import { QrCode } from "lucide-react"
+
+/** Same as print-qr-on-save: 5cm × 5cm equivalent at 96 PPI */
+const QR_SIZE_CM = 5
+const PPI = 96
+const MM_PER_INCH = 25.4
+const qrSizePx = Math.round((QR_SIZE_CM * 10 * PPI) / MM_PER_INCH)
 
 export interface WalkInStep4QRCodeFormData {
   qrCodeId: string
@@ -69,16 +75,27 @@ export function WalkInStep4QRCodeGeneration({
     (formData as { department?: string }).department,
   ])
 
-  const visitorName = ((formData as { fullName?: string }).fullName ?? "").trim() || "Visitor"
-  const validFrom = (formData.timeValidityStart ?? "").trim() || "00:00"
-  const validTo = (formData.timeValidityEnd ?? "").trim() || "23:59"
-
-  const [qrDataUrl, setQrDataUrl] = useState<string>("")
-  useEffect(() => {
-    toDataURL(qrPayload, { width: 200, margin: 2 })
-      .then(setQrDataUrl)
-      .catch(() => setQrDataUrl(""))
-  }, [qrPayload])
+  const visitorName = ((formData as { fullName?: string }).fullName ?? "").trim() || "Guest"
+  const visitorCNIC = (formData.cnicNumber ?? "").trim() || "CNIC Number"
+  const formatTime = (value: string, defaultTime: string): string => {
+    const s = (value ?? "").trim()
+    if (!s) return defaultTime
+    const isoMatch = /T(\d{1,2}):(\d{2})/.exec(s)
+    if (isoMatch) return `${isoMatch[1].padStart(2, "0")}:${isoMatch[2]}`
+    const timeMatch = /^(\d{1,2}):(\d{2})(?::\d{2})?(\s*[AP]?M?)?$/i.exec(s)
+    if (timeMatch) return `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}${timeMatch[3] ? ` ${timeMatch[3].trim()}` : ""}`
+    return s
+  }
+  const validFrom = formatTime(formData.timeValidityStart ?? "", "00:00")
+  const validTo = formatTime(formData.timeValidityEnd ?? "", "23:59")
+  /** Same as print-qr-on-save formatDate() */
+  const passDate = new Date().toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 
   return (
     <div className="space-y-8">
@@ -87,20 +104,69 @@ export function WalkInStep4QRCodeGeneration({
         QR code is generated from the information you added. Print it or finish to save the registration.
       </p>
 
-      {/* Generated QR from form data */}
-      <div className="rounded-lg border-2 border-[#93c5fd] bg-white p-6 flex flex-col items-center justify-center gap-4 min-h-[240px]">
-        <div className="rounded-lg border border-border bg-white p-4">
-          {qrDataUrl ? (
-            <img src={qrDataUrl} alt="QR Code" className="h-[200px] w-[200px]" />
-          ) : (
-            <div className="h-[200px] w-[200px] rounded border border-border bg-muted flex items-center justify-center text-sm text-muted-foreground">
-              Generating…
+      {/* Exact same format as print-qr-on-save (pass slip layout) */}
+      <div className="rounded-lg border-2 border-[#93c5fd] bg-white overflow-hidden p-4">
+        <div
+          id="visitor-pass-step4"
+          style={{
+            width: "50mm",
+            maxWidth: "100%",
+            margin: "0 auto",
+            padding: "2px 5px",
+            background: "white",
+            fontFamily: "monospace",
+            color: "black",
+            fontSize: "10px",
+            lineHeight: 1.15,
+          }}
+        >
+          <div style={{ textAlign: "center", marginBottom: "2px" }}>
+            <h1 style={{ fontSize: "17px", fontWeight: 900, marginBottom: "1px", letterSpacing: "1.05px" }}>TEKEYE</h1>
+            <h1 style={{ fontSize: "17px", fontWeight: 900, marginBottom: "1px", letterSpacing: "1.05px" }}>PAKISTAN CUSTOMS</h1>
+            <div style={{ fontSize: "11px", fontWeight: "bold" }}>VISITOR PASS</div>
+          </div>
+
+          <div style={{ borderTop: "1.5px solid black", margin: "1.5px 0" }} />
+
+          <table style={{ width: "100%", borderCollapse: "collapse", margin: "1.5px 0", fontSize: "10px" }}>
+            <thead>
+              <tr>
+                <th colSpan={2} style={{ textAlign: "center", fontSize: "9px", padding: "0.3mm", fontWeight: "bold", background: "#f8f9fa" }}>VISITOR INFORMATION</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ width: "35%", fontWeight: "bold", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>Name</td>
+                <td style={{ width: "65%", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>{visitorName}</td>
+              </tr>
+              <tr>
+                <td style={{ width: "35%", fontWeight: "bold", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>CNIC</td>
+                <td style={{ width: "65%", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>{visitorCNIC}</td>
+              </tr>
+              <tr>
+                <td style={{ width: "35%", fontWeight: "bold", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>Date</td>
+                <td style={{ width: "65%", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>{passDate}</td>
+              </tr>
+              <tr>
+                <td style={{ width: "35%", fontWeight: "bold", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>TIME VALIDITY</td>
+                <td style={{ width: "65%", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>{validFrom} to {validTo}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style={{ borderTop: "1px dashed black", margin: "1.5px 0" }} />
+
+          <div style={{ textAlign: "center", margin: "1.5px 0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: `${QR_SIZE_CM}cm`, height: `${QR_SIZE_CM}cm`, marginLeft: "auto", marginRight: "auto", overflow: "hidden" }}>
+              <QRCodeCanvas value={qrPayload} size={qrSizePx} level="M" includeMargin={false} style={{ width: "100%", height: "100%", display: "block" }} />
             </div>
-          )}
-        </div>
-        <div className="text-center text-sm text-muted-foreground space-y-0.5">
-          <p className="font-medium text-foreground">{visitorName}</p>
-          <p>Valid: {validFrom} – {validTo}</p>
+            <div style={{ fontSize: "10px", fontWeight: "bold", marginTop: "0.3mm", letterSpacing: "0.6px" }}>SCAN ME</div>
+          </div>
+
+          <div style={{ borderTop: "1px dashed black", margin: "1.5px 0" }} />
+
+          <div style={{ textAlign: "center", fontSize: "10px", marginTop: "1.5px", lineHeight: 1.25 }}>Thank you for visiting PAKISTAN CUSTOMS</div>
+          <div style={{ borderTop: "1.5px solid black", marginTop: "1.5px", paddingTop: "0.3mm", fontSize: "9px", textAlign: "center" }}>Powered by TEKEYE - PAKISTAN CUSTOMS</div>
         </div>
       </div>
 
