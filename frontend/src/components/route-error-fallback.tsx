@@ -5,7 +5,6 @@ import { ROUTES } from "@/routes/config"
 
 export function RouteErrorFallback() {
   const error = useRouteError()
-  const navigate = useNavigate()
   let message: string
   let isChunkLoadError = false
   if (isRouteErrorResponse(error)) {

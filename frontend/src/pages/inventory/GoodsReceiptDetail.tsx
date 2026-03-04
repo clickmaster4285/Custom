@@ -10,6 +10,7 @@ const STORAGE_KEY = "wms_goods_receipt"
 
 type GoodsReceiptRow = {
   id: string
+  qrCodeNumber?: string
   grNo: string
   gdNo: string
   customsStation: string
@@ -102,6 +103,7 @@ export default function GoodsReceiptDetailPage() {
             <Badge variant={row.status === "Examined" ? "default" : row.status === "Pending" ? "secondary" : "outline"}>{row.status}</Badge>
           </CardHeader>
           <CardContent className="grid gap-1">
+            <DetailRow label="QR Code No" value={row.qrCodeNumber ?? ""} />
             <DetailRow label="GR No (Goods Receipt)" value={row.grNo} />
             <DetailRow label="GD No (Goods Declaration)" value={row.gdNo} />
             <DetailRow label="Customs Station" value={row.customsStation} />

@@ -39,6 +39,7 @@ const STATUSES = ["In Custody", "Released", "Disposed", "Under Litigation"] as c
 
 type StockRow = {
   id: string
+  qrCodeNumber?: string
   seizureCaseRef: string
   pctCode: string
   descriptionOfGoods: string
@@ -53,9 +54,9 @@ type StockRow = {
 }
 
 const defaultRows: StockRow[] = [
-  { id: "1", seizureCaseRef: "SZ-2024-001", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", customsStation: "Customs Karachi", godownWarehouse: "Bonded Godown A", quantity: "450", unitOfMeasure: "PCS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector M. Khan", status: "In Custody" },
-  { id: "2", seizureCaseRef: "SZ-2024-002", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", customsStation: "Customs Peshawar", godownWarehouse: "Transit Shed B", quantity: "85", unitOfMeasure: "PCS", condition: "Detained", custody: "Transit Shed", custodianOfficerName: "ASI Ahmed Raza", status: "In Custody" },
-  { id: "3", seizureCaseRef: "SZ-2024-003", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", customsStation: "Customs Port Qasim", godownWarehouse: "Bonded Godown C", quantity: "12", unitOfMeasure: "KGS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector S. Ali", status: "In Custody" },
+  { id: "1", qrCodeNumber: "QR-STK-2024-001", seizureCaseRef: "SZ-2024-001", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", customsStation: "Customs Karachi", godownWarehouse: "Bonded Godown A", quantity: "450", unitOfMeasure: "PCS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector M. Khan", status: "In Custody" },
+  { id: "2", qrCodeNumber: "QR-STK-2024-002", seizureCaseRef: "SZ-2024-002", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", customsStation: "Customs Peshawar", godownWarehouse: "Transit Shed B", quantity: "85", unitOfMeasure: "PCS", condition: "Detained", custody: "Transit Shed", custodianOfficerName: "ASI Ahmed Raza", status: "In Custody" },
+  { id: "3", qrCodeNumber: "QR-STK-2024-003", seizureCaseRef: "SZ-2024-003", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", customsStation: "Customs Port Qasim", godownWarehouse: "Bonded Godown C", quantity: "12", unitOfMeasure: "KGS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector S. Ali", status: "In Custody" },
 ]
 
 function loadRows(): StockRow[] {
@@ -79,6 +80,7 @@ export default function StockManagementPage() {
   const [rows, setRows] = useState<StockRow[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
+    qrCodeNumber: "",
     seizureCaseRef: "",
     pctCode: "",
     descriptionOfGoods: "",
@@ -102,6 +104,7 @@ export default function StockManagementPage() {
 
   const openAdd = () => {
     setForm({
+      qrCodeNumber: "",
       seizureCaseRef: "",
       pctCode: "",
       descriptionOfGoods: "",
@@ -121,6 +124,7 @@ export default function StockManagementPage() {
     if (!form.seizureCaseRef.trim() || !form.descriptionOfGoods.trim()) return
     const newRow: StockRow = {
       id: `stk-${Date.now()}`,
+      qrCodeNumber: form.qrCodeNumber.trim() || `QR-STK-${Date.now()}`,
       seizureCaseRef: form.seizureCaseRef.trim(),
       pctCode: form.pctCode.trim(),
       descriptionOfGoods: form.descriptionOfGoods.trim(),
@@ -196,6 +200,7 @@ export default function StockManagementPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>QR Code No</TableHead>
                   <TableHead>Seizure/Case Ref</TableHead>
                   <TableHead>PCT Code</TableHead>
                   <TableHead>Description of Goods</TableHead>
@@ -213,6 +218,7 @@ export default function StockManagementPage() {
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
+                    <TableCell className="font-mono">{row.qrCodeNumber || "—"}</TableCell>
                     <TableCell className="font-medium">{row.seizureCaseRef}</TableCell>
                     <TableCell className="font-mono">{row.pctCode || "—"}</TableCell>
                     <TableCell className="max-w-[160px] truncate">{row.descriptionOfGoods}</TableCell>
@@ -252,6 +258,10 @@ export default function StockManagementPage() {
             <p className="text-sm text-muted-foreground">Pakistan Customs seized/detained stock. Stored in localStorage.</p>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>QR Code Number</Label>
+              <Input value={form.qrCodeNumber} onChange={(e) => setForm((f) => ({ ...f, qrCodeNumber: e.target.value }))} placeholder="e.g. QR-STK-2024-001 (auto-generated if blank)" />
+            </div>
             <div className="grid gap-2">
               <Label>Seizure / Case Reference *</Label>
               <Input value={form.seizureCaseRef} onChange={(e) => setForm((f) => ({ ...f, seizureCaseRef: e.target.value }))} placeholder="e.g. SZ-2024-001" />

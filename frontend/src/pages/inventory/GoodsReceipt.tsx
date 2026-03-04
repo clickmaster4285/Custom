@@ -37,6 +37,7 @@ const STATUSES = ["Pending", "Received", "Under Examination", "Examined", "Rejec
 
 type GoodsReceiptRow = {
   id: string
+  qrCodeNumber?: string
   grNo: string
   gdNo: string
   customsStation: string
@@ -54,9 +55,9 @@ type GoodsReceiptRow = {
 }
 
 const defaultRows: GoodsReceiptRow[] = [
-  { id: "1", grNo: "GR-2024-001", gdNo: "GD-2024-001", customsStation: "Customs Karachi", portOfEntry: "Port Qasim", caseSeizureRef: "SZ-2024-001", consigneeImporterName: "ABC Imports (Pvt) Ltd", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", quantity: "500", unit: "PCS", receiptDate: "2024-02-01", godownWarehouse: "Bonded Godown A", examiningOfficerName: "Inspector M. Khan", status: "Examined" },
-  { id: "2", grNo: "GR-2024-002", gdNo: "GD-2024-002", customsStation: "Customs Peshawar", portOfEntry: "Torkham", caseSeizureRef: "SZ-2024-002", consigneeImporterName: "XYZ Trading Co", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", quantity: "2000", unit: "PCS", receiptDate: "2024-02-03", godownWarehouse: "Transit Shed B", examiningOfficerName: "ASI Ahmed Raza", status: "Pending" },
-  { id: "3", grNo: "GR-2024-003", gdNo: "GD-2024-003", customsStation: "Customs Port Qasim", portOfEntry: "Port Qasim", caseSeizureRef: "", consigneeImporterName: "Faisal Impex", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", quantity: "120", unit: "KGS", receiptDate: "2024-02-05", godownWarehouse: "Bonded Godown C", examiningOfficerName: "Inspector S. Ali", status: "Received" },
+  { id: "1", qrCodeNumber: "QR-GR-2024-001", grNo: "GR-2024-001", gdNo: "GD-2024-001", customsStation: "Customs Karachi", portOfEntry: "Port Qasim", caseSeizureRef: "SZ-2024-001", consigneeImporterName: "ABC Imports (Pvt) Ltd", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", quantity: "500", unit: "PCS", receiptDate: "2024-02-01", godownWarehouse: "Bonded Godown A", examiningOfficerName: "Inspector M. Khan", status: "Examined" },
+  { id: "2", qrCodeNumber: "QR-GR-2024-002", grNo: "GR-2024-002", gdNo: "GD-2024-002", customsStation: "Customs Peshawar", portOfEntry: "Torkham", caseSeizureRef: "SZ-2024-002", consigneeImporterName: "XYZ Trading Co", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", quantity: "2000", unit: "PCS", receiptDate: "2024-02-03", godownWarehouse: "Transit Shed B", examiningOfficerName: "ASI Ahmed Raza", status: "Pending" },
+  { id: "3", qrCodeNumber: "QR-GR-2024-003", grNo: "GR-2024-003", gdNo: "GD-2024-003", customsStation: "Customs Port Qasim", portOfEntry: "Port Qasim", caseSeizureRef: "", consigneeImporterName: "Faisal Impex", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", quantity: "120", unit: "KGS", receiptDate: "2024-02-05", godownWarehouse: "Bonded Godown C", examiningOfficerName: "Inspector S. Ali", status: "Received" },
 ]
 
 function loadRows(): GoodsReceiptRow[] {
@@ -80,6 +81,7 @@ export default function GoodsReceiptPage() {
   const [rows, setRows] = useState<GoodsReceiptRow[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
+    qrCodeNumber: "",
     grNo: "",
     gdNo: "",
     customsStation: "Customs Karachi",
@@ -106,6 +108,7 @@ export default function GoodsReceiptPage() {
 
   const openAdd = () => {
     setForm({
+      qrCodeNumber: "",
       grNo: "",
       gdNo: "",
       customsStation: "Customs Karachi",
@@ -128,6 +131,7 @@ export default function GoodsReceiptPage() {
     if (!form.grNo.trim() || !form.receiptDate.trim()) return
     const newRow: GoodsReceiptRow = {
       id: `gr-${Date.now()}`,
+      qrCodeNumber: form.qrCodeNumber.trim() || `QR-GR-${Date.now()}`,
       grNo: form.grNo.trim(),
       gdNo: form.gdNo.trim(),
       customsStation: form.customsStation,
@@ -173,6 +177,7 @@ export default function GoodsReceiptPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>QR Code No</TableHead>
                   <TableHead>GR No</TableHead>
                   <TableHead>GD No</TableHead>
                   <TableHead>Customs Station</TableHead>
@@ -193,6 +198,7 @@ export default function GoodsReceiptPage() {
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
+                    <TableCell className="font-mono">{row.qrCodeNumber || "—"}</TableCell>
                     <TableCell className="font-medium">{row.grNo}</TableCell>
                     <TableCell>{row.gdNo || "—"}</TableCell>
                     <TableCell>{row.customsStation}</TableCell>
@@ -235,6 +241,10 @@ export default function GoodsReceiptPage() {
             <p className="text-sm text-muted-foreground">Pakistan Customs GR/GD. Stored in localStorage.</p>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>QR Code Number</Label>
+              <Input value={form.qrCodeNumber} onChange={(e) => setForm((f) => ({ ...f, qrCodeNumber: e.target.value }))} placeholder="e.g. QR-GR-2024-003 (auto-generated if blank)" />
+            </div>
             <div className="grid gap-2">
               <Label>GR No (Goods Receipt) *</Label>
               <Input value={form.grNo} onChange={(e) => setForm((f) => ({ ...f, grNo: e.target.value }))} placeholder="e.g. GR-2024-003" />
