@@ -30,7 +30,13 @@ export default function VisitorDetailPage() {
 
   const { data: visitor, isLoading, isError } = useQuery({
     queryKey: ["visitor", visitorId],
-    queryFn: () => getVisitor(visitorId, "walk-in"),
+    queryFn: async () => {
+      const [walkIn, preReg] = await Promise.all([
+        getVisitor(visitorId, "walk-in"),
+        getVisitor(visitorId, "pre-registration"),
+      ])
+      return walkIn ?? preReg ?? null
+    },
     enabled: Number.isInteger(visitorId),
   })
 
@@ -51,7 +57,7 @@ export default function VisitorDetailPage() {
       <div className="w-full px-4 sm:px-6 py-8">
         <p className="text-destructive mb-4">Visitor not found.</p>
         <Button variant="outline" asChild>
-          <Link to={ROUTES.WALK_IN_REGISTRATION}>Back to Walk-In Registration</Link>
+          <Link to={ROUTES.DASHBOARD}>Back to Dashboard</Link>
         </Button>
       </div>
     )
