@@ -133,6 +133,7 @@ const initialFormData = {
   licenseNo: "",
   licenseIssueDate: "",
   licenseExpiryDate: "",
+  vehicleImages: [] as string[],
   visitorPhotos: [] as string[],
   photoCapture: "",
   visitorMinors: [] as {
@@ -146,6 +147,7 @@ const initialFormData = {
     mobileNumber: string
     emailAddress: string
     residentialAddress: string
+    photos?: string[]
   }[],
   visitPurpose: "",
   department: "",
@@ -345,6 +347,8 @@ export default function WalkInRegistrationPage() {
         license_no: formData.licenseNo,
         license_issue_date: formData.licenseIssueDate,
         license_expiry_date: formData.licenseExpiryDate,
+        vehicle_images: formData.vehicleImages ?? [],
+        vehicle_image: (formData.vehicleImages?.length ? formData.vehicleImages[0] : undefined) ?? "",
         // Photos (all) and primary captured
         visitor_photos: formData.visitorPhotos ?? [],
         photo_capture: formData.photoCapture,
@@ -730,6 +734,7 @@ export default function WalkInRegistrationPage() {
                       licenseNo: formData.licenseNo,
                       licenseIssueDate: formData.licenseIssueDate,
                       licenseExpiryDate: formData.licenseExpiryDate,
+                      vehicleImages: formData.vehicleImages ?? [],
                       visitorPhotos: formData.visitorPhotos ?? [],
                       photoCapture: formData.photoCapture,
                       visitorMinors: formData.visitorMinors ?? [],

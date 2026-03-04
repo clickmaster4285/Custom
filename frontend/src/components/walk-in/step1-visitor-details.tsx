@@ -23,6 +23,8 @@ import { isCnicExists } from "@/lib/visitor-api"
 const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024 // 2MB
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/jpg", "image/png"]
 const MAX_VISITOR_PHOTOS = 5
+const MAX_VEHICLE_PHOTOS = 5
+const MAX_MINOR_PHOTOS = 5
 
 export interface WalkInStep1VisitorDetailsFormData {
   visitorCategory: string
@@ -48,6 +50,8 @@ export interface WalkInStep1VisitorDetailsFormData {
   licenseNo: string
   licenseIssueDate: string
   licenseExpiryDate: string
+  /** Up to 5 vehicle images (same UI as visitor photograph upload) */
+  vehicleImages?: string[]
   /** Up to 5 visitor images for detection/recognition (displayed on the right of capture box) */
   visitorPhotos: string[]
   /** Kept for payload: first of visitorPhotos or legacy single capture */
@@ -64,6 +68,8 @@ export interface WalkInStep1VisitorDetailsFormData {
     mobileNumber: string
     emailAddress: string
     residentialAddress: string
+    /** Up to 5 captured/uploaded photographs of the minor */
+    photos?: string[]
   }[]
 }
 
@@ -86,6 +92,7 @@ const defaultMinor = (): WalkInStep1VisitorDetailsFormData["visitorMinors"][numb
   mobileNumber: "",
   emailAddress: "",
   residentialAddress: "",
+  photos: [],
 })
 
 const visitorTypes = [
@@ -133,6 +140,23 @@ export function WalkInStep1VisitorDetails({
   const [cameraOpen, setCameraOpen] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [cameraLoading, setCameraLoading] = useState(false)
+  const vehicleImageInputRef = useRef<HTMLInputElement>(null)
+  const vehicleVideoRef = useRef<HTMLVideoElement>(null)
+  const vehicleCanvasRef = useRef<HTMLCanvasElement>(null)
+  const vehicleStreamRef = useRef<MediaStream | null>(null)
+  const [vehicleCameraOpen, setVehicleCameraOpen] = useState(false)
+  const [vehicleCameraError, setVehicleCameraError] = useState<string | null>(null)
+  const [vehicleCameraLoading, setVehicleCameraLoading] = useState(false)
+  const [vehiclePhotoError, setVehiclePhotoError] = useState<string | null>(null)
+  const minorImageInputRef = useRef<HTMLInputElement>(null)
+  const minorVideoRef = useRef<HTMLVideoElement>(null)
+  const minorCanvasRef = useRef<HTMLCanvasElement>(null)
+  const minorStreamRef = useRef<MediaStream | null>(null)
+  const [minorCameraOpen, setMinorCameraOpen] = useState<number | null>(null)
+  const [minorCameraError, setMinorCameraError] = useState<string | null>(null)
+  const [minorCameraLoading, setMinorCameraLoading] = useState(false)
+  const [minorPhotoError, setMinorPhotoError] = useState<string | null>(null)
+  const [minorUploadTarget, setMinorUploadTarget] = useState<number | null>(null)
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -162,7 +186,64 @@ export function WalkInStep1VisitorDetails({
     }
   }, [cameraOpen, stopCamera])
 
+  const stopVehicleCamera = useCallback(() => {
+    vehicleStreamRef.current?.getTracks().forEach((t) => t.stop())
+    vehicleStreamRef.current = null
+  }, [])
+
+  useEffect(() => {
+    if (!vehicleCameraOpen) {
+      stopVehicleCamera()
+      return
+    }
+    setVehicleCameraError(null)
+    setVehicleCameraLoading(true)
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "environment" } })
+      .then((stream) => {
+        vehicleStreamRef.current = stream
+        if (vehicleVideoRef.current) vehicleVideoRef.current.srcObject = stream
+        setVehicleCameraError(null)
+      })
+      .catch((err) => {
+        setVehicleCameraError(err instanceof Error ? err.message : "Could not access camera.")
+      })
+      .finally(() => setVehicleCameraLoading(false))
+    return () => {
+      stopVehicleCamera()
+    }
+  }, [vehicleCameraOpen, stopVehicleCamera])
+
+  const stopMinorCamera = useCallback(() => {
+    minorStreamRef.current?.getTracks().forEach((t) => t.stop())
+    minorStreamRef.current = null
+  }, [])
+
+  useEffect(() => {
+    if (minorCameraOpen === null) {
+      stopMinorCamera()
+      return
+    }
+    setMinorCameraError(null)
+    setMinorCameraLoading(true)
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "user" } })
+      .then((stream) => {
+        minorStreamRef.current = stream
+        if (minorVideoRef.current) minorVideoRef.current.srcObject = stream
+        setMinorCameraError(null)
+      })
+      .catch((err) => {
+        setMinorCameraError(err instanceof Error ? err.message : "Could not access camera.")
+      })
+      .finally(() => setMinorCameraLoading(false))
+    return () => {
+      stopMinorCamera()
+    }
+  }, [minorCameraOpen, stopMinorCamera])
+
   const visitorPhotos = Array.isArray(formData.visitorPhotos) ? formData.visitorPhotos : []
+  const vehiclePhotos = Array.isArray(formData.vehicleImages) ? formData.vehicleImages : []
 
   const addPhoto = (dataUrl: string) => {
     if (visitorPhotos.length >= MAX_VISITOR_PHOTOS) return
@@ -196,6 +277,126 @@ export function WalkInStep1VisitorDetails({
     addPhoto(dataUrl)
     setCameraOpen(false)
     stopCamera()
+  }
+
+  const addVehiclePhoto = (dataUrl: string) => {
+    if (vehiclePhotos.length >= MAX_VEHICLE_PHOTOS) return
+    updateFormData({ vehicleImages: [...vehiclePhotos, dataUrl] })
+  }
+
+  const removeVehiclePhoto = (index: number) => {
+    const next = vehiclePhotos.filter((_, i) => i !== index)
+    updateFormData({ vehicleImages: next })
+  }
+
+  const captureVehicleFromCamera = () => {
+    const video = vehicleVideoRef.current
+    const canvas = vehicleCanvasRef.current
+    if (!video || !vehicleStreamRef.current || !canvas) return
+    const w = video.videoWidth
+    const h = video.videoHeight
+    if (!w || !h) {
+      setVehicleCameraError("Camera not ready. Wait a moment and try again.")
+      return
+    }
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    canvas.width = w
+    canvas.height = h
+    ctx.drawImage(video, 0, 0, w, h)
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92)
+    addVehiclePhoto(dataUrl)
+    setVehicleCameraOpen(false)
+    stopVehicleCamera()
+  }
+
+  const handleVehiclePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    setVehiclePhotoError(null)
+    if (!file) return
+    if (vehiclePhotos.length >= MAX_VEHICLE_PHOTOS) {
+      setVehiclePhotoError(`Maximum ${MAX_VEHICLE_PHOTOS} images.`)
+      return
+    }
+    if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+      setVehiclePhotoError("Format must be JPG or PNG.")
+      return
+    }
+    if (file.size > MAX_PHOTO_SIZE_BYTES) {
+      setVehiclePhotoError("Image size must be max 2MB.")
+      return
+    }
+    readFileAsDataUrl(file).then((dataUrl) => {
+      addVehiclePhoto(dataUrl)
+    }).catch(() => setVehiclePhotoError("Failed to read file."))
+    e.target.value = ""
+  }
+
+  const captureFromMinorCamera = () => {
+    const index = minorCameraOpen
+    if (index === null) return
+    const video = minorVideoRef.current
+    const canvas = minorCanvasRef.current
+    if (!video || !minorStreamRef.current || !canvas) return
+    const w = video.videoWidth
+    const h = video.videoHeight
+    if (!w || !h) {
+      setMinorCameraError("Camera not ready. Wait a moment and try again.")
+      return
+    }
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    canvas.width = w
+    canvas.height = h
+    ctx.drawImage(video, 0, 0, w, h)
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92)
+    const next = [...(formData.visitorMinors ?? [])]
+    const minor = { ...defaultMinor(), ...next[index] }
+    const photos = Array.isArray(minor.photos) ? minor.photos : []
+    if (photos.length >= MAX_MINOR_PHOTOS) return
+    next[index] = { ...minor, photos: [...photos, dataUrl] }
+    updateFormData({ visitorMinors: next })
+    setMinorCameraOpen(null)
+    stopMinorCamera()
+  }
+
+  const handleMinorPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const index = minorUploadTarget
+    setMinorPhotoError(null)
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file || index === null) {
+      setMinorUploadTarget(null)
+      return
+    }
+    if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+      setMinorPhotoError("Format must be JPG or PNG.")
+      return
+    }
+    if (file.size > MAX_PHOTO_SIZE_BYTES) {
+      setMinorPhotoError("Image size must be max 2MB.")
+      return
+    }
+    readFileAsDataUrl(file).then((dataUrl) => {
+      const next = [...(formData.visitorMinors ?? [])]
+      const minor = { ...defaultMinor(), ...next[index] }
+      const photos = Array.isArray(minor.photos) ? minor.photos : []
+      if (photos.length >= MAX_MINOR_PHOTOS) return
+      next[index] = { ...minor, photos: [...photos, dataUrl] }
+      updateFormData({ visitorMinors: next })
+      setMinorUploadTarget(null)
+    }).catch(() => {
+      setMinorPhotoError("Failed to read file.")
+    })
+  }
+
+  const removeMinorPhoto = (minorIndex: number, photoIndex: number) => {
+    const next = [...(formData.visitorMinors ?? [])]
+    const minor = { ...defaultMinor(), ...next[minorIndex] }
+    const photos = Array.isArray(minor.photos) ? minor.photos : []
+    const newPhotos = photos.filter((_, i) => i !== photoIndex)
+    next[minorIndex] = { ...minor, photos: newPhotos }
+    updateFormData({ visitorMinors: next })
   }
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -387,7 +588,7 @@ export function WalkInStep1VisitorDetails({
                   <div className="flex flex-col gap-2 w-full">
                     <Button
                       type="button"
-                      onClick={() => setCameraOpen(true)}
+                      onClick={() => { setVehicleCameraOpen(false); setMinorCameraOpen(null); setCameraOpen(true); }}
                       disabled={cameraLoading || visitorPhotos.length >= MAX_VISITOR_PHOTOS}
                       className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 w-full"
                     >
@@ -449,18 +650,19 @@ export function WalkInStep1VisitorDetails({
               )}
             </div>
 
-            {/* Right: captured images for recognition (up to 5) */}
-            <div className="flex flex-col gap-2 min-w-0">
+            {/* Right: captured images for recognition (up to 5) – uniform box size, scroll on small screens */}
+            <div className="flex flex-col gap-3 min-w-0">
               <p className="text-sm font-medium text-muted-foreground">Captured images</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="overflow-x-auto overflow-y-hidden">
+                <div className="grid grid-cols-5 gap-3 min-w-[calc(12rem*5+0.75rem*4)] w-max">
                 {Array.from({ length: MAX_VISITOR_PHOTOS }, (_, i) => (
-                  <div key={i} className="relative">
+                  <div key={i} className="relative h-[14.5rem] w-48 shrink-0">
                     {visitorPhotos[i] ? (
                       <>
                         <img
                           src={visitorPhotos[i]}
                           alt={`Visitor ${i + 1}`}
-                          className="h-58 w-52 rounded-md border border-border object-cover bg-muted"
+                          className="h-full w-full rounded-md border border-border object-cover bg-muted"
                         />
                         <button
                           type="button"
@@ -472,12 +674,13 @@ export function WalkInStep1VisitorDetails({
                         </button>
                       </>
                     ) : (
-                      <div className="h-58 w-52 rounded-md border border-dashed border-muted-foreground/40 bg-muted/20 flex items-center justify-center">
-                        <span className="text-xs text-muted-foreground">{i + 1}</span>
+                      <div className="h-full w-full rounded-md border-2 border-dashed border-muted-foreground/40 bg-white flex items-center justify-center">
+                        <span className="text-sm text-muted-foreground">{i + 1}</span>
                       </div>
                     )}
                   </div>
                 ))}
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">{visitorPhotos.length} / {MAX_VISITOR_PHOTOS} images</p>
             </div>
@@ -693,6 +896,124 @@ export function WalkInStep1VisitorDetails({
       {/* Vehicle Information (optional) */}
       <div className="space-y-4">
         <Label className="text-[22px] font-bold text-foreground">Vehicle Information (optional)</Label>
+              {/* Vehicle photograph upload – same styling as visitor Photograph Upload */}
+              <div className="space-y-2 pt-2">
+          <Label className="text-base font-medium text-foreground">Vehicle Photograph Upload</Label>
+          <div className="flex flex-col sm:flex-row gap-4 items-start">
+            <div
+              className={cn(
+                "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed bg-muted/20 py-6 px-3 transition-colors min-w-0 shrink-0",
+                "border-muted-foreground/30 hover:border-primary/40 hover:bg-muted/30 max-w-[280px]"
+              )}
+            >
+                {!vehicleCameraOpen ? (
+                  <>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                      <Camera className="h-6 w-6 text-primary" />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground text-center">Upload a Vehicle Photograph</p>
+                    <p className="text-xs text-muted-foreground text-center">Image size: Max 2MB, Format JPG/PNG. Up to {MAX_VEHICLE_PHOTOS} images for recognition.</p>
+                    <div className="flex flex-col gap-2 w-full">
+                      <Button
+                        type="button"
+                        onClick={() => { setCameraOpen(false); setMinorCameraOpen(null); setVehicleCameraOpen(true); }}
+                        disabled={vehicleCameraLoading || vehiclePhotos.length >= MAX_VEHICLE_PHOTOS}
+                        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 w-full"
+                      >
+                        {vehicleCameraLoading ? "Opening camera…" : "Capture from camera"}
+                      </Button>
+                      <input
+                        ref={vehicleImageInputRef}
+                        type="file"
+                        accept={ALLOWED_PHOTO_TYPES.join(",")}
+                        className="sr-only"
+                        onChange={handleVehiclePhotoUpload}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => vehicleImageInputRef.current?.click()}
+                        disabled={vehiclePhotos.length >= MAX_VEHICLE_PHOTOS}
+                        className="rounded-md px-4 py-2 text-sm font-medium w-full"
+                      >
+                        Upload Photo
+                      </Button>
+                    </div>
+                    {vehiclePhotoError && (
+                      <p className="text-sm text-destructive text-center">{vehiclePhotoError}</p>
+                    )}
+                  </>
+                ) : (
+                  <div className="w-full space-y-2">
+                    <video
+                      ref={vehicleVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full max-h-40 rounded-md bg-muted object-cover"
+                    />
+                    <canvas ref={vehicleCanvasRef} className="hidden" />
+                    {vehicleCameraError && (
+                      <p className="text-sm text-destructive text-center">{vehicleCameraError}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={captureVehicleFromCamera}
+                        disabled={vehicleCameraLoading || !!vehicleCameraError || vehiclePhotos.length >= MAX_VEHICLE_PHOTOS}
+                        className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                      >
+                        Take photo
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => { setVehicleCameraOpen(false); setVehicleCameraError(null); stopVehicleCamera(); }}
+                        className="rounded-md py-2 text-sm font-medium"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+            </div>
+            {/* Right: captured images – same as visitor */}
+            <div className="flex flex-col gap-3 min-w-0">
+              <p className="text-sm font-medium text-muted-foreground">Captured images</p>
+              <div className="overflow-x-auto overflow-y-hidden">
+                <div className="grid grid-cols-5 gap-3 min-w-[calc(12rem*5+0.75rem*4)] w-max">
+                {Array.from({ length: MAX_VEHICLE_PHOTOS }, (_, i) => (
+                  <div key={i} className="relative h-[14.5rem] w-48 shrink-0">
+                    {vehiclePhotos[i] ? (
+                      <>
+                        <img
+                          src={vehiclePhotos[i]}
+                          alt={`Vehicle ${i + 1}`}
+                          className="h-full w-full rounded-md border border-border object-cover bg-muted"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeVehiclePhoto(i)}
+                          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          aria-label="Remove vehicle photo"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="h-full w-full rounded-md border-2 border-dashed border-muted-foreground/40 bg-white flex items-center justify-center">
+                        <span className="text-sm text-muted-foreground">{i + 1}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">{vehiclePhotos.length} / {MAX_VEHICLE_PHOTOS} images</p>
+            </div>
+          </div>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="text-base text-foreground">Vehicle Type</Label>
@@ -759,9 +1080,19 @@ export function WalkInStep1VisitorDetails({
             />
           </div>
         </div>
+
+  
       </div>
 
       {/* Visitor with Minor – same layout and styling as main visitor form */}
+      <input
+        ref={minorImageInputRef}
+        type="file"
+        accept={ALLOWED_PHOTO_TYPES.join(",")}
+        className="sr-only"
+        onChange={handleMinorPhotoUpload}
+        aria-hidden
+      />
       <div className="space-y-4 border-t border-border pt-6">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -913,6 +1244,131 @@ export function WalkInStep1VisitorDetails({
                       onChange={(e) => setMinor({ relation: e.target.value })}
                       className="h-10 text-base bg-background border-border rounded-md"
                     />
+                  </div>
+
+                  {/* Photograph Upload – same layout/styling as visitor (lines 571–688) */}
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-base font-medium text-foreground">Photograph Upload</Label>
+                    <div className="flex flex-col sm:flex-row gap-4 items-start">
+                      {/* Left: capture box */}
+                      <div
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed bg-muted/20 py-6 px-3 transition-colors min-w-0 shrink-0",
+                          "border-muted-foreground/30 hover:border-primary/40 hover:bg-muted/30 max-w-[280px]"
+                        )}
+                      >
+                        {minorCameraOpen !== index ? (
+                          <>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                              <Camera className="h-6 w-6 text-primary" />
+                            </div>
+                            <p className="text-sm font-medium text-muted-foreground text-center">Upload a Minor Photograph</p>
+                            <p className="text-xs text-muted-foreground text-center">Image size: Max 2MB, Format JPG/PNG. Up to {MAX_MINOR_PHOTOS} images for recognition.</p>
+                            <div className="flex flex-col gap-2 w-full">
+                              <Button
+                                type="button"
+                                onClick={() => {
+                                  setCameraOpen(false)
+                                  setVehicleCameraOpen(false)
+                                  setMinorCameraOpen(index)
+                                }}
+                                disabled={minorCameraLoading || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
+                                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 w-full"
+                              >
+                                {minorCameraLoading && minorCameraOpen === index ? "Opening camera…" : "Capture from camera"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setMinorUploadTarget(index)
+                                  setMinorPhotoError(null)
+                                  setTimeout(() => minorImageInputRef.current?.click(), 0)
+                                }}
+                                disabled={(Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
+                                className="rounded-md px-4 py-2 text-sm font-medium w-full"
+                              >
+                                Upload Photo
+                              </Button>
+                            </div>
+                            {minorPhotoError && minorUploadTarget === index && (
+                              <p className="text-sm text-destructive text-center">{minorPhotoError}</p>
+                            )}
+                          </>
+                        ) : (
+                          <div className="w-full space-y-2">
+                            <video
+                              ref={minorVideoRef}
+                              autoPlay
+                              playsInline
+                              muted
+                              className="w-full max-h-40 rounded-md bg-muted object-cover"
+                            />
+                            <canvas ref={minorCanvasRef} className="hidden" />
+                            {minorCameraError && (
+                              <p className="text-sm text-destructive text-center">{minorCameraError}</p>
+                            )}
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                onClick={captureFromMinorCamera}
+                                disabled={minorCameraLoading || !!minorCameraError || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
+                                className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                              >
+                                Take photo
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => { setMinorCameraOpen(null); setMinorCameraError(null); stopMinorCamera(); }}
+                                className="rounded-md py-2 text-sm font-medium"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: captured images for recognition (up to 5) – uniform box size, scroll on small screens */}
+                      <div className="flex flex-col gap-3 min-w-0">
+                        <p className="text-sm font-medium text-muted-foreground">Captured images</p>
+                        <div className="overflow-x-auto overflow-y-hidden">
+                          <div className="grid grid-cols-5 gap-3 min-w-[calc(12rem*5+0.75rem*4)] w-max">
+                            {Array.from({ length: MAX_MINOR_PHOTOS }, (_, i) => {
+                              const minorPhotos = Array.isArray(minor.photos) ? minor.photos : []
+                              const photo = minorPhotos[i]
+                              return (
+                                <div key={i} className="relative h-[14.5rem] w-48 shrink-0">
+                                  {photo ? (
+                                    <>
+                                      <img
+                                        src={photo}
+                                        alt={`Minor ${index + 1} – ${i + 1}`}
+                                        className="h-full w-full rounded-md border border-border object-cover bg-muted"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => removeMinorPhoto(index, i)}
+                                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        aria-label="Remove minor photo"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div className="h-full w-full rounded-md border-2 border-dashed border-muted-foreground/40 bg-white flex items-center justify-center">
+                                      <span className="text-sm text-muted-foreground">{i + 1}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{(Array.isArray(minor.photos) ? minor.photos.length : 0)} / {MAX_MINOR_PHOTOS} images</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

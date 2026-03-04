@@ -282,6 +282,9 @@ export default function VisitorDetailPage() {
 
   const listBackHref = source === "pre-registration" ? ROUTES.PRE_REGISTRATION : ROUTES.WALK_IN_REGISTRATION
   const listBackLabel = source === "pre-registration" ? "Pre-Registration" : "Walk-In Registration"
+  const vehicleImagesList = Array.isArray(v.vehicle_images) ? (v.vehicle_images as string[]) : []
+  const vehicleImageSingle = v.vehicle_image ?? v.vehicleImage
+  const hasVehicleImages = vehicleImagesList.length > 0 || (typeof vehicleImageSingle === "string" && isImageUrl(vehicleImageSingle))
 
   return (
     <div className="w-full px-4">
@@ -355,6 +358,26 @@ export default function VisitorDetailPage() {
 
         <SectionCard title="Vehicle & license" icon={Car}>
           <InfoGrid entries={vehicleEntries} />
+          {hasVehicleImages && (
+            <div className="space-y-2 pt-2 border-t border-border">
+              <p className="text-sm font-medium text-muted-foreground">Vehicle images</p>
+              <div className="flex flex-wrap gap-2">
+                {vehicleImagesList.length > 0
+                  ? vehicleImagesList.map((url, i) =>
+                      isImageUrl(url) ? (
+                        <div key={i} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                          <img src={url} alt={`Vehicle ${i + 1}`} className="max-h-40 w-auto object-contain" />
+                        </div>
+                      ) : null
+                    )
+                  : typeof vehicleImageSingle === "string" && isImageUrl(vehicleImageSingle) && (
+                      <div className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                        <img src={vehicleImageSingle} alt="Vehicle" className="max-h-40 w-auto object-contain" />
+                      </div>
+                    )}
+              </div>
+            </div>
+          )}
         </SectionCard>
 
         <SectionCard title="Visit & host details" icon={Calendar}>
