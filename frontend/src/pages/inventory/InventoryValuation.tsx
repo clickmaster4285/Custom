@@ -46,6 +46,7 @@ const STATUSES = ["Pending", "Approved", "Under Review", "Referred"] as const
 
 type ValuationRow = {
   id: string
+  qrCodeNumber?: string
   seizureCaseRef: string
   pctCode: string
   descriptionOfGoods: string
@@ -61,9 +62,9 @@ type ValuationRow = {
 }
 
 const defaultRows: ValuationRow[] = [
-  { id: "1", seizureCaseRef: "SZ-2024-001", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", quantity: "450", unit: "PCS", valuationMethod: "Transaction Value", assessableValuePkr: "5,400,000", dutyPayablePkr: "1,080,000", valuationDate: "2024-02-01", customsStation: "Customs Karachi", valuingOfficerName: "Inspector M. Khan", status: "Approved" },
-  { id: "2", seizureCaseRef: "SZ-2024-002", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", quantity: "1200", unit: "PCS", valuationMethod: "Transaction Value of Similar Goods", assessableValuePkr: "102,000", dutyPayablePkr: "20,400", valuationDate: "2024-02-03", customsStation: "Customs Peshawar", valuingOfficerName: "ASI Ahmed Raza", status: "Pending" },
-  { id: "3", seizureCaseRef: "SZ-2024-003", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", quantity: "120", unit: "KGS", valuationMethod: "Transaction Value", assessableValuePkr: "1,850,000", dutyPayablePkr: "370,000", valuationDate: "2024-02-05", customsStation: "Customs Port Qasim", valuingOfficerName: "Inspector S. Ali", status: "Under Review" },
+  { id: "1", qrCodeNumber: "QR-INV-2024-001", seizureCaseRef: "SZ-2024-001", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", quantity: "450", unit: "PCS", valuationMethod: "Transaction Value", assessableValuePkr: "5,400,000", dutyPayablePkr: "1,080,000", valuationDate: "2024-02-01", customsStation: "Customs Karachi", valuingOfficerName: "Inspector M. Khan", status: "Approved" },
+  { id: "2", qrCodeNumber: "QR-INV-2024-002", seizureCaseRef: "SZ-2024-002", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", quantity: "1200", unit: "PCS", valuationMethod: "Transaction Value of Similar Goods", assessableValuePkr: "102,000", dutyPayablePkr: "20,400", valuationDate: "2024-02-03", customsStation: "Customs Peshawar", valuingOfficerName: "ASI Ahmed Raza", status: "Pending" },
+  { id: "3", qrCodeNumber: "QR-INV-2024-003", seizureCaseRef: "SZ-2024-003", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", quantity: "120", unit: "KGS", valuationMethod: "Transaction Value", assessableValuePkr: "1,850,000", dutyPayablePkr: "370,000", valuationDate: "2024-02-05", customsStation: "Customs Port Qasim", valuingOfficerName: "Inspector S. Ali", status: "Under Review" },
 ]
 
 function loadRows(): ValuationRow[] {
@@ -85,6 +86,7 @@ export default function InventoryValuationPage() {
   const [rows, setRows] = useState<ValuationRow[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
+    qrCodeNumber: "",
     seizureCaseRef: "",
     pctCode: "",
     descriptionOfGoods: "",
@@ -109,6 +111,7 @@ export default function InventoryValuationPage() {
 
   const openAdd = () => {
     setForm({
+      qrCodeNumber: "",
       seizureCaseRef: "",
       pctCode: "",
       descriptionOfGoods: "",
@@ -129,6 +132,7 @@ export default function InventoryValuationPage() {
     if (!form.seizureCaseRef.trim() || !form.descriptionOfGoods.trim() || !form.assessableValuePkr.trim() || !form.valuationDate.trim()) return
     const newRow: ValuationRow = {
       id: `invval-${Date.now()}`,
+      qrCodeNumber: form.qrCodeNumber.trim() || `QR-INV-${Date.now()}`,
       seizureCaseRef: form.seizureCaseRef.trim(),
       pctCode: form.pctCode.trim(),
       descriptionOfGoods: form.descriptionOfGoods.trim(),
@@ -198,6 +202,7 @@ export default function InventoryValuationPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>QR Code No</TableHead>
                   <TableHead>Seizure/Case Ref</TableHead>
                   <TableHead>PCT Code</TableHead>
                   <TableHead>Description</TableHead>
@@ -216,6 +221,7 @@ export default function InventoryValuationPage() {
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
+                    <TableCell className="font-mono">{row.qrCodeNumber || "—"}</TableCell>
                     <TableCell className="font-medium">{row.seizureCaseRef}</TableCell>
                     <TableCell className="font-mono">{row.pctCode || "—"}</TableCell>
                     <TableCell className="max-w-[140px] truncate">{row.descriptionOfGoods}</TableCell>
@@ -254,6 +260,10 @@ export default function InventoryValuationPage() {
             <p className="text-sm text-muted-foreground">Pakistan Customs valuation (assessable value & duty). Stored in localStorage.</p>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>QR Code Number</Label>
+              <Input value={form.qrCodeNumber} onChange={(e) => setForm((f) => ({ ...f, qrCodeNumber: e.target.value }))} placeholder="e.g. QR-INV-2024-001 (auto-generated if left blank)" />
+            </div>
             <div className="grid gap-2">
               <Label>Seizure / Case Reference *</Label>
               <Input value={form.seizureCaseRef} onChange={(e) => setForm((f) => ({ ...f, seizureCaseRef: e.target.value }))} placeholder="e.g. SZ-2024-001" />

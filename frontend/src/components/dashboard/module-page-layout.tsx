@@ -39,9 +39,7 @@ export function ModulePageLayout({
           </BreadcrumbItem>
           {breadcrumbs.map((item, i) => (
             <React.Fragment key={i}>
-              <BreadcrumbItem>
-                <BreadcrumbSeparator />
-              </BreadcrumbItem>
+              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 {i === breadcrumbs.length - 1 ? (
                   <BreadcrumbPage className="text-[#3b82f6] font-medium">

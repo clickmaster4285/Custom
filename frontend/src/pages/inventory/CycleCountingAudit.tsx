@@ -37,6 +37,7 @@ const STATUSES = ["Pending", "In Progress", "Completed", "Variance Reported"] as
 
 type CycleCountRow = {
   id: string
+  qrCodeNumber?: string
   auditRef: string
   customsStation: string
   godownLocation: string
@@ -52,9 +53,9 @@ type CycleCountRow = {
 }
 
 const defaultRows: CycleCountRow[] = [
-  { id: "1", auditRef: "AUD-2024-001", customsStation: "Customs Karachi", godownLocation: "Bonded Godown A - Bay 12", auditDate: "2024-02-01", caseSeizureRef: "SZ-2024-001", expectedQty: 450, actualQty: 448, variance: -2, auditedByOfficerName: "Inspector M. Khan", auditedByBadgeId: "PC-8841", status: "Completed", remarks: "Shortage of 2 PCS noted" },
-  { id: "2", auditRef: "AUD-2024-002", customsStation: "Customs Peshawar", godownLocation: "Transit Shed B", auditDate: "2024-02-03", caseSeizureRef: "SZ-2024-002", expectedQty: 1200, actualQty: 1200, variance: 0, auditedByOfficerName: "ASI Ahmed Raza", auditedByBadgeId: "PC-7722", status: "Completed", remarks: "" },
-  { id: "3", auditRef: "AUD-2024-003", customsStation: "Customs Port Qasim", godownLocation: "Bonded Godown C - Bay 05", auditDate: "2024-02-05", caseSeizureRef: "SZ-2024-003", expectedQty: 120, actualQty: 118, variance: -2, auditedByOfficerName: "Inspector S. Ali", auditedByBadgeId: "PC-9901", status: "Variance Reported", remarks: "Physical count short" },
+  { id: "1", qrCodeNumber: "QR-AUD-2024-001", auditRef: "AUD-2024-001", customsStation: "Customs Karachi", godownLocation: "Bonded Godown A - Bay 12", auditDate: "2024-02-01", caseSeizureRef: "SZ-2024-001", expectedQty: 450, actualQty: 448, variance: -2, auditedByOfficerName: "Inspector M. Khan", auditedByBadgeId: "PC-8841", status: "Completed", remarks: "Shortage of 2 PCS noted" },
+  { id: "2", qrCodeNumber: "QR-AUD-2024-002", auditRef: "AUD-2024-002", customsStation: "Customs Peshawar", godownLocation: "Transit Shed B", auditDate: "2024-02-03", caseSeizureRef: "SZ-2024-002", expectedQty: 1200, actualQty: 1200, variance: 0, auditedByOfficerName: "ASI Ahmed Raza", auditedByBadgeId: "PC-7722", status: "Completed", remarks: "" },
+  { id: "3", qrCodeNumber: "QR-AUD-2024-003", auditRef: "AUD-2024-003", customsStation: "Customs Port Qasim", godownLocation: "Bonded Godown C - Bay 05", auditDate: "2024-02-05", caseSeizureRef: "SZ-2024-003", expectedQty: 120, actualQty: 118, variance: -2, auditedByOfficerName: "Inspector S. Ali", auditedByBadgeId: "PC-9901", status: "Variance Reported", remarks: "Physical count short" },
 ]
 
 function loadRows(): CycleCountRow[] {
@@ -76,6 +77,7 @@ export default function CycleCountingAuditPage() {
   const [rows, setRows] = useState<CycleCountRow[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
+    qrCodeNumber: "",
     auditRef: "",
     customsStation: "Customs Karachi",
     godownLocation: "",
@@ -99,6 +101,7 @@ export default function CycleCountingAuditPage() {
 
   const openAdd = () => {
     setForm({
+      qrCodeNumber: "",
       auditRef: "",
       customsStation: "Customs Karachi",
       godownLocation: "",
@@ -120,6 +123,7 @@ export default function CycleCountingAuditPage() {
     const actual = form.actualQty || 0
     const newRow: CycleCountRow = {
       id: `cc-${Date.now()}`,
+      qrCodeNumber: form.qrCodeNumber.trim() || `QR-AUD-${Date.now()}`,
       auditRef: form.auditRef.trim(),
       customsStation: form.customsStation,
       godownLocation: form.godownLocation.trim(),
@@ -163,6 +167,7 @@ export default function CycleCountingAuditPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>QR Code No</TableHead>
                   <TableHead>Audit Ref</TableHead>
                   <TableHead>Customs Station</TableHead>
                   <TableHead>Godown/Location</TableHead>
@@ -179,6 +184,7 @@ export default function CycleCountingAuditPage() {
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
+                    <TableCell className="font-mono">{row.qrCodeNumber || "—"}</TableCell>
                     <TableCell className="font-medium">{row.auditRef}</TableCell>
                     <TableCell>{row.customsStation}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[140px] truncate">{row.godownLocation}</TableCell>
@@ -221,6 +227,10 @@ export default function CycleCountingAuditPage() {
             <p className="text-sm text-muted-foreground">Pakistan Customs physical count and audit. Stored in localStorage.</p>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>QR Code Number</Label>
+              <Input value={form.qrCodeNumber} onChange={(e) => setForm((f) => ({ ...f, qrCodeNumber: e.target.value }))} placeholder="e.g. QR-AUD-2024-003 (auto-generated if blank)" />
+            </div>
             <div className="grid gap-2">
               <Label>Audit Reference *</Label>
               <Input value={form.auditRef} onChange={(e) => setForm((f) => ({ ...f, auditRef: e.target.value }))} placeholder="e.g. AUD-2024-003" />

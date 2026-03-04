@@ -75,6 +75,9 @@ export const ROUTES = {
 
   // Detentions
   DEPOSIT_ACCOUNT_REGISTER: "/deposit-account-register",
+  DETENTION_MEMO: "/detention-memo",
+  DETENTION_MEMO_CREATE: "/detention-memo/create",
+  SEIZED_INVENTORY: "/seized-inventory",
   // Seizures & cases
   NEW_SEIZURE_ENTRY: "/new-seizure-entry",
   JCP_TOLL_PLAZA_ENTRY: "/jcp-toll-plaza-entry",
@@ -176,6 +179,12 @@ export function getCycleCountingDetailPath(id: string): string {
 }
 export function getInventoryValuationDetailPath(id: string): string {
   return `${ROUTES.INVENTORY_VALUATION}/${encodeURIComponent(id)}`
+}
+export function getDetentionMemoDetailPath(id: string): string {
+  return `${ROUTES.DETENTION_MEMO}/${encodeURIComponent(id)}`
+}
+export function getSeizedInventoryDetailPath(id: string): string {
+  return `${ROUTES.SEIZED_INVENTORY}/${encodeURIComponent(id)}`
 }
 
 /** Returns true if pathname is the login route */
@@ -284,6 +293,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         label: "Detentions",
         children: [
           { label: "Deposit Account Register", href: ROUTES.DEPOSIT_ACCOUNT_REGISTER },
+          { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
         ],
       },
 

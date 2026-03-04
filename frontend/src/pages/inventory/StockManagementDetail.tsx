@@ -10,6 +10,7 @@ const STORAGE_KEY = "wms_stock_management"
 
 type StockRow = {
   id: string
+  qrCodeNumber?: string
   seizureCaseRef: string
   pctCode: string
   descriptionOfGoods: string
@@ -98,6 +99,7 @@ export default function StockManagementDetailPage() {
             <Badge variant={row.status === "In Custody" ? "default" : "secondary"}>{row.status}</Badge>
           </CardHeader>
           <CardContent className="grid gap-1">
+            <DetailRow label="QR Code No" value={row.qrCodeNumber ?? ""} />
             <DetailRow label="Seizure/Case Ref" value={row.seizureCaseRef} />
             <DetailRow label="PCT Code" value={row.pctCode} />
             <DetailRow label="Description of Goods" value={row.descriptionOfGoods} />

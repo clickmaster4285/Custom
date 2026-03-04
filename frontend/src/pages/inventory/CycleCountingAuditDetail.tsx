@@ -10,6 +10,7 @@ const STORAGE_KEY = "wms_cycle_counting_audit"
 
 type CycleCountRow = {
   id: string
+  qrCodeNumber?: string
   auditRef: string
   customsStation: string
   godownLocation: string
@@ -103,6 +104,7 @@ export default function CycleCountingAuditDetailPage() {
             <Badge variant={row.status === "Completed" ? "default" : row.status === "Variance Reported" ? "destructive" : "secondary"}>{row.status}</Badge>
           </CardHeader>
           <CardContent className="grid gap-1">
+            <DetailRow label="QR Code No" value={row.qrCodeNumber ?? ""} />
             <DetailRow label="Audit Ref" value={row.auditRef} />
             <DetailRow label="Customs Station" value={row.customsStation} />
             <DetailRow label="Godown/Location" value={row.godownLocation} />
