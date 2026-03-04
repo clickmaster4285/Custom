@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
 import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, getErrorToastMessage, type VisitorRecord } from "@/lib/visitor-api"
+import { getVisitorPhotoUrl } from "@/lib/image-match"
 import { PrintQROnSave } from "@/components/visitor/print-qr-on-save"
 import { ChevronLeft, ChevronRight, MoreHorizontal, UserPlus, Trash2, Printer } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import { ROUTES } from "@/routes/config"
+import { ROUTES, getVisitorDetailPath } from "@/routes/config"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +47,11 @@ type RegistrationEntry = {
   department: string
   status: "Checked In" | "Approved" | "Pending Docs"
   time: string
+  date: string
+  cnic: string
+  contact: string
+  visitPurpose: string
+  host: string
 }
 
 function formatTime(value: string) {
@@ -59,17 +65,36 @@ function formatTime(value: string) {
   })
 }
 
-function mapVisitorToRegistration(visitor: VisitorRecord): RegistrationEntry {
+function formatDate(value: string) {
+  if (!value) return "—"
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return "—"
+  return d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })
+}
+
+function mapVisitorToRegistration(visitor: VisitorRecord & Record<string, unknown>): RegistrationEntry {
   const name = visitor.full_name || "Unknown Visitor"
+  const mobile = visitor.phone ?? (visitor as Record<string, unknown>).mobile_number ?? ""
+  const email = visitor.email ?? (visitor as Record<string, unknown>).email_address ?? ""
+  const contact = [String(mobile || ""), String(email || "")].filter(Boolean).join(" · ") || "—"
+  const cnicRaw = visitor.cnic_number ?? (visitor as Record<string, unknown>).cnic_number
+  const cnic = cnicRaw != null && typeof cnicRaw === "string" ? cnicRaw : String(cnicRaw ?? "")
+  const visitPurpose = (visitor as Record<string, unknown>).visit_purpose ?? (visitor as Record<string, unknown>).visitPurpose ?? ""
+  const host = (visitor as Record<string, unknown>).host_officer_name ?? (visitor as Record<string, unknown>).hostFullName ?? (visitor as Record<string, unknown>).host_name ?? ""
   return {
     id: visitor.id,
     name,
     initials: getInitials(name),
-    avatar: "",
+    avatar: getVisitorPhotoUrl(visitor as Record<string, unknown>) ?? "",
     type: "Pre-Registration",
     department: visitor.department_to_visit || "—",
     status: "Approved",
     time: formatTime(visitor.created_at),
+    date: formatDate(visitor.created_at),
+    cnic: cnic.trim() || "—",
+    contact,
+    visitPurpose: String(visitPurpose || "").trim() || "—",
+    host: String(host || "").trim() || "—",
   }
 }
 
@@ -284,38 +309,93 @@ export default function PreRegistrationPage() {
   const handleSubmit = () => {
     try {
       const payload: Record<string, unknown> = {
+        // Identity & basic
         visitor_type: formData.visitorType || "individual",
         full_name: formData.fullName || "Unknown Visitor",
         gender: formData.gender,
         cnic_number: formData.cnicNumber || formData.cnicPassport,
         passport_number: formData.passportNumber,
         nationality: formData.nationality,
+        date_of_birth: formData.dateOfBirth,
         mobile_number: formData.mobileNumber,
         email_address: formData.emailAddress,
         residential_address: formData.residentialAddress,
+        // Organization
+        organization_name: formData.organizationName,
+        organization_type: formData.organizationType,
+        ntn_registration_no: formData.ntnRegistrationNo,
+        designation: formData.designation,
+        office_address: formData.officeAddress,
+        // Vehicle & license
+        vehicle_type: formData.vehicleType,
+        vehicle_number: formData.vehicleNumber,
+        vehicle_registration_no: formData.vehicleRegistrationNo,
+        license_no: formData.licenseNo,
+        license_issue_date: formData.licenseIssueDate,
+        license_expiry_date: formData.licenseExpiryDate,
+        // Photos (all) and primary captured
+        visitor_photos: formData.visitorPhotos ?? [],
+        photo_capture: formData.photoCapture,
+        captured_photo: (formData.visitorPhotos?.length ? formData.visitorPhotos[0] : formData.photoCapture) ?? "",
+        // Minors
+        visitor_minors: formData.visitorMinors ?? [],
+        // Visit & host
         visit_purpose: formData.visitPurpose,
-        visit_description: formData.visitPurposeDescription,
+        visit_purpose_description: formData.visitPurposeDescription,
+        visit_type: formData.visitType,
         department_to_visit: formData.department || formData.departmentForSlot || "admin",
         host_officer_name: formData.hostFullName || formData.hostName,
+        host_name: formData.hostName,
+        host_id: formData.hostId,
         host_officer_designation: formData.hostDesignation,
         host_department: formData.hostDepartment,
+        host_email: formData.hostEmail,
+        host_contact_number: formData.hostContactNumber,
         preferred_visit_date: formData.preferredDate,
         preferred_time_slot: formData.preferredTimeSlot,
+        department_for_slot: formData.departmentForSlot,
         slot_duration: formData.slotDuration,
+        priority_level: formData.priorityLevel,
+        visit_date: formData.visitDate,
+        location: formData.location,
+        // Documents
         document_type: formData.documentType,
         document_no: formData.documentNo,
+        issuing_authority: formData.issuingAuthority,
+        expiry_date: formData.expiryDate,
         front_image: formData.frontImage,
         back_image: formData.backImage,
         application_letter: formData.applicationLetter,
+        letter_ref_no: formData.letterRefNo,
         additional_document: formData.additionalDocument,
-        captured_photo: (formData.visitorPhotos?.length ? formData.visitorPhotos[0] : formData.photoCapture) ?? "",
+        authorization_letter: formData.authorizationLetter,
+        noc_document: formData.nocDocument,
+        support_doc_type: formData.supportDocType,
+        upload_procedure: formData.uploadProcedure,
+        // Access & pass
         time_validity_start: formData.timeValidityStart,
         time_validity_end: formData.timeValidityEnd,
         access_zone: formData.accessZone,
         entry_gate: formData.entryGate,
         qr_code_id: formData.qrCodeId,
         visitor_ref_number: formData.visitorRefNumber,
-        visit_date: formData.visitDate,
+        reference_number: formData.referenceNumber,
+        // Security & screening
+        security_level: formData.securityLevel,
+        max_visit_duration: formData.maxVisitDuration,
+        allowed_departments: formData.allowedDepartments,
+        allowed_zones: formData.allowedZones,
+        additional_remarks: formData.additionalRemarks,
+        escort_mandatory: formData.escortMandatory,
+        watchlist_check_status: formData.watchlistCheckStatus,
+        guard_remarks: formData.guardRemarks,
+        approver_required: formData.approverRequired,
+        temporary_access_granted: formData.temporaryAccessGranted,
+        // Metadata
+        expiry_status: formData.expiryStatus,
+        scan_count: formData.scanCount,
+        generated_on: formData.generatedOn,
+        generated_by: formData.generatedBy,
       }
       createVisitorMutation.mutate(payload)
     } catch (err) {
@@ -360,7 +440,7 @@ export default function PreRegistrationPage() {
   }
 
   return (
-    <div className="w-full px-4 sm:px-6">
+    <div className="w-full px-4 ">
       <nav className="text-base text-muted-foreground mb-6 flex flex-wrap items-center gap-x-2 gap-y-1" aria-label="Breadcrumb">
         <Link to={ROUTES.DASHBOARD} className="hover:text-foreground transition-colors">Home</Link>
         <span aria-hidden className="text-muted-foreground/70">/</span>
@@ -405,7 +485,12 @@ export default function PreRegistrationPage() {
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visitor Name</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Type</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Department</th>
+                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">CNIC / ID</th>
+                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Contact</th>
+                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Visit Purpose</th>
+                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Host</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Date</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Time</th>
                     <th className="text-right px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-18">Action</th>
                   </tr>
@@ -413,24 +498,24 @@ export default function PreRegistrationPage() {
                 <tbody>
                   {isLoading ? (
                     <tr className="border-b border-border last:border-0">
-                      <td colSpan={6} className="px-4 py-6 text-center text-sm text-muted-foreground">Loading registrations…</td>
+                      <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">Loading registrations…</td>
                     </tr>
                   ) : isError ? (
                     <tr className="border-b border-border last:border-0">
-                      <td colSpan={6} className="px-4 py-6 text-center text-sm text-destructive">
+                      <td colSpan={11} className="px-4 py-6 text-center text-sm text-destructive">
                         {error instanceof Error ? error.message : "Failed to load registrations."}
                       </td>
                     </tr>
                   ) : registrations.length === 0 ? (
                     <tr className="border-b border-border last:border-0">
-                      <td colSpan={6} className="px-4 py-6 text-center text-sm text-muted-foreground">No registrations found.</td>
+                      <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">No registrations found.</td>
                     </tr>
                   ) : (
                     registrations.map((reg) => (
                       <tr
                         key={reg.id}
                         className="border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer"
-                        onClick={() => navigate(`/visitors/${reg.id}`)}
+                        onClick={() => navigate(getVisitorDetailPath(reg.id))}
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
@@ -447,10 +532,25 @@ export default function PreRegistrationPage() {
                         <td className="px-4 py-3 hidden lg:table-cell">
                           <span className="text-sm text-muted-foreground">{reg.department || "—"}</span>
                         </td>
+                        <td className="px-4 py-3 hidden xl:table-cell">
+                          <span className="text-sm text-muted-foreground font-mono">{reg.cnic}</span>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell max-w-[140px] truncate" title={reg.contact}>
+                          <span className="text-sm text-muted-foreground">{reg.contact}</span>
+                        </td>
+                        <td className="px-4 py-3 hidden xl:table-cell max-w-[120px] truncate" title={reg.visitPurpose}>
+                          <span className="text-sm text-muted-foreground">{reg.visitPurpose}</span>
+                        </td>
+                        <td className="px-4 py-3 hidden xl:table-cell max-w-[120px] truncate" title={reg.host}>
+                          <span className="text-sm text-muted-foreground">{reg.host}</span>
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(reg.status)}`}>
                             {reg.status}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          <span className="text-sm text-muted-foreground">{reg.date}</span>
                         </td>
                         <td className="px-4 py-3 hidden sm:table-cell">
                           <span className="text-sm text-muted-foreground">{reg.time}</span>
@@ -463,7 +563,7 @@ export default function PreRegistrationPage() {
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/visitors/${reg.id}`)}>View details</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(getVisitorDetailPath(reg.id))}>View details</DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => setDeleteId(reg.id)}
                                 className="text-destructive focus:text-destructive"

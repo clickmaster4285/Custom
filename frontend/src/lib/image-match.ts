@@ -88,14 +88,20 @@ export type ImageMatchCandidate = {
   profile_image?: string
 }
 
-/** Get the best available photo URL from a visitor record (walk-in stores captured_photo, visitorPhotos, etc.). */
+/** Get the best available photo URL from a visitor record (walk-in stores captured_photo, visitor_photos, visitorPhotos, etc.). */
 export function getVisitorPhotoUrl(visitor: Record<string, unknown>): string | undefined {
-  const v = visitor as { profile_image?: string; captured_photo?: string; visitorPhotos?: string[] }
+  const v = visitor as {
+    profile_image?: string
+    captured_photo?: string
+    photo_capture?: string
+    visitorPhotos?: string[]
+    visitor_photos?: string[]
+  }
   if (v.profile_image && typeof v.profile_image === "string") return v.profile_image
   if (v.captured_photo && typeof v.captured_photo === "string") return v.captured_photo
-  if (Array.isArray(v.visitorPhotos) && v.visitorPhotos.length > 0 && typeof v.visitorPhotos[0] === "string") {
-    return v.visitorPhotos[0]
-  }
+  if (v.photo_capture && typeof v.photo_capture === "string") return v.photo_capture
+  const photos = v.visitor_photos ?? v.visitorPhotos
+  if (Array.isArray(photos) && photos.length > 0 && typeof photos[0] === "string") return photos[0]
   return undefined
 }
 

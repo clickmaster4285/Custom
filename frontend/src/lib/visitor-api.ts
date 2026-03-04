@@ -74,10 +74,8 @@ export async function createVisitor(
     registration_source: source,
   };
 
-  const newRow: VisitorRecord =
-    source === "walk-in"
-      ? ({ ...payload, ...base } as VisitorRecord)
-      : base;
+  /** Store full payload in localStorage for both walk-in and pre-registration so detail page can show all data. */
+  const newRow: VisitorRecord = ({ ...payload, ...base } as VisitorRecord);
 
   writeVisitors(source, [newRow, ...rows]);
   return newRow;

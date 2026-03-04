@@ -12,6 +12,7 @@ export const ROUTES = {
   // Registration (VMS)
   PRE_REGISTRATION: "/pre-registration",
   WALK_IN_REGISTRATION: "/walk-in-registration",
+  VISITOR_DETAIL: "/visitors/:id",
   STREAMED_UPLOAD: "/streamed-upload",
   PHOTO_CAPTURE: "/photo-capture",
   QR_CODE_GENERATION: "/qr-code-generation",
@@ -158,6 +159,11 @@ export function isLoginRoute(pathname: string): boolean {
 /** Returns true if pathname is the dashboard (root) */
 export function isDashboardRoute(pathname: string): boolean {
   return pathname === ROUTES.DASHBOARD
+}
+
+/** URL for the shared visitor detail page (used by both Walk-In and Pre-Registration). */
+export function getVisitorDetailPath(id: number | string): string {
+  return `/visitors/${id}`
 }
 
 /** Nav item for sidebar (leaf) */
