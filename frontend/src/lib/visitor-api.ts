@@ -3,6 +3,8 @@ const VISITOR_PREREG_KEY = "vms_visitors_prereg";
 
 export type RegistrationSource = "walk-in" | "pre-registration";
 
+export type RegistrationStatus = "draft" | "approved" | "sent";
+
 export type VisitorRecord = {
   id: number;
   full_name: string;
@@ -12,6 +14,8 @@ export type VisitorRecord = {
   passport_number: string;
   created_at: string;
   registration_source?: RegistrationSource;
+  /** Draft = saved to list but not submitted; approved/sent = submitted */
+  registration_status?: RegistrationStatus;
   /** Optional fields from walk-in/UI (profile photo, screening, contact) */
   profile_image?: string;
   watchlist_check_status?: string;
@@ -75,10 +79,89 @@ export async function createVisitor(
   };
 
   /** Store full payload in localStorage for both walk-in and pre-registration so detail page can show all data. */
-  const newRow: VisitorRecord = ({ ...payload, ...base } as VisitorRecord);
+  const newRow: VisitorRecord = ({ ...payload, ...base, registration_status: "approved" } as VisitorRecord);
 
   writeVisitors(source, [newRow, ...rows]);
   return newRow;
+}
+
+/** Save a draft to the list (same storage as visitors). Status = "draft"; appears in list until submitted. */
+export async function saveDraftToStore(
+  payload: Record<string, unknown>,
+  source: RegistrationSource = "pre-registration"
+): Promise<VisitorRecord> {
+  const rows = readVisitors(source);
+  const nextId =
+    rows.length === 0 ? 1 : Math.max(...rows.map((r) => r.id)) + 1;
+
+  const fullName = String(payload.full_name ?? payload.fullName ?? "Unknown Visitor");
+  const visitorType = String(payload.visitor_type ?? payload.registration_type ?? "individual");
+  const department = String(payload.department_to_visit ?? payload.department ?? "admin");
+  const cnic = String(payload.cnic_number ?? payload.cnic_passport ?? "");
+  const passport = String(payload.passport_number ?? "");
+
+  const createdAt = new Date().toISOString();
+  const base: VisitorRecord = {
+    id: nextId,
+    full_name: fullName,
+    visitor_type: visitorType,
+    department_to_visit: department,
+    cnic_number: cnic,
+    passport_number: passport,
+    created_at: createdAt,
+    registration_source: source,
+    registration_status: "draft",
+  };
+
+  const newRow: VisitorRecord = ({ ...payload, ...base, registration_status: "draft" } as VisitorRecord);
+
+  writeVisitors(source, [newRow, ...rows]);
+  return newRow;
+}
+
+export type UpdateVisitorOptions = {
+  /** When submitting a draft use "sent"; when re-saving a draft use "draft". Omitted = "sent". */
+  registrationStatus?: RegistrationStatus;
+};
+
+/** Update an existing record (e.g. re-saving a draft or submitting/sending a draft). */
+export async function updateVisitor(
+  id: number,
+  payload: Record<string, unknown>,
+  source: RegistrationSource = "walk-in",
+  options?: UpdateVisitorOptions
+): Promise<VisitorRecord | null> {
+  const rows = readVisitors(source);
+  const index = rows.findIndex((r) => r.id === id);
+  if (index === -1) return null;
+
+  const existing = rows[index] as Record<string, unknown>;
+  const fullName = String(payload.full_name ?? payload.fullName ?? existing.full_name ?? "Unknown Visitor");
+  const visitorType = String(payload.visitor_type ?? payload.registration_type ?? existing.visitor_type ?? "individual");
+  const department = String(payload.department_to_visit ?? payload.department ?? existing.department_to_visit ?? "admin");
+  const cnic = String(payload.cnic_number ?? payload.cnic_passport ?? existing.cnic_number ?? "");
+  const passport = String(payload.passport_number ?? existing.passport_number ?? "");
+
+  const newStatus: RegistrationStatus = options?.registrationStatus ?? "sent";
+
+  const updated: VisitorRecord = {
+    ...existing,
+    ...payload,
+    id,
+    full_name: fullName,
+    visitor_type: visitorType,
+    department_to_visit: department,
+    cnic_number: cnic,
+    passport_number: passport,
+    created_at: String(existing.created_at ?? new Date().toISOString()),
+    registration_source: (existing.registration_source as RegistrationSource) ?? source,
+    registration_status: newStatus,
+  } as VisitorRecord;
+
+  const next = [...rows];
+  next[index] = updated;
+  writeVisitors(source, next);
+  return updated;
 }
 
 /** Get a single visitor by id from the given source (local only). */

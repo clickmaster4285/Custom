@@ -79,6 +79,7 @@ interface WalkInStep1VisitorDetailsProps {
   onCancel?: () => void
   onReset?: () => void
   onSaveAndContinue?: () => void
+  onSaveToDraft?: () => void
 }
 
 const defaultMinor = (): WalkInStep1VisitorDetailsFormData["visitorMinors"][number] => ({
@@ -131,6 +132,7 @@ export function WalkInStep1VisitorDetails({
   onCancel,
   onReset,
   onSaveAndContinue,
+  onSaveToDraft,
 }: WalkInStep1VisitorDetailsProps) {
   const photoInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -689,7 +691,7 @@ export function WalkInStep1VisitorDetails({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Full Name (as per CNIC/Passport)</Label>
+            <Label className="text-base text-foreground">Full Name (as per CNIC/Passport)<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
             <Input
               name="fullName"
               placeholder="e.g. Mohammad Ali Hassan"
@@ -723,7 +725,7 @@ export function WalkInStep1VisitorDetails({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm text-foreground">CNIC Number</Label>
+            <Label className="text-sm text-foreground">CNIC Number<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
             <Input
               name="cnicNumber"
               placeholder="00000-0000000-0"
@@ -789,7 +791,7 @@ export function WalkInStep1VisitorDetails({
             <p className="text-sm text-muted-foreground">(for identity verification)</p>
           </div>
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Mobile Number</Label>
+            <Label className="text-base text-foreground">Mobile Number<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
             <Input
               name="mobileNumber"
               placeholder="0000-0000000"
@@ -1263,7 +1265,7 @@ export function WalkInStep1VisitorDetails({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-base text-foreground">Full Name (as per CNIC/Passport)</Label>
+                    <Label className="text-base text-foreground">Full Name (as per CNIC/Passport)<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
                     <Input
                       placeholder="e.g. Mohammad Ali Hassan"
                       value={minor.name}
@@ -1286,7 +1288,7 @@ export function WalkInStep1VisitorDetails({
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-base text-foreground">CNIC Number</Label>
+                    <Label className="text-base text-foreground">CNIC Number<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
                     <Input
                       placeholder="00000-0000000-0"
                       value={minor.cnicOrBForm}
@@ -1333,7 +1335,7 @@ export function WalkInStep1VisitorDetails({
                     <p className="text-sm text-muted-foreground">(for identity verification)</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-base text-foreground">Mobile Number</Label>
+                    <Label className="text-base text-foreground">Mobile Number<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
                     <Input
                       placeholder="0000-0000000"
                       value={minor.mobileNumber}
@@ -1400,6 +1402,15 @@ export function WalkInStep1VisitorDetails({
               className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
             >
               Reset Form
+            </button>
+          )}
+          {onSaveToDraft && (
+            <button
+              type="button"
+              onClick={onSaveToDraft}
+              className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
+            >
+              Save to draft
             </button>
           )}
         </div>
