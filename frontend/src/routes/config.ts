@@ -51,6 +51,8 @@ export const ROUTES = {
   STORAGE_ALLOCATION: "/storage-allocation",
   INVENTORY_TRACKING: "/inventory-tracking",
   STOCK_RECONCILIATION: "/stock-reconciliation",
+  RELEASE_INVENTORY: "/release-inventory",
+  HS_CODES_FILE: "/hs-codes-file",
   // Inventory Management (sidebar sub-items)
   GOODS_RECEIPT: "/goods-receipt",
   STOCK_MANAGEMENT: "/stock-management",
@@ -289,7 +291,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
     ],
   },
   {
-    label: "Warehouse Management",
+    label: "Warehouse Management",href: ROUTES.OPERATIONS_DASHBOARD,
     children: [
       {
         label: "Dashboard", href: ROUTES.OPERATIONS_DASHBOARD,
@@ -298,8 +300,14 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       {
         label: "Detentions",
         children: [
+          { label: "Detention Account Register", href: ROUTES.DETENTION_MEMO},
+          // { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
+        ],
+      },
+      {
+        label: "Deposit Account",
+        children: [
           { label: "Deposit Account Register", href: ROUTES.DEPOSIT_ACCOUNT_REGISTER },
-          { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
         ],
       },
 
@@ -321,6 +329,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
           { label: "Zone & Location", href: ROUTES.ZONE_LOCATION_MANAGEMENT },
           { label: "Storage Allocation", href: ROUTES.STORAGE_ALLOCATION },
           { label: "Stock Reconciliation", href: ROUTES.STOCK_RECONCILIATION },
+          { label: "Release Inventory", href: ROUTES.RELEASE_INVENTORY },
           { label: "Camera Integration", href: ROUTES.CAMERA_INTEGRATION },
         ],
       },
@@ -387,7 +396,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
           { label: "Export Center", href: ROUTES.EXPORT_CENTER },
         ],
       },
-
+      { label: "HS Codes file", href: ROUTES.HS_CODES_FILE },
 
     ],
   },

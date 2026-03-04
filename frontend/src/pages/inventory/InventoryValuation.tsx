@@ -62,9 +62,9 @@ type ValuationRow = {
 }
 
 const defaultRows: ValuationRow[] = [
-  { id: "1", qrCodeNumber: "QR-INV-2024-001", seizureCaseRef: "SZ-2024-001", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", quantity: "450", unit: "PCS", valuationMethod: "Transaction Value", assessableValuePkr: "5,400,000", dutyPayablePkr: "1,080,000", valuationDate: "2024-02-01", customsStation: "Customs Karachi", valuingOfficerName: "Inspector M. Khan", status: "Approved" },
+  { id: "1", qrCodeNumber: "QR-INV-2024-001", seizureCaseRef: "SZ-2024-001", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", quantity: "450", unit: "PCS", valuationMethod: "Transaction Value", assessableValuePkr: "5,400,000", dutyPayablePkr: "1,080,000", valuationDate: "2024-02-01", customsStation: "Kohat", valuingOfficerName: "Inspector M. Khan", status: "Approved" },
   { id: "2", qrCodeNumber: "QR-INV-2024-002", seizureCaseRef: "SZ-2024-002", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", quantity: "1200", unit: "PCS", valuationMethod: "Transaction Value of Similar Goods", assessableValuePkr: "102,000", dutyPayablePkr: "20,400", valuationDate: "2024-02-03", customsStation: "Customs Peshawar", valuingOfficerName: "ASI Ahmed Raza", status: "Pending" },
-  { id: "3", qrCodeNumber: "QR-INV-2024-003", seizureCaseRef: "SZ-2024-003", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", quantity: "120", unit: "KGS", valuationMethod: "Transaction Value", assessableValuePkr: "1,850,000", dutyPayablePkr: "370,000", valuationDate: "2024-02-05", customsStation: "Customs Port Qasim", valuingOfficerName: "Inspector S. Ali", status: "Under Review" },
+  { id: "3", qrCodeNumber: "QR-INV-2024-003", seizureCaseRef: "SZ-2024-003", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", quantity: "120", unit: "KGS", valuationMethod: "Transaction Value", assessableValuePkr: "1,850,000", dutyPayablePkr: "370,000", valuationDate: "2024-02-05", customsStation: "Noshera", valuingOfficerName: "Inspector S. Ali", status: "Under Review" },
 ]
 
 function loadRows(): ValuationRow[] {
@@ -96,7 +96,7 @@ export default function InventoryValuationPage() {
     assessableValuePkr: "",
     dutyPayablePkr: "",
     valuationDate: new Date().toISOString().slice(0, 10),
-    customsStation: "Customs Karachi",
+    customsStation: "Kohat",
     valuingOfficerName: "",
     status: "Pending",
   })
@@ -121,7 +121,7 @@ export default function InventoryValuationPage() {
       assessableValuePkr: "",
       dutyPayablePkr: "",
       valuationDate: new Date().toISOString().slice(0, 10),
-      customsStation: "Customs Karachi",
+      customsStation: "Kohat",
       valuingOfficerName: "",
       status: "Pending",
     })

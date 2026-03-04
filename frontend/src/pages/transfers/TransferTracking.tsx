@@ -33,8 +33,8 @@ export default function TransferTrackingPage() {
               </TableHeader>
               <TableBody>
                 {[
-                  { ref: "TR-2024-0841", from: "Karachi", to: "Lahore", status: "In Transit", eta: "2024-02-06" },
-                  { ref: "TR-2024-0840", from: "Islamabad", to: "Karachi", status: "Received", eta: "—" },
+                  { ref: "TR-2024-0841", from: "Yarik", to: "Peshawar", status: "In Transit", eta: "2024-02-06" },
+                  { ref: "TR-2024-0840", from: "Peshawar", to: "Yarik", status: "Received", eta: "—" },
                 ].map((row) => (
                   <TableRow key={row.ref}>
                     <TableCell className="font-medium">{row.ref}</TableCell>

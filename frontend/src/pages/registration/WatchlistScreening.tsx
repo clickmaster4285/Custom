@@ -114,7 +114,47 @@ export default function WatchlistScreeningPage() {
         { key: "score", label: "Match Score" },
       ]}
       filterField="match"
-      initialRows={INITIAL_WATCHLIST_ROWS}
+      initialRows={[
+        {
+          id: 1,
+          profile_image: "https://ui-avatars.com/api/?name=Ali+Hassan&background=random",
+          visitor: "Ali Hassan",
+          email: "ali.hassan@example.com",
+          phone: "+92-300-1234567",
+          location: "Karachi, Pakistan",
+          last_visit: "2026-02-25",
+          document: "35202-1234567-1",
+          match: "No",
+          score: "0%",
+          remarks: "No prior visits"
+        },
+        {
+          id: 2,
+          profile_image: "https://ui-avatars.com/api/?name=John+Lee&background=random",
+          visitor: "John Lee",
+          email: "john.lee@example.com",
+          phone: "+1-555-9876543",
+          location: "New York, USA",
+          last_visit: "2026-03-01",
+          document: "AB123456",
+          match: "Potential",
+          score: "82%",
+          remarks: "Follow up required"
+        },
+        {
+          id: 3,
+          profile_image: "https://ui-avatars.com/api/?name=Ayesha+Malik&background=random",
+          visitor: "Ayesha Malik",
+          email: "ayesha.malik@example.com",
+          phone: "+92-301-7654321",
+          location: "Yarik, Pakistan",
+          last_visit: "2026-02-20",
+          document: "35201-9876543-2",
+          match: "No",
+          score: "0%",
+          remarks: "First visit"
+        }
+      ]}
     />
     </>
   )

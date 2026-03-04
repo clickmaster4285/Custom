@@ -53,9 +53,9 @@ type CycleCountRow = {
 }
 
 const defaultRows: CycleCountRow[] = [
-  { id: "1", qrCodeNumber: "QR-AUD-2024-001", auditRef: "AUD-2024-001", customsStation: "Customs Karachi", godownLocation: "Bonded Godown A - Bay 12", auditDate: "2024-02-01", caseSeizureRef: "SZ-2024-001", expectedQty: 450, actualQty: 448, variance: -2, auditedByOfficerName: "Inspector M. Khan", auditedByBadgeId: "PC-8841", status: "Completed", remarks: "Shortage of 2 PCS noted" },
+  { id: "1", qrCodeNumber: "QR-AUD-2024-001", auditRef: "AUD-2024-001", customsStation: "DI Khan", godownLocation: "Bonded Godown A - Bay 12", auditDate: "2024-02-01", caseSeizureRef: "SZ-2024-001", expectedQty: 450, actualQty: 448, variance: -2, auditedByOfficerName: "Inspector M. Khan", auditedByBadgeId: "PC-8841", status: "Completed", remarks: "Shortage of 2 PCS noted" },
   { id: "2", qrCodeNumber: "QR-AUD-2024-002", auditRef: "AUD-2024-002", customsStation: "Customs Peshawar", godownLocation: "Transit Shed B", auditDate: "2024-02-03", caseSeizureRef: "SZ-2024-002", expectedQty: 1200, actualQty: 1200, variance: 0, auditedByOfficerName: "ASI Ahmed Raza", auditedByBadgeId: "PC-7722", status: "Completed", remarks: "" },
-  { id: "3", qrCodeNumber: "QR-AUD-2024-003", auditRef: "AUD-2024-003", customsStation: "Customs Port Qasim", godownLocation: "Bonded Godown C - Bay 05", auditDate: "2024-02-05", caseSeizureRef: "SZ-2024-003", expectedQty: 120, actualQty: 118, variance: -2, auditedByOfficerName: "Inspector S. Ali", auditedByBadgeId: "PC-9901", status: "Variance Reported", remarks: "Physical count short" },
+  { id: "3", qrCodeNumber: "QR-AUD-2024-003", auditRef: "AUD-2024-003", customsStation: "Yarik", godownLocation: "Bonded Godown C - Bay 05", auditDate: "2024-02-05", caseSeizureRef: "SZ-2024-003", expectedQty: 120, actualQty: 118, variance: -2, auditedByOfficerName: "Inspector S. Ali", auditedByBadgeId: "PC-9901", status: "Variance Reported", remarks: "Physical count short" },
 ]
 
 function loadRows(): CycleCountRow[] {
@@ -79,7 +79,7 @@ export default function CycleCountingAuditPage() {
   const [form, setForm] = useState({
     qrCodeNumber: "",
     auditRef: "",
-    customsStation: "Customs Karachi",
+    customsStation: "DI Khan",
     godownLocation: "",
     auditDate: new Date().toISOString().slice(0, 10),
     caseSeizureRef: "",
@@ -103,7 +103,7 @@ export default function CycleCountingAuditPage() {
     setForm({
       qrCodeNumber: "",
       auditRef: "",
-      customsStation: "Customs Karachi",
+      customsStation: "DI Khan",
       godownLocation: "",
       auditDate: new Date().toISOString().slice(0, 10),
       caseSeizureRef: "",

@@ -18,11 +18,12 @@ export function Header() {
 
   const handleLogout = () => {
     clearAuth()
+    if (typeof window !== "undefined") window.localStorage.clear()
     navigate(ROUTES.LOGIN, { replace: true })
   }
 
   const displayName = user?.username ?? "Sarah Wasim"
-  const role = "Reception Desk"
+  const role = "Admin Panel"
   const initials = displayName
     .split(" ")
     .map((n) => n[0])
