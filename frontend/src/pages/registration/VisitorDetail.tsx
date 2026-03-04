@@ -18,7 +18,6 @@ import {
   QrCode,
   Users,
   ListChecks,
-  Database,
 } from "lucide-react"
 import type { RegistrationSource } from "@/lib/visitor-api"
 
@@ -94,32 +93,6 @@ function InfoGrid({ entries }: { entries: { label: string; value: string }[] }) 
       ))}
     </dl>
   )
-}
-
-/** Format a key into a readable label (e.g. visitor_photos -> Visitor photos). */
-function keyToLabel(key: string): string {
-  return key
-    .replace(/_/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-/** Format a stored value for display in "All information" (hide long data URLs). */
-function formatStoredValue(value: unknown): string {
-  if (value == null) return "—"
-  if (typeof value === "string") {
-    if (value.startsWith("data:image/") || value.startsWith("blob:")) return "[Image]"
-    if (value.startsWith("data:application/") || value.length > 120) return "[Document / Long text]"
-    return value
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "—"
-    if (value.every((x) => typeof x === "string" && (x.startsWith("data:") || x.startsWith("blob:"))))
-      return `${value.length} image(s)`
-    return `${value.length} item(s)`
-  }
-  if (typeof value === "object") return JSON.stringify(value).slice(0, 80) + (JSON.stringify(value).length > 80 ? "…" : "")
-  return String(value)
 }
 
 export default function VisitorDetailPage() {
@@ -406,21 +379,39 @@ export default function VisitorDetailPage() {
             <CardDescription>{minors.length} minor(s) registered with this visitor.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {minors.map((m, i) => (
-              <div key={i} className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
-                <p className="font-medium text-foreground">
-                  {val(m, "name") !== "—" ? val(m, "name") : `Minor ${i + 1}`}
-                </p>
-                <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                  <div><dt className="text-muted-foreground">Relation</dt><dd>{val(m, "relation")}</dd></div>
-                  <div><dt className="text-muted-foreground">Gender</dt><dd>{val(m, "gender")}</dd></div>
-                  <div><dt className="text-muted-foreground">CNIC / B-form</dt><dd>{val(m, "cnic_or_b_form", "cnicOrBForm")}</dd></div>
-                  <div><dt className="text-muted-foreground">DOB</dt><dd>{val(m, "date_of_birth", "dateOfBirth")}</dd></div>
-                  <div><dt className="text-muted-foreground">Mobile</dt><dd>{val(m, "mobile_number", "mobileNumber")}</dd></div>
-                  <div><dt className="text-muted-foreground">Email</dt><dd>{val(m, "email_address", "emailAddress")}</dd></div>
-                </dl>
-              </div>
-            ))}
+            {minors.map((m, i) => {
+              const minorPhotos = Array.isArray(m.photos) ? (m.photos as string[]) : []
+              const hasMinorPhotos = minorPhotos.some((url) => typeof url === "string" && isImageUrl(url))
+              return (
+                <div key={i} className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+                  <p className="font-medium text-foreground">
+                    {val(m, "name") !== "—" ? val(m, "name") : `Minor ${i + 1}`}
+                  </p>
+                  <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                    <div><dt className="text-muted-foreground">Relation</dt><dd>{val(m, "relation")}</dd></div>
+                    <div><dt className="text-muted-foreground">Gender</dt><dd>{val(m, "gender")}</dd></div>
+                    <div><dt className="text-muted-foreground">CNIC / B-form</dt><dd>{val(m, "cnic_or_b_form", "cnicOrBForm")}</dd></div>
+                    <div><dt className="text-muted-foreground">DOB</dt><dd>{val(m, "date_of_birth", "dateOfBirth")}</dd></div>
+                    <div><dt className="text-muted-foreground">Mobile</dt><dd>{val(m, "mobile_number", "mobileNumber")}</dd></div>
+                    <div><dt className="text-muted-foreground">Email</dt><dd>{val(m, "email_address", "emailAddress")}</dd></div>
+                  </dl>
+                  {hasMinorPhotos && (
+                    <div className="pt-2 border-t border-border space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">Photographs</p>
+                      <div className="flex flex-wrap gap-2">
+                        {minorPhotos.map((url, j) =>
+                          typeof url === "string" && isImageUrl(url) ? (
+                            <div key={j} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                              <img src={url} alt={`Minor ${i + 1} – ${j + 1}`} className="max-h-40 w-auto object-contain" />
+                            </div>
+                          ) : null
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
       )}

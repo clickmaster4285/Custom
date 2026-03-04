@@ -667,7 +667,7 @@ export function WalkInStep1VisitorDetails({
                         <button
                           type="button"
                           onClick={() => removePhoto(i)}
-                          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow"
                           aria-label="Remove photo"
                         >
                           <X className="h-3 w-3" />
@@ -994,7 +994,7 @@ export function WalkInStep1VisitorDetails({
                         <button
                           type="button"
                           onClick={() => removeVehiclePhoto(i)}
-                          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow"
                           aria-label="Remove vehicle photo"
                         >
                           <X className="h-3 w-3" />
@@ -1110,6 +1110,7 @@ export function WalkInStep1VisitorDetails({
             <Plus className="h-4 w-4" /> Add Minor
           </button>
         </div>
+
         <div className="space-y-6">
           {(formData.visitorMinors ?? []).map((m, index) => {
             const minor = { ...defaultMinor(), ...m }
@@ -1134,6 +1135,132 @@ export function WalkInStep1VisitorDetails({
                     <X className="h-4 w-4" /> Remove
                   </button>
                 </div>
+
+                {/* Photograph Upload – first, same layout/styling as visitor */}
+                <div className="space-y-2 mb-6">
+                  <Label className="text-base font-medium text-foreground">Minor Photograph Upload</Label>
+                  <div className="flex flex-col sm:flex-row gap-4 items-start">
+                    {/* Left: capture box */}
+                    <div
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed bg-muted/20 py-6 px-3 transition-colors min-w-0 shrink-0",
+                        "border-muted-foreground/30 hover:border-primary/40 hover:bg-muted/30 max-w-[280px]"
+                      )}
+                    >
+                      {minorCameraOpen !== index ? (
+                        <>
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                            <Camera className="h-6 w-6 text-primary" />
+                          </div>
+                          <p className="text-sm font-medium text-muted-foreground text-center">Upload a Minor Photograph</p>
+                          <p className="text-xs text-muted-foreground text-center">Image size: Max 2MB, Format JPG/PNG. Up to {MAX_MINOR_PHOTOS} images for recognition.</p>
+                          <div className="flex flex-col gap-2 w-full">
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setCameraOpen(false)
+                                setVehicleCameraOpen(false)
+                                setMinorCameraOpen(index)
+                              }}
+                              disabled={minorCameraLoading || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
+                              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 w-full"
+                            >
+                              {minorCameraLoading && minorCameraOpen === index ? "Opening camera…" : "Capture from camera"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setMinorUploadTarget(index)
+                                setMinorPhotoError(null)
+                                setTimeout(() => minorImageInputRef.current?.click(), 0)
+                              }}
+                              disabled={(Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
+                              className="rounded-md px-4 py-2 text-sm font-medium w-full"
+                            >
+                              Upload Photo
+                            </Button>
+                          </div>
+                          {minorPhotoError && minorUploadTarget === index && (
+                            <p className="text-sm text-destructive text-center">{minorPhotoError}</p>
+                          )}
+                        </>
+                      ) : (
+                        <div className="w-full space-y-2">
+                          <video
+                            ref={minorVideoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            className="w-full max-h-40 rounded-md bg-muted object-cover"
+                          />
+                          <canvas ref={minorCanvasRef} className="hidden" />
+                          {minorCameraError && (
+                            <p className="text-sm text-destructive text-center">{minorCameraError}</p>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              onClick={captureFromMinorCamera}
+                              disabled={minorCameraLoading || !!minorCameraError || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
+                              className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                            >
+                              Take photo
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => { setMinorCameraOpen(null); setMinorCameraError(null); stopMinorCamera(); }}
+                              className="rounded-md py-2 text-sm font-medium"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: captured images for recognition (up to 5) */}
+                    <div className="flex flex-col gap-3 min-w-0">
+                      <p className="text-sm font-medium text-muted-foreground">Captured images</p>
+                      <div className="overflow-x-auto overflow-y-hidden">
+                        <div className="grid grid-cols-5 gap-3 min-w-[calc(12rem*5+0.75rem*4)] w-max">
+                          {Array.from({ length: MAX_MINOR_PHOTOS }, (_, i) => {
+                            const minorPhotos = Array.isArray(minor.photos) ? minor.photos : []
+                            const photo = minorPhotos[i]
+                            return (
+                              <div key={i} className="relative h-[14.5rem] w-48 shrink-0">
+                                {photo ? (
+                                  <>
+                                    <img
+                                      src={photo}
+                                      alt={`Minor ${index + 1} – ${i + 1}`}
+                                      className="h-full w-full rounded-md border border-border object-cover bg-muted"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeMinorPhoto(index, i)}
+                                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow"
+                                      aria-label="Remove minor photo"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <div className="h-full w-full rounded-md border-2 border-dashed border-muted-foreground/40 bg-white flex items-center justify-center">
+                                    <span className="text-sm text-muted-foreground">{i + 1}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{(Array.isArray(minor.photos) ? minor.photos.length : 0)} / {MAX_MINOR_PHOTOS} images</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-base text-foreground">Full Name (as per CNIC/Passport)</Label>
@@ -1246,130 +1373,7 @@ export function WalkInStep1VisitorDetails({
                     />
                   </div>
 
-                  {/* Photograph Upload – same layout/styling as visitor (lines 571–688) */}
-                  <div className="space-y-2 md:col-span-2">
-                    <Label className="text-base font-medium text-foreground">Photograph Upload</Label>
-                    <div className="flex flex-col sm:flex-row gap-4 items-start">
-                      {/* Left: capture box */}
-                      <div
-                        className={cn(
-                          "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed bg-muted/20 py-6 px-3 transition-colors min-w-0 shrink-0",
-                          "border-muted-foreground/30 hover:border-primary/40 hover:bg-muted/30 max-w-[280px]"
-                        )}
-                      >
-                        {minorCameraOpen !== index ? (
-                          <>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                              <Camera className="h-6 w-6 text-primary" />
-                            </div>
-                            <p className="text-sm font-medium text-muted-foreground text-center">Upload a Minor Photograph</p>
-                            <p className="text-xs text-muted-foreground text-center">Image size: Max 2MB, Format JPG/PNG. Up to {MAX_MINOR_PHOTOS} images for recognition.</p>
-                            <div className="flex flex-col gap-2 w-full">
-                              <Button
-                                type="button"
-                                onClick={() => {
-                                  setCameraOpen(false)
-                                  setVehicleCameraOpen(false)
-                                  setMinorCameraOpen(index)
-                                }}
-                                disabled={minorCameraLoading || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
-                                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 w-full"
-                              >
-                                {minorCameraLoading && minorCameraOpen === index ? "Opening camera…" : "Capture from camera"}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                  setMinorUploadTarget(index)
-                                  setMinorPhotoError(null)
-                                  setTimeout(() => minorImageInputRef.current?.click(), 0)
-                                }}
-                                disabled={(Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
-                                className="rounded-md px-4 py-2 text-sm font-medium w-full"
-                              >
-                                Upload Photo
-                              </Button>
-                            </div>
-                            {minorPhotoError && minorUploadTarget === index && (
-                              <p className="text-sm text-destructive text-center">{minorPhotoError}</p>
-                            )}
-                          </>
-                        ) : (
-                          <div className="w-full space-y-2">
-                            <video
-                              ref={minorVideoRef}
-                              autoPlay
-                              playsInline
-                              muted
-                              className="w-full max-h-40 rounded-md bg-muted object-cover"
-                            />
-                            <canvas ref={minorCanvasRef} className="hidden" />
-                            {minorCameraError && (
-                              <p className="text-sm text-destructive text-center">{minorCameraError}</p>
-                            )}
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                onClick={captureFromMinorCamera}
-                                disabled={minorCameraLoading || !!minorCameraError || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
-                                className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-                              >
-                                Take photo
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => { setMinorCameraOpen(null); setMinorCameraError(null); stopMinorCamera(); }}
-                                className="rounded-md py-2 text-sm font-medium"
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Right: captured images for recognition (up to 5) – uniform box size, scroll on small screens */}
-                      <div className="flex flex-col gap-3 min-w-0">
-                        <p className="text-sm font-medium text-muted-foreground">Captured images</p>
-                        <div className="overflow-x-auto overflow-y-hidden">
-                          <div className="grid grid-cols-5 gap-3 min-w-[calc(12rem*5+0.75rem*4)] w-max">
-                            {Array.from({ length: MAX_MINOR_PHOTOS }, (_, i) => {
-                              const minorPhotos = Array.isArray(minor.photos) ? minor.photos : []
-                              const photo = minorPhotos[i]
-                              return (
-                                <div key={i} className="relative h-[14.5rem] w-48 shrink-0">
-                                  {photo ? (
-                                    <>
-                                      <img
-                                        src={photo}
-                                        alt={`Minor ${index + 1} – ${i + 1}`}
-                                        className="h-full w-full rounded-md border border-border object-cover bg-muted"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => removeMinorPhoto(index, i)}
-                                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        aria-label="Remove minor photo"
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <div className="h-full w-full rounded-md border-2 border-dashed border-muted-foreground/40 bg-white flex items-center justify-center">
-                                      <span className="text-sm text-muted-foreground">{i + 1}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{(Array.isArray(minor.photos) ? minor.photos.length : 0)} / {MAX_MINOR_PHOTOS} images</p>
-                      </div>
-                    </div>
-                  </div>
+       
                 </div>
               </div>
             )
