@@ -12,6 +12,11 @@ export type VisitorRecord = {
   passport_number: string;
   created_at: string;
   registration_source?: RegistrationSource;
+  /** Optional fields from walk-in/UI (profile photo, screening, contact) */
+  profile_image?: string;
+  watchlist_check_status?: string;
+  email?: string;
+  phone?: string;
 };
 
 function getStorageKey(source: RegistrationSource): string {
@@ -69,10 +74,8 @@ export async function createVisitor(
     registration_source: source,
   };
 
-  const newRow: VisitorRecord =
-    source === "walk-in"
-      ? ({ ...payload, ...base } as VisitorRecord)
-      : base;
+  /** Store full payload in localStorage for both walk-in and pre-registration so detail page can show all data. */
+  const newRow: VisitorRecord = ({ ...payload, ...base } as VisitorRecord);
 
   writeVisitors(source, [newRow, ...rows]);
   return newRow;

@@ -13,6 +13,7 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   // Registration
   { path: toChildPath(ROUTES.PRE_REGISTRATION), page: "PreRegistration" },
   { path: toChildPath(ROUTES.WALK_IN_REGISTRATION), page: "WalkInRegistration" },
+  { path: toChildPath(ROUTES.VISITOR_DETAIL), page: "VisitorDetail" },
   { path: toChildPath(ROUTES.STREAMED_UPLOAD), page: "StreamedUpload" },
   { path: toChildPath(ROUTES.PHOTO_CAPTURE), page: "PhotoCapture" },
   { path: toChildPath(ROUTES.QR_CODE_GENERATION), page: "QRCodeGeneration" },
