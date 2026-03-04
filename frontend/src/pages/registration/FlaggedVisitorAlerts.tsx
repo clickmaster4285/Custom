@@ -283,7 +283,7 @@ export default function FlaggedVisitorAlertsPage() {
         initialRows={[
           { 
             alertId: "AL-2401", 
-            profile_image: "https://ui-avatars.com/api/?name=Unknown+Visitor&background=random&color=red",
+            profile_image: "https://randomuser.me/api/portraits/men/31.jpg",
             visitor_name: "Unknown Male",
             visitor_initials: "UV",
             visitor_document: "35202-7654321-1",
@@ -297,7 +297,7 @@ export default function FlaggedVisitorAlertsPage() {
           },
           { 
             alertId: "AL-2402", 
-            profile_image: "https://ui-avatars.com/api/?name=John+Doe&background=random",
+            profile_image: "https://randomuser.me/api/portraits/men/32.jpg",
             visitor_name: "John Doe",
             visitor_initials: "JD",
             visitor_document: "AB987654",
@@ -311,7 +311,7 @@ export default function FlaggedVisitorAlertsPage() {
           },
           { 
             alertId: "AL-2403", 
-            profile_image: "https://ui-avatars.com/api/?name=Michael+Smith&background=random&color=red",
+            profile_image: "https://randomuser.me/api/portraits/men/50.jpg",
             visitor_name: "Michael Smith",
             visitor_initials: "MS",
             visitor_document: "M99887766",
@@ -325,7 +325,7 @@ export default function FlaggedVisitorAlertsPage() {
           },
           { 
             alertId: "AL-2399", 
-            profile_image: "https://ui-avatars.com/api/?name=Sarah+Ahmed&background=random",
+            profile_image: "https://randomuser.me/api/portraits/women/45.jpg",
             visitor_name: "Sarah Ahmed",
             visitor_initials: "SA",
             visitor_document: "35201-4455667-4",
@@ -339,7 +339,7 @@ export default function FlaggedVisitorAlertsPage() {
           },
           { 
             alertId: "AL-2398", 
-            profile_image: "https://ui-avatars.com/api/?name=David+Chen&background=random",
+            profile_image: "https://randomuser.me/api/portraits/men/52.jpg",
             visitor_name: "David Chen",
             visitor_initials: "DC",
             visitor_document: "E12345678",
@@ -349,6 +349,63 @@ export default function FlaggedVisitorAlertsPage() {
             gate: "Gate 2",
             time: "03:20 PM",
             date: "2026-03-02",
+            status: "Escalated"
+          },
+          // ✅ Additional new images/visitors
+          { 
+            alertId: "AL-2404", 
+            profile_image: "https://randomuser.me/api/portraits/women/60.jpg",
+            visitor_name: "Ayesha Khan",
+            visitor_initials: "AK",
+            visitor_document: "P98765432",
+            priority: "High", 
+            summary: "Multiple security violations at main gate",
+            location: "Main Entrance",
+            gate: "Gate 2",
+            time: "11:15 AM",
+            date: "2026-03-04",
+            status: "New"
+          },
+          { 
+            alertId: "AL-2405", 
+            profile_image: "https://randomuser.me/api/portraits/men/65.jpg",
+            visitor_name: "Ali Raza",
+            visitor_initials: "AR",
+            visitor_document: "35203-8765432-0",
+            priority: "Medium", 
+            summary: "Attempted unauthorized access to server room",
+            location: "Server Room",
+            gate: "Gate 5",
+            time: "02:10 PM",
+            date: "2026-03-04",
+            status: "Acknowledged"
+          },
+          { 
+            alertId: "AL-2406", 
+            profile_image: "https://randomuser.me/api/portraits/women/70.jpg",
+            visitor_name: "Sadia Malik",
+            visitor_initials: "SM",
+            visitor_document: "35204-1234567-8",
+            priority: "Low", 
+            summary: "Banned due to repeated policy violations",
+            location: "Lobby",
+            gate: "Gate 1",
+            time: "09:50 AM",
+            date: "2026-03-04",
+            status: "Resolved"
+          },
+          { 
+            alertId: "AL-2407", 
+            profile_image: "https://randomuser.me/api/portraits/men/75.jpg",
+            visitor_name: "Hamza Sheikh",
+            visitor_initials: "HS",
+            visitor_document: "P54321678",
+            priority: "High", 
+            summary: "Unauthorized visit to restricted laboratory",
+            location: "Restricted Lab",
+            gate: "Gate 3",
+            time: "01:30 PM",
+            date: "2026-03-04",
             status: "Escalated"
           },
         ]}

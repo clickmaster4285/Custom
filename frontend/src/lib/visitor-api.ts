@@ -12,6 +12,11 @@ export type VisitorRecord = {
   passport_number: string;
   created_at: string;
   registration_source?: RegistrationSource;
+  /** Optional fields from walk-in/UI (profile photo, screening, contact) */
+  profile_image?: string;
+  watchlist_check_status?: string;
+  email?: string;
+  phone?: string;
 };
 
 function getStorageKey(source: RegistrationSource): string {

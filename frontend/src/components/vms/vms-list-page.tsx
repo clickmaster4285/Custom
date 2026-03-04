@@ -105,8 +105,8 @@ export function VmsListPage({
     return Array.from(
       new Set(
         rows
-          .map((r) => r[effectiveFilterField])
-          .filter((v): v is string => typeof v === "string" && v.length > 0)
+          .map((r) => String(r[effectiveFilterField] ?? "").trim())
+          .filter((v) => v.length > 0)
       )
     )
   }, [effectiveFilterField, rows])
@@ -116,11 +116,11 @@ export function VmsListPage({
     return rows.filter((row) => {
       const matchesFilter =
         filter === "all" ||
-        (effectiveFilterField && (row[effectiveFilterField] ?? "") === filter)
+        (effectiveFilterField && String(row[effectiveFilterField] ?? "") === filter)
       const matchesSearch =
         q.length === 0 ||
-        columns.some((c) => (row[c.key] ?? "").toLowerCase().includes(q)) ||
-        row.id.toLowerCase().includes(q)
+        columns.some((c) => String(row[c.key] ?? "").toLowerCase().includes(q)) ||
+        String(row.id ?? "").toLowerCase().includes(q)
       return matchesFilter && matchesSearch
     })
   }, [columns, effectiveFilterField, filter, rows, search])
