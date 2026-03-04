@@ -18,7 +18,6 @@ import {
   QrCode,
   Users,
   ListChecks,
-  Database,
 } from "lucide-react"
 import type { RegistrationSource } from "@/lib/visitor-api"
 
@@ -82,11 +81,11 @@ function SectionCard({
 }
 
 function InfoGrid({ entries }: { entries: { label: string; value: string }[] }) {
-  const filtered = entries.filter((e) => e.value !== "—")
-  if (filtered.length === 0) return <p className="text-sm text-muted-foreground">No information provided.</p>
+  const list = entries.filter((e) => e.value !== "—")
+  if (list.length === 0) return <p className="text-sm text-muted-foreground">No information provided.</p>
   return (
     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-      {filtered.map(({ label, value }) => (
+      {list.map(({ label, value }) => (
         <div key={label}>
           <dt className="text-muted-foreground">{label}</dt>
           <dd className="font-medium text-foreground">{value}</dd>
@@ -94,32 +93,6 @@ function InfoGrid({ entries }: { entries: { label: string; value: string }[] }) 
       ))}
     </dl>
   )
-}
-
-/** Format a key into a readable label (e.g. visitor_photos -> Visitor photos). */
-function keyToLabel(key: string): string {
-  return key
-    .replace(/_/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-/** Format a stored value for display in "All information" (hide long data URLs). */
-function formatStoredValue(value: unknown): string {
-  if (value == null) return "—"
-  if (typeof value === "string") {
-    if (value.startsWith("data:image/") || value.startsWith("blob:")) return "[Image]"
-    if (value.startsWith("data:application/") || value.length > 120) return "[Document / Long text]"
-    return value
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "—"
-    if (value.every((x) => typeof x === "string" && (x.startsWith("data:") || x.startsWith("blob:"))))
-      return `${value.length} image(s)`
-    return `${value.length} item(s)`
-  }
-  if (typeof value === "object") return JSON.stringify(value).slice(0, 80) + (JSON.stringify(value).length > 80 ? "…" : "")
-  return String(value)
 }
 
 export default function VisitorDetailPage() {
@@ -282,6 +255,8 @@ export default function VisitorDetailPage() {
 
   const listBackHref = source === "pre-registration" ? ROUTES.PRE_REGISTRATION : ROUTES.WALK_IN_REGISTRATION
   const listBackLabel = source === "pre-registration" ? "Pre-Registration" : "Walk-In Registration"
+  const vehicleImagesList = Array.isArray(v.vehicle_images) ? (v.vehicle_images as string[]) : []
+  const vehicleImageSingle = v.vehicle_image ?? v.vehicleImage
 
   return (
     <div className="w-full px-4">
@@ -328,15 +303,13 @@ export default function VisitorDetailPage() {
               <div className="rounded-lg border border-border overflow-hidden inline-block bg-muted/20">
                 <img src={mainPhoto} alt="Visitor" className="max-h-64 w-auto object-contain" />
               </div>
-              {visitorPhotos.length > 1 && (
+              {visitorPhotos.filter((url) => isImageUrl(url)).length > 1 && (
                 <div className="flex flex-wrap gap-2">
-                  {visitorPhotos.slice(1, 5).map((url, i) =>
-                    isImageUrl(url) ? (
-                      <div key={i} className="rounded-md border border-border overflow-hidden w-20 h-20 bg-muted/20">
-                        <img src={url} alt={`Photo ${i + 2}`} className="w-full h-full object-cover" />
-                      </div>
-                    ) : null
-                  )}
+                  {visitorPhotos.filter((url) => isImageUrl(url)).slice(1, 5).map((url, i) => (
+                    <div key={i} className="rounded-md border border-border overflow-hidden w-20 h-20 bg-muted/20">
+                      <img src={url} alt={`Photo ${i + 2}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -355,6 +328,27 @@ export default function VisitorDetailPage() {
 
         <SectionCard title="Vehicle & license" icon={Car}>
           <InfoGrid entries={vehicleEntries} />
+          {(() => {
+            const allVehicleImgs =
+              vehicleImagesList.length > 0
+                ? vehicleImagesList.filter((url) => isImageUrl(url))
+                : typeof vehicleImageSingle === "string" && isImageUrl(vehicleImageSingle)
+                  ? [vehicleImageSingle]
+                  : []
+            if (allVehicleImgs.length === 0) return null
+            return (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-sm font-medium text-muted-foreground">Vehicle images</p>
+                <div className="flex flex-wrap gap-2">
+                  {allVehicleImgs.map((url, i) => (
+                    <div key={i} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                      <img src={url} alt={`Vehicle ${i + 1}`} className="max-h-40 w-auto object-contain" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
         </SectionCard>
 
         <SectionCard title="Visit & host details" icon={Calendar}>
@@ -383,21 +377,39 @@ export default function VisitorDetailPage() {
             <CardDescription>{minors.length} minor(s) registered with this visitor.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {minors.map((m, i) => (
-              <div key={i} className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
-                <p className="font-medium text-foreground">
-                  {val(m, "name") !== "—" ? val(m, "name") : `Minor ${i + 1}`}
-                </p>
-                <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                  <div><dt className="text-muted-foreground">Relation</dt><dd>{val(m, "relation")}</dd></div>
-                  <div><dt className="text-muted-foreground">Gender</dt><dd>{val(m, "gender")}</dd></div>
-                  <div><dt className="text-muted-foreground">CNIC / B-form</dt><dd>{val(m, "cnic_or_b_form", "cnicOrBForm")}</dd></div>
-                  <div><dt className="text-muted-foreground">DOB</dt><dd>{val(m, "date_of_birth", "dateOfBirth")}</dd></div>
-                  <div><dt className="text-muted-foreground">Mobile</dt><dd>{val(m, "mobile_number", "mobileNumber")}</dd></div>
-                  <div><dt className="text-muted-foreground">Email</dt><dd>{val(m, "email_address", "emailAddress")}</dd></div>
-                </dl>
-              </div>
-            ))}
+            {minors.map((m, i) => {
+              const minorPhotos = Array.isArray(m.photos) ? (m.photos as string[]) : []
+              const hasMinorPhotos = minorPhotos.some((url) => typeof url === "string" && isImageUrl(url))
+              return (
+                <div key={i} className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+                  <p className="font-medium text-foreground">
+                    {val(m, "name") !== "—" ? val(m, "name") : `Minor ${i + 1}`}
+                  </p>
+                  <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                    <div><dt className="text-muted-foreground">Relation</dt><dd>{val(m, "relation")}</dd></div>
+                    <div><dt className="text-muted-foreground">Gender</dt><dd>{val(m, "gender")}</dd></div>
+                    <div><dt className="text-muted-foreground">CNIC / B-form</dt><dd>{val(m, "cnic_or_b_form", "cnicOrBForm")}</dd></div>
+                    <div><dt className="text-muted-foreground">DOB</dt><dd>{val(m, "date_of_birth", "dateOfBirth")}</dd></div>
+                    <div><dt className="text-muted-foreground">Mobile</dt><dd>{val(m, "mobile_number", "mobileNumber")}</dd></div>
+                    <div><dt className="text-muted-foreground">Email</dt><dd>{val(m, "email_address", "emailAddress")}</dd></div>
+                  </dl>
+                  {hasMinorPhotos && (
+                    <div className="pt-2 border-t border-border space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">Photographs</p>
+                      <div className="flex flex-wrap gap-2">
+                        {minorPhotos.map((url, j) =>
+                          typeof url === "string" && isImageUrl(url) ? (
+                            <div key={j} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                              <img src={url} alt={`Minor ${i + 1} – ${j + 1}`} className="max-h-40 w-auto object-contain" />
+                            </div>
+                          ) : null
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
       )}

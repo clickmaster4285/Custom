@@ -129,7 +129,7 @@ export function WalkInStep3VisitDetails({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left column: Visit Purpose, Department to Visit */}
         <div className="space-y-2">
-          <Label className="text-base text-foreground">Visit Purpose</Label>
+          <Label className="text-base text-foreground">Visit Purpose<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
           <Select
             value={formik.values.visitPurpose || undefined}
             onValueChange={(v) => {
@@ -166,7 +166,7 @@ export function WalkInStep3VisitDetails({
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-base text-foreground">Department to Visit</Label>
+          <Label className="text-base text-foreground">Department to Visit<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
           <Select
             value={formik.values.department || undefined}
             onValueChange={(v) => {
@@ -403,7 +403,7 @@ export function WalkInStep3VisitDetails({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Time Validity</Label>
+            <Label className="text-base text-foreground">Time Validity<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Input
