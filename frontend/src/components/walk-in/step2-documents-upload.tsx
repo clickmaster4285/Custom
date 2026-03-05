@@ -65,6 +65,7 @@ interface WalkInStep2DocumentsUploadProps {
   onCancel?: () => void
   onReset?: () => void
   onPrevious?: () => void
+  onSaveToDraft?: () => void
   onSaveAndContinue?: () => void
 }
 
@@ -77,6 +78,7 @@ export function WalkInStep2DocumentsUpload({
   onCancel,
   onReset,
   onPrevious,
+  onSaveToDraft,
   onSaveAndContinue,
 }: WalkInStep2DocumentsUploadProps) {
   const { toast } = useToast()
@@ -608,6 +610,15 @@ export function WalkInStep2DocumentsUpload({
               className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
             >
               Previous
+            </button>
+          )}
+          {onSaveToDraft && (
+            <button
+              type="button"
+              onClick={onSaveToDraft}
+              className="shrink-0 rounded-md border border-border bg-transparent px-4 py-2.5 text-base font-normal text-foreground transition-colors hover:bg-muted"
+            >
+              Save to draft
             </button>
           )}
           {onSaveAndContinue && (

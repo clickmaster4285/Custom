@@ -13,22 +13,28 @@ from .serializers import (
 )
 
 
-def get_visitor_queryset():
-    return Visitor.objects.all().order_by("-created_at")
+def get_visitor_queryset(registration_source=None):
+    qs = Visitor.objects.all().order_by("-created_at")
+    if registration_source in ("walk-in", "pre-registration"):
+        qs = qs.filter(registration_source=registration_source)
+    return qs
 
 
 # ---------- Visitor CRUD ----------
 
 
 class VisitorListAPIView(generics.ListAPIView):
-    """Read: list all visitors. GET /api/visitors/list/"""
-    queryset = get_visitor_queryset()
+    """List visitors. GET /api/visitors/list/?registration_source=walk-in|pre-registration"""
     serializer_class = VisitorSerializer
     permission_classes = [permissions.AllowAny]
 
+    def get_queryset(self):
+        source = self.request.query_params.get("registration_source", "").strip().lower()
+        return get_visitor_queryset(registration_source=source or None)
+
 
 class VisitorCreateAPIView(generics.CreateAPIView):
-    """Create: add a new visitor. POST /api/visitors/create/"""
+    """Create visitor (Walk-in or Pre-registration). POST /api/visitors/create/"""
     queryset = Visitor.objects.all()
     serializer_class = VisitorSerializer
     permission_classes = [permissions.AllowAny]

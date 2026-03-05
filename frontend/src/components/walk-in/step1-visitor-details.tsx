@@ -46,11 +46,9 @@ export interface WalkInStep1VisitorDetailsFormData {
   designation: string
   officeAddress: string
   vehicleType: string
-  vehicleNumber: string
   vehicleRegistrationNo: string
-  licenseNo: string
-  licenseIssueDate: string
-  licenseExpiryDate: string
+  vehicleColor: string
+  vehicleCompany: string
   /** Up to 5 vehicle images (same UI as visitor photograph upload) */
   vehicleImages?: string[]
   /** Up to 5 visitor images for detection/recognition (displayed on the right of capture box) */
@@ -1023,60 +1021,41 @@ export function WalkInStep1VisitorDetails({
               onValueChange={(value) => updateFormData({ vehicleType: value })}
             >
               <SelectTrigger className="w-full h-10 bg-background border-border">
-                <SelectValue placeholder="Car" />
+                <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="car">Car</SelectItem>
                 <SelectItem value="motorcycle">Motorcycle</SelectItem>
                 <SelectItem value="van">Van</SelectItem>
+                <SelectItem value="truck">Truck</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Vehicle Number</Label>
-            <Input
-              placeholder="Enter vehicle number"
-              value={formData.vehicleNumber}
-              onChange={(e) => updateFormData({ vehicleNumber: e.target.value })}
-              className="h-10 text-base bg-background border-border"
-            />
-          </div>
-          <div className="space-y-2">
             <Label className="text-base text-foreground">Vehicle Registration No.</Label>
             <Input
-              placeholder="Enter the number"
+              placeholder="Enter registration number"
               value={formData.vehicleRegistrationNo}
               onChange={(e) => updateFormData({ vehicleRegistrationNo: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-base text-foreground">License No.</Label>
+            <Label className="text-base text-foreground">Vehicle Color</Label>
             <Input
-              placeholder="Enter the number"
-              value={formData.licenseNo}
-              onChange={(e) => updateFormData({ licenseNo: e.target.value })}
+              placeholder="Enter vehicle color"
+              value={formData.vehicleColor}
+              onChange={(e) => updateFormData({ vehicleColor: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Issue Date</Label>
+            <Label className="text-base text-foreground">Vehicle Company</Label>
             <Input
-              type="date"
-              placeholder="DD/MM/YYYY"
-              value={formData.licenseIssueDate}
-              onChange={(e) => updateFormData({ licenseIssueDate: e.target.value })}
-              className="h-10 text-base bg-background border-border"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-base text-foreground">Expiry Date</Label>
-            <Input
-              type="date"
-              placeholder="DD/MM/YYYY"
-              value={formData.licenseExpiryDate}
-              onChange={(e) => updateFormData({ licenseExpiryDate: e.target.value })}
+              placeholder="Enter company / make"
+              value={formData.vehicleCompany}
+              onChange={(e) => updateFormData({ vehicleCompany: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
           </div>

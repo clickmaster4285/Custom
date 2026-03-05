@@ -186,11 +186,9 @@ export default function VisitorDetailPage() {
 
   const vehicleEntries = [
     { label: "Vehicle type", value: val(v, "vehicle_type", "vehicleType") },
-    { label: "Vehicle number", value: val(v, "vehicle_number", "vehicleNumber") },
-    { label: "Registration no.", value: val(v, "vehicle_registration_no", "vehicleRegistrationNo") },
-    { label: "License number", value: val(v, "license_no", "licenseNo") },
-    { label: "License issue date", value: val(v, "license_issue_date", "licenseIssueDate") },
-    { label: "License expiry date", value: val(v, "license_expiry_date", "licenseExpiryDate") },
+    { label: "Vehicle registration no.", value: val(v, "vehicle_registration_no", "vehicleRegistrationNo") },
+    { label: "Vehicle color", value: val(v, "vehicle_color", "vehicleColor") },
+    { label: "Vehicle company", value: val(v, "vehicle_company", "vehicleCompany") },
   ]
 
   const visitEntries = [

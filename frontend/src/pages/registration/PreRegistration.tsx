@@ -132,11 +132,9 @@ const initialFormData = {
   designation: "",
   officeAddress: "",
   vehicleType: "",
-  vehicleNumber: "",
   vehicleRegistrationNo: "",
-  licenseNo: "",
-  licenseIssueDate: "",
-  licenseExpiryDate: "",
+  vehicleColor: "",
+  vehicleCompany: "",
   vehicleImages: [] as string[],
   visitorPhotos: [] as string[],
   photoCapture: "",
@@ -287,11 +285,9 @@ export default function PreRegistrationPage() {
         designation: formData.designation,
         office_address: formData.officeAddress,
         vehicle_type: formData.vehicleType,
-        vehicle_number: formData.vehicleNumber,
         vehicle_registration_no: formData.vehicleRegistrationNo,
-        license_no: formData.licenseNo,
-        license_issue_date: formData.licenseIssueDate,
-        license_expiry_date: formData.licenseExpiryDate,
+        vehicle_color: formData.vehicleColor,
+        vehicle_company: formData.vehicleCompany,
         vehicle_images: formData.vehicleImages ?? [],
         vehicle_image: (formData.vehicleImages?.length ? formData.vehicleImages[0] : undefined) ?? "",
         visitor_photos: formData.visitorPhotos ?? [],
@@ -351,7 +347,7 @@ export default function PreRegistrationPage() {
         generated_on: formData.generatedOn,
         generated_by: formData.generatedBy,
       }
-      ;(payload as Record<string, unknown>).draft_form_data = formData
+        ; (payload as Record<string, unknown>).draft_form_data = formData
       if (editingDraftId != null) {
         const updated = await updateVisitor(editingDraftId, payload, "pre-registration", { registrationStatus: "draft" })
         if (!updated) {
@@ -446,7 +442,7 @@ export default function PreRegistrationPage() {
       setEditingDraftId(null)
       try {
         window.localStorage.removeItem(PREREG_DRAFT_KEY)
-      } catch {}
+      } catch { }
     },
     onError: (mutationError) => {
       toast({
@@ -479,11 +475,9 @@ export default function PreRegistrationPage() {
         office_address: formData.officeAddress,
         // Vehicle & license
         vehicle_type: formData.vehicleType,
-        vehicle_number: formData.vehicleNumber,
         vehicle_registration_no: formData.vehicleRegistrationNo,
-        license_no: formData.licenseNo,
-        license_issue_date: formData.licenseIssueDate,
-        license_expiry_date: formData.licenseExpiryDate,
+        vehicle_color: formData.vehicleColor,
+        vehicle_company: formData.vehicleCompany,
         vehicle_images: formData.vehicleImages ?? [],
         vehicle_image: (formData.vehicleImages?.length ? formData.vehicleImages[0] : undefined) ?? "",
         // Photos (all) and primary captured
@@ -551,7 +545,7 @@ export default function PreRegistrationPage() {
         generated_by: formData.generatedBy,
       }
       if (editingDraftId != null) {
-        ;(payload as Record<string, unknown>).draft_form_data = formData
+        ; (payload as Record<string, unknown>).draft_form_data = formData
         const updated = await updateVisitor(editingDraftId, payload, "pre-registration", { registrationStatus: "sent" })
         if (!updated) {
           toast({ title: "Update failed", variant: "destructive" })
@@ -583,7 +577,7 @@ export default function PreRegistrationPage() {
         setEditingDraftId(null)
         try {
           window.localStorage.removeItem(PREREG_DRAFT_KEY)
-        } catch {}
+        } catch { }
       } else {
         createVisitorMutation.mutate(payload)
       }
@@ -874,14 +868,16 @@ export default function PreRegistrationPage() {
 
       {showForm ? (
         <>
-          <div className="mb-6">
+          <div className="">
             <h1 className="text-[22px] font-bold tracking-tight text-foreground">Pre-Registration</h1>
-            <p className="text-base text-muted-foreground mt-1">
-              Complete the registration fields for a new visit.
-            </p>
+            <div className="flex justify-between mt-2">
+              <p className="text-base text-muted-foreground">
+                Complete the registration fields for a new visit.
+              </p>
+              <WalkInStepIndicator currentStep={currentStep} />
+            </div>
           </div>
 
-          <WalkInStepIndicator currentStep={currentStep} />
 
           <div className="bg-card rounded-xl border border-border shadow-sm p-4 sm:p-6 mt-6">
             {currentStep === 1 && (
@@ -905,11 +901,9 @@ export default function PreRegistrationPage() {
                   designation: formData.designation,
                   officeAddress: formData.officeAddress,
                   vehicleType: formData.vehicleType,
-                  vehicleNumber: formData.vehicleNumber,
                   vehicleRegistrationNo: formData.vehicleRegistrationNo,
-                  licenseNo: formData.licenseNo,
-                  licenseIssueDate: formData.licenseIssueDate,
-                  licenseExpiryDate: formData.licenseExpiryDate,
+                  vehicleColor: formData.vehicleColor,
+                  vehicleCompany: formData.vehicleCompany,
                   vehicleImages: formData.vehicleImages ?? [],
                   visitorPhotos: formData.visitorPhotos ?? [],
                   photoCapture: formData.photoCapture,
@@ -926,7 +920,7 @@ export default function PreRegistrationPage() {
                   setFormData({ ...initialFormData })
                   try {
                     window.localStorage.removeItem(PREREG_DRAFT_KEY)
-                  } catch {}
+                  } catch { }
                 }}
                 onSaveAndContinue={nextStep}
                 onSaveToDraft={saveDraft}
@@ -949,6 +943,7 @@ export default function PreRegistrationPage() {
                 onCancel={handleCancelForm}
                 onReset={() => setFormData({ ...initialFormData })}
                 onPrevious={prevStep}
+                onSaveToDraft={saveDraft}
                 onSaveAndContinue={nextStep}
               />
             )}
@@ -973,6 +968,7 @@ export default function PreRegistrationPage() {
                 onCancel={handleCancelForm}
                 onReset={() => setFormData({ ...initialFormData })}
                 onPrevious={prevStep}
+                onSaveToDraft={saveDraft}
                 onSaveAndContinue={nextStep}
               />
             )}
