@@ -133,6 +133,7 @@ export const ROUTES = {
 
   // HR
   EMPLOYEES: "/employees",
+  ADD_STAFF: "/employees/add",
   RECRUITMENT: "/recruitment",
   /** Path for employee detail; use getEmployeeDetailPath(id) for links */
   EMPLOYEE_DETAIL: "/employees/:id",

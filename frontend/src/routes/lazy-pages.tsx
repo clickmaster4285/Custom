@@ -104,6 +104,7 @@ export const PAGES = {
   PredictiveInsights: lazy(() => import("@/pages/reports/PredictiveInsights").then((m) => ({ default: m.default }))),
   DataVisualization: lazy(() => import("@/pages/reports/DataVisualization").then((m) => ({ default: m.default }))),
   Employees: lazy(() => import("@/pages/hr/Employees").then((m) => ({ default: m.default }))),
+  AddStaff: lazy(() => import("@/pages/hr/AddStaff").then((m) => ({ default: m.default }))),
   EmployeeDetail: lazy(() => import("@/pages/hr/EmployeeDetail").then((m) => ({ default: m.default }))),
   EmployeeEdit: lazy(() => import("@/pages/hr/EmployeeEdit").then((m) => ({ default: m.default }))),
   Attendance: lazy(() => import("@/pages/hr/Attendance").then((m) => ({ default: m.default }))),

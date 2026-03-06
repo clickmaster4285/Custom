@@ -3,10 +3,12 @@ import { API_BASE_URL, getAuthHeaders, getAuthHeadersFormData } from "@/lib/api"
 /** Staff record as returned by the backend (list/detail). */
 export type StaffRecord = {
   id: number;
-  user: number | null;
+  user: number | string | null;
+  user_id?: number | string | null;
   full_name: string;
   first_name?: string | null;
   last_name?: string | null;
+  father_name?: string | null;
   cnic: string;
   national_id?: string;
   date_of_birth?: string | null;
@@ -17,6 +19,7 @@ export type StaffRecord = {
   email?: string | null;
   phone_primary?: string | null;
   phone_alternate?: string | null;
+  phone?: string | null; // Aliased for backward compatibility
   address?: string | null;
   street_address?: string | null;
   city?: string | null;
@@ -61,6 +64,13 @@ export type StaffRecord = {
   leave_balance?: number | null;
   notes?: string | null;
   created_at?: string;
+  // Custom fields from HEAD
+  personal_number?: string | null;
+  bps?: string | null;
+  qualification?: string | null;
+  current_posting?: string | null;
+  collector_name?: string | null;
+  role?: string | null;
   user_details?: {
     id: number;
     username: string;
@@ -132,79 +142,123 @@ const FILE_KEYS = [
   "id_proof_file",
   "tax_form_file",
   "certificates_file",
+  "cnic_front",
+  "cnic_back",
+  "appointment_letter",
+  "additional_document",
 ] as const;
 
 /** Full HR template payload accepted by backend. */
 export type CreateStaffPayload = {
-  first_name: string;
-  last_name: string;
-  national_id: string;
-  date_of_birth?: string;
-  gender?: string;
-  marital_status?: string;
-  blood_group?: string;
+  // Common fields
+  full_name: string;
+  first_name?: string;
+  last_name?: string;
+  father_name?: string;
   email?: string;
+  phone?: string;
   phone_primary?: string;
   phone_alternate?: string;
+  cnic: string;
+  national_id?: string;
+  address: string;
   street_address?: string;
   city?: string;
   state?: string;
   country?: string;
   postal_code?: string;
+  date_of_birth: string;
+  gender?: string;
+  marital_status?: string;
+  blood_group?: string;
+  
+  // Employment
   employee_id?: string;
+  personal_number?: string;
   designation: string;
   department: string;
+  joining_date: string;
+  date_of_joining?: string;
+  employment_type?: string;
+  job_status?: string;
   branch_location?: string;
   manager?: string;
-  employment_type?: string;
-  date_of_joining?: string;
-  probation_end_date?: string;
-  work_shift_start?: string;
-  work_shift_end?: string;
-  job_status?: string;
-  salary?: string;
-  bank_account?: string;
-  iban?: string;
-  salary_type?: string;
-  tax_id?: string;
-  allowances?: string;
+  bps?: string;
+  qualification?: string;
+  current_posting?: string;
+  collector_name?: string;
+  
+  // Account/Auth
+  username?: string;
+  login_username?: string;
+  password?: string;
+  role: string;
   role_access_level?: string;
   system_permissions?: string;
+  has_login?: boolean;
+
+  // Financial
+  salary?: string;
+  salary_type?: string;
+  bank_account?: string;
+  iban?: string;
+  tax_id?: string;
+  allowances?: string;
+
+  // Emergency & Misc
+  emergency_contact: string;
   emergency_contact_name?: string;
   emergency_contact_relationship?: string;
   emergency_contact_phone?: string;
   emergency_contact_address?: string;
+  notes?: string;
+  leave_balance?: number | string;
+  performance_rating?: string;
+  last_appraisal_date?: string;
+  probation_end_date?: string;
+  work_shift_start?: string;
+  work_shift_end?: string;
+  background_check_status?: string;
+  skills_competencies?: string;
+  languages_known?: string;
+
+  // Files
+  profile_image?: File | null;
+  staff_photos?: File[] | null;
   resume_file?: File | null;
   joining_letter_file?: File | null;
   contract_file?: File | null;
   id_proof_file?: File | null;
   tax_form_file?: File | null;
   certificates_file?: File | null;
-  background_check_status?: string;
-  skills_competencies?: string;
-  languages_known?: string;
-  performance_rating?: string;
-  last_appraisal_date?: string;
-  leave_balance?: number | string;
-  notes?: string;
-  profile_image?: File | null;
+  cnic_front?: File | null;
+  cnic_back?: File | null;
+  appointment_letter?: File | null;
+  additional_document?: File | null;
 };
 
 function buildBody(payload: CreateStaffPayload): { body: string | FormData; useFormData: boolean } {
-  const hasFile = FILE_KEYS.some((k) => payload[k as keyof CreateStaffPayload] instanceof File);
+  const hasFile = FILE_KEYS.some((k) => payload[k as keyof CreateStaffPayload] instanceof File) || (payload.staff_photos && payload.staff_photos.length > 0);
   if (hasFile) {
     const form = new FormData();
     Object.entries(payload).forEach(([k, v]) => {
       if (v === undefined || v === null || v === "") return;
-      if (v instanceof File) form.append(k, v);
-      else form.append(k, String(v));
+      if (k === "staff_photos" && Array.isArray(v)) {
+        v.forEach(file => {
+          if (file instanceof File) form.append('staff_photos', file);
+        });
+      } else if (v instanceof File) {
+        form.append(k, v);
+      } else {
+        form.append(k, String(v));
+      }
     });
     return { body: form, useFormData: true };
   }
   const obj: Record<string, unknown> = {};
   Object.entries(payload).forEach(([k, v]) => {
     if (v === undefined || v === null || v === "") return;
-    if (!(v instanceof File)) obj[k] = v;
+    if (!(v instanceof File) && k !== "staff_photos") obj[k] = v;
   });
   return { body: JSON.stringify(obj), useFormData: false };
 }
@@ -237,43 +291,12 @@ export async function updateStaff(
   id: number,
   payload: Partial<CreateStaffPayload>
 ): Promise<StaffRecord> {
-  const hasFile = FILE_KEYS.some((k) => payload[k as keyof CreateStaffPayload] instanceof File);
+  const { body, useFormData } = buildBody(payload as CreateStaffPayload);
   const url = `${STAFF_ENDPOINT}${id}/`;
-  if (hasFile) {
-    const form = new FormData();
-    Object.entries(payload).forEach(([k, v]) => {
-      if (v === undefined || v === null) return;
-      if (v instanceof File) form.append(k, v);
-      else form.append(k, String(v));
-    });
-    const response = await fetch(url, {
-      method: "PATCH",
-      headers: getAuthHeadersFormData(),
-      body: form,
-    });
-    if (response.status === 401) throw new Error("Unauthorized");
-    if (response.status === 404) throw new Error("Staff not found");
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      const msg =
-        typeof data === "object" && data !== null
-          ? Object.entries(data)
-              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
-              .join("; ")
-          : `Failed to update staff (${response.status})`;
-      throw new Error(msg);
-    }
-    return response.json();
-  }
-  const obj: Record<string, unknown> = {};
-  Object.entries(payload).forEach(([k, v]) => {
-    if (v === undefined || v === null) return;
-    if (!(v instanceof File)) obj[k] = v;
-  });
   const response = await fetch(url, {
     method: "PATCH",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(obj),
+    headers: useFormData ? getAuthHeadersFormData() : getAuthHeaders(),
+    body,
   });
   if (response.status === 401) throw new Error("Unauthorized");
   if (response.status === 404) throw new Error("Staff not found");
