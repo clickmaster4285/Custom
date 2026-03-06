@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog"
 import { CameraCapture } from "@/components/camera-capture"
-import { createStaff, type CreateStaffPayload } from "@/lib/staff-api"
+import type { CreateStaffPayload } from "@/lib/staff-api"
 import { ROUTES } from "@/routes/config"
 import { StaffStepIndicator } from "@/components/hr/add-staff/staff-step-indicator"
 import { AddStaffStep1PersonalInfo } from "@/components/hr/add-staff/step1-personal-info"
@@ -106,6 +106,57 @@ const emptyForm: CreateStaffPayload = {
   collector_name: "",
 }
 
+type StoredFile = {
+  name: string
+  type: string
+  dataUrl: string
+}
+
+type AddStaffDraft = {
+  v: 1
+  savedAt: string
+  employeeCategory: "new" | "existing"
+  currentStep: number
+  form: CreateStaffPayload
+  staffPhotos: (StoredFile | null)[]
+  cnicFront: StoredFile | null
+  cnicBack: StoredFile | null
+  appointmentLetter: StoredFile | null
+  additionalDocument: StoredFile | null
+}
+
+const ADD_STAFF_DRAFT_KEY = "tekeye.hr.addStaff.draft.v1"
+const LOCAL_STAFF_STORE_KEY = "tekeye.hr.staff.local.v1"
+
+type LocalStaffRecord = {
+  id: number
+  savedAt: string
+  payload: Record<string, unknown>
+  draft: string | null
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ""))
+    reader.onerror = () => reject(new Error("Failed to read file"))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function toStoredFile(file: File, opts?: { maxBytes?: number }): Promise<StoredFile | null> {
+  const maxBytes = opts?.maxBytes ?? 1_800_000 // ~1.8MB per file to avoid blowing localStorage
+  if (file.size > maxBytes) return null
+  const dataUrl = await readFileAsDataUrl(file)
+  return { name: file.name, type: file.type || "application/octet-stream", dataUrl }
+}
+
+async function storedFileToFile(stored: StoredFile): Promise<File> {
+  const res = await fetch(stored.dataUrl)
+  const blob = await res.blob()
+  return new File([blob], stored.name, { type: stored.type || blob.type })
+}
+
 export default function AddStaffPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState<CreateStaffPayload>(emptyForm)
@@ -120,6 +171,136 @@ export default function AddStaffPage() {
   const [cnicBack, setCnicBack] = useState<UploadValue>({ file: null, previewUrl: null })
   const [appointmentLetter, setAppointmentLetter] = useState<UploadValue>({ file: null, previewUrl: null })
   const [additionalDocument, setAdditionalDocument] = useState<UploadValue>({ file: null, previewUrl: null })
+
+  const savingDraftRef = useRef(false)
+  const lastSavedDraftJsonRef = useRef<string>("")
+  const draftSnapshot = useMemo(() => {
+    return {
+      employeeCategory,
+      currentStep,
+      form,
+      staffPhotos: staffPhotos.map((p) => p.file),
+      cnicFront: cnicFront.file,
+      cnicBack: cnicBack.file,
+      appointmentLetter: appointmentLetter.file,
+      additionalDocument: additionalDocument.file,
+    }
+  }, [
+    employeeCategory,
+    currentStep,
+    form,
+    staffPhotos,
+    cnicFront.file,
+    cnicBack.file,
+    appointmentLetter.file,
+    additionalDocument.file,
+  ])
+
+  // Restore draft (localStorage) on mount.
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try {
+        const raw = localStorage.getItem(ADD_STAFF_DRAFT_KEY)
+        if (!raw) return
+        const parsed = JSON.parse(raw) as AddStaffDraft
+        if (!parsed || parsed.v !== 1) return
+        if (cancelled) return
+
+        setEmployeeCategory(parsed.employeeCategory ?? "new")
+        setCurrentStep(typeof parsed.currentStep === "number" ? parsed.currentStep : 1)
+        setForm((prev) => ({ ...prev, ...(parsed.form ?? {}) }))
+
+        const restoredPhotos: UploadValue[] = []
+        for (const item of parsed.staffPhotos ?? []) {
+          if (!item) continue
+          try {
+            const file = await storedFileToFile(item)
+            if (cancelled) return
+            restoredPhotos.push({ file, previewUrl: URL.createObjectURL(file) })
+          } catch {
+            // ignore corrupted draft items
+          }
+        }
+        if (!cancelled) setStaffPhotos(restoredPhotos)
+
+        const restoreSingle = async (
+          stored: StoredFile | null | undefined,
+          setter: React.Dispatch<React.SetStateAction<UploadValue>>
+        ) => {
+          if (!stored) return
+          try {
+            const file = await storedFileToFile(stored)
+            if (cancelled) return
+            const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null
+            setter({ file, previewUrl })
+          } catch {
+            // ignore
+          }
+        }
+
+        await restoreSingle(parsed.cnicFront, setCnicFront)
+        await restoreSingle(parsed.cnicBack, setCnicBack)
+        await restoreSingle(parsed.appointmentLetter, setAppointmentLetter)
+        await restoreSingle(parsed.additionalDocument, setAdditionalDocument)
+      } catch {
+        // ignore invalid draft
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Auto-save draft to localStorage (debounced).
+  useEffect(() => {
+    if (savingDraftRef.current) return
+    const t = window.setTimeout(() => {
+      const save = async () => {
+        if (savingDraftRef.current) return
+        savingDraftRef.current = true
+        try {
+          const staffPhotoStored = await Promise.all(
+            (draftSnapshot.staffPhotos ?? []).slice(0, 5).map(async (f) => {
+              if (!f) return null
+              try {
+                return await toStoredFile(f)
+              } catch {
+                return null
+              }
+            })
+          )
+
+          const draft: AddStaffDraft = {
+            v: 1,
+            savedAt: new Date().toISOString(),
+            employeeCategory: draftSnapshot.employeeCategory,
+            currentStep: draftSnapshot.currentStep,
+            form: draftSnapshot.form,
+            staffPhotos: staffPhotoStored,
+            cnicFront: draftSnapshot.cnicFront ? await toStoredFile(draftSnapshot.cnicFront) : null,
+            cnicBack: draftSnapshot.cnicBack ? await toStoredFile(draftSnapshot.cnicBack) : null,
+            appointmentLetter: draftSnapshot.appointmentLetter ? await toStoredFile(draftSnapshot.appointmentLetter) : null,
+            additionalDocument: draftSnapshot.additionalDocument ? await toStoredFile(draftSnapshot.additionalDocument) : null,
+          }
+
+          const json = JSON.stringify(draft)
+          if (json !== lastSavedDraftJsonRef.current) {
+            localStorage.setItem(ADD_STAFF_DRAFT_KEY, json)
+            lastSavedDraftJsonRef.current = json
+          }
+        } catch {
+          // ignore quota / serialization errors
+        } finally {
+          savingDraftRef.current = false
+        }
+      }
+      void save()
+    }, 350)
+
+    return () => window.clearTimeout(t)
+  }, [draftSnapshot])
 
   useEffect(() => {
     return () => {
@@ -186,6 +367,11 @@ export default function AddStaffPage() {
     setEmployeeCategory("new")
     setCurrentStep(1)
     setSubmitError(null)
+    try {
+      localStorage.removeItem(ADD_STAFF_DRAFT_KEY)
+    } catch {
+      // ignore
+    }
     setStaffPhotos((prev) => {
       for (const p of prev) {
         if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
@@ -203,16 +389,65 @@ export default function AddStaffPage() {
     setSubmitError(null)
     setSubmitting(true)
     try {
-      await createStaff({
+      // Create a clean payload that only includes login info if has_login is true
+      // Also map field names to match backend StaffCreateSerializer expectations
+      const nameParts = (form.full_name || "").trim().split(/\s+/)
+      const first_name = nameParts[0] || ""
+      const last_name = nameParts.slice(1).join(" ") || ""
+
+      const payload: any = {
         ...form,
+        first_name,
+        last_name,
+        national_id: form.cnic,
+        street_address: form.address,
+        date_of_joining: form.joining_date,
+        emergency_contact_phone: form.emergency_contact,
+        emergency_contact_name: form.full_name + " Contact", // Placeholder as it's required by serializer logic
         profile_image: staffPhotos[0]?.file ?? undefined,
         staff_photos: staffPhotos.map((p) => p.file).filter((f): f is File => f instanceof File),
         cnic_front: cnicFront.file ?? undefined,
         cnic_back: cnicBack.file ?? undefined,
         appointment_letter: appointmentLetter.file ?? undefined,
         additional_document: additionalDocument.file ?? undefined,
-      })
+      }
+
+      if (!form.has_login) {
+        delete payload.login_username
+        delete payload.username
+        delete payload.password
+      } else {
+        // Ensure both fields are set for backend
+        payload.login_username = form.login_username || form.username
+        payload.username = payload.login_username
+      }
+
+      // Local-only mode: persist staff to localStorage (no backend calls).
+      try {
+        const existingRaw = localStorage.getItem(LOCAL_STAFF_STORE_KEY)
+        const existing = (existingRaw ? JSON.parse(existingRaw) : []) as LocalStaffRecord[]
+        const record: LocalStaffRecord = {
+          id: Date.now(),
+          savedAt: new Date().toISOString(),
+          payload: {
+            ...payload,
+            // never store real File objects directly inside the staff list
+            profile_image: undefined,
+            staff_photos: undefined,
+            cnic_front: undefined,
+            cnic_back: undefined,
+            appointment_letter: undefined,
+            additional_document: undefined,
+          },
+          draft: localStorage.getItem(ADD_STAFF_DRAFT_KEY) ?? null,
+        }
+        localStorage.setItem(LOCAL_STAFF_STORE_KEY, JSON.stringify([record, ...existing]))
+        localStorage.removeItem(ADD_STAFF_DRAFT_KEY)
+      } catch {
+        // ignore localStorage errors
+      }
       navigate(ROUTES.EMPLOYEES)
+      return
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Failed to add staff")
     } finally {

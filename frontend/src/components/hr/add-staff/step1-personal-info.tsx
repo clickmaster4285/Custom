@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
 import type { UploadValue } from "@/components/hr/add-staff/step2-documents-upload"
 import {
@@ -18,29 +17,29 @@ type EmployeeCategory = "new" | "existing"
 
 export type AddStaffStep1Form = {
   personal_number?: string
-  full_name: string
+  full_name?: string
   father_name?: string
   gender?: string
-  cnic: string
-  date_of_birth: string
-  phone: string
-  email: string
+  cnic?: string
+  date_of_birth?: string
+  phone?: string
+  email?: string
   qualification?: string
-  address: string
+  address?: string
   bps?: string
-  department: string
-  designation: string
-  role: string
+  department?: string
+  designation?: string
+  role?: string
   employment_type?: string
-  joining_date: string
+  joining_date?: string
   current_posting?: string
   collector_name?: string
-  emergency_contact: string
+  emergency_contact?: string
 }
 
 export function AddStaffStep1PersonalInfo({
-  employeeCategory,
-  onEmployeeCategoryChange,
+  employeeCategory: _employeeCategory,
+  onEmployeeCategoryChange: _onEmployeeCategoryChange,
   form,
   updateForm,
   staffPhotos,
@@ -184,7 +183,9 @@ export function AddStaffStep1PersonalInfo({
         {/* Personal Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Personal Number</Label>
+            <Label className="text-base text-foreground">
+              Personal Number
+            </Label>
             <Input
               placeholder="e.g. 12345"
               value={form.personal_number || ""}
@@ -195,10 +196,12 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Full Name (As per CNIC/Passport)</Label>
+            <Label className="text-base text-foreground">
+              Full Name (As per CNIC/Passport)
+            </Label>
             <Input
               placeholder="e.g. Mohammad Ali Hassan"
-              value={form.full_name}
+              value={form.full_name || ""}
               onChange={(e) => updateForm({ full_name: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
@@ -216,7 +219,9 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Gender</Label>
+            <Label className="text-base text-foreground">
+              Gender
+            </Label>
             <Select value={form.gender || undefined} onValueChange={(value) => updateForm({ gender: value })}>
               <SelectTrigger className="w-full h-10 bg-background border-border">
                 <SelectValue placeholder="Male/Female/Other" />
@@ -230,41 +235,49 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">CNIC Number</Label>
+            <Label className="text-base text-foreground">
+              CNIC Number
+            </Label>
             <Input
               placeholder="00000-0000000-0"
-              value={form.cnic}
+              value={form.cnic || ""}
               onChange={(e) => updateForm({ cnic: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Date of Birth</Label>
+            <Label className="text-base text-foreground">
+              Date of Birth
+            </Label>
             <Input
               type="date"
-              value={form.date_of_birth}
+              value={form.date_of_birth || ""}
               onChange={(e) => updateForm({ date_of_birth: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Mobile Number</Label>
+            <Label className="text-base text-foreground">
+              Mobile Number
+            </Label>
             <Input
               placeholder="0000-0000000"
-              value={form.phone}
+              value={form.phone || ""}
               onChange={(e) => updateForm({ phone: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Email Address</Label>
+            <Label className="text-base text-foreground">
+              Email Address
+            </Label>
             <Input
               type="email"
               placeholder="emailaddress@email.com"
-              value={form.email}
+              value={form.email || ""}
               onChange={(e) => updateForm({ email: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
@@ -290,10 +303,12 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label className="text-base text-foreground">Residential Address</Label>
+            <Label className="text-base text-foreground">
+              Residential Address
+            </Label>
             <Textarea
               placeholder="e.g. House #, Street Name, City"
-              value={form.address}
+              value={form.address || ""}
               onChange={(e) => updateForm({ address: e.target.value })}
               className="min-h-20 text-base bg-background border-border resize-none"
             />
@@ -323,7 +338,9 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Department</Label>
+            <Label className="text-base text-foreground">
+              Department
+            </Label>
             <Select
               value={form.department || undefined}
               onValueChange={(value) => updateForm({ department: value })}
@@ -342,18 +359,22 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Designation</Label>
+            <Label className="text-base text-foreground">
+              Designation
+            </Label>
             <Input
               placeholder="Enter designation"
-              value={form.designation}
+              value={form.designation || ""}
               onChange={(e) => updateForm({ designation: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Role</Label>
-            <Select value={form.role} onValueChange={(value) => updateForm({ role: value })}>
+            <Label className="text-base text-foreground">
+              Role
+            </Label>
+            <Select value={form.role || ""} onValueChange={(value) => updateForm({ role: value })}>
               <SelectTrigger className="w-full h-10 bg-background border-border">
                 <SelectValue />
               </SelectTrigger>
@@ -387,10 +408,12 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Joining Date</Label>
+            <Label className="text-base text-foreground">
+              Joining Date
+            </Label>
             <Input
               type="date"
-              value={form.joining_date}
+              value={form.joining_date || ""}
               onChange={(e) => updateForm({ joining_date: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
@@ -417,10 +440,12 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Emergency Contact</Label>
+            <Label className="text-base text-foreground">
+              Emergency Contact
+            </Label>
             <Input
               placeholder="0000-0000000"
-              value={form.emergency_contact}
+              value={form.emergency_contact || ""}
               onChange={(e) => updateForm({ emergency_contact: e.target.value })}
               className="h-10 text-base bg-background border-border"
             />
@@ -432,26 +457,22 @@ export function AddStaffStep1PersonalInfo({
       {/* Action Buttons */}
       <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-border">
         <div className="flex items-center gap-3">
-          {onCancel && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
-            >
-              Cancel
-            </Button>
-          )}
-          {onReset && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onReset}
-              className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
-            >
-              Reset Form
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onReset}
+            className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
+          >
+            Reset Form
+          </Button>
           {onSaveToDraft && (
             <Button
               type="button"
@@ -463,15 +484,13 @@ export function AddStaffStep1PersonalInfo({
             </Button>
           )}
         </div>
-        {onSaveAndContinue && (
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            className="shrink-0 rounded-md bg-[#3366FF] px-5 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
-          >
-            Save & Continue
-          </Button>
-        )}
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          className="shrink-0 rounded-md bg-[#3366FF] px-5 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
+        >
+          Save & Continue
+        </Button>
       </div>
     </div>
   )

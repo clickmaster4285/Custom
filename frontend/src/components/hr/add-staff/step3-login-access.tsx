@@ -1,5 +1,4 @@
 import { Switch } from "@/components/ui/switch"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState } from "react"
@@ -83,7 +82,7 @@ export function AddStaffStep3LoginAccess({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div className="space-y-2">
                 <Label className="text-base text-foreground">
-                  Login Username <span className="text-destructive">*</span>
+                  Login Username
                 </Label>
                 <Input
                   placeholder="e.g. ahsan.khan"
@@ -104,7 +103,7 @@ export function AddStaffStep3LoginAccess({
               </div>
               <div className="space-y-2">
                 <Label className="text-base text-foreground">
-                  Password <span className="text-destructive">*</span>
+                  Password
                 </Label>
                 <Input
                   type="password"
@@ -136,48 +135,40 @@ export function AddStaffStep3LoginAccess({
       {/* Action buttons matching the previous design */}
       <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-t border-border">
         <div className="flex items-center gap-3">
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-          )}
-          {onReset && (
-            <button
-              type="button"
-              onClick={() => {
-                updateForm({ has_login: false, login_username: "", password: "" })
-                setErrors({})
-              }}
-              className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
-            >
-              Reset Form
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onReset()
+              setErrors({})
+            }}
+            className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
+          >
+            Reset Form
+          </button>
         </div>
         <div className="flex items-center gap-3">
-          {onPrevious && (
-            <button
-              type="button"
-              onClick={onPrevious}
-              className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
-            >
-              Previous
-            </button>
-          )}
-          {onFinish && (
-            <button
-              type="button"
-              onClick={handleFinish}
-              disabled={submitting}
-              className="shrink-0 rounded-md bg-[#3366FF] px-5 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? "Adding Staff..." : "Add Staff"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={handleFinish}
+            disabled={submitting}
+            className="shrink-0 rounded-md bg-[#3366FF] px-5 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {submitting ? "Adding Staff..." : "Add Staff"}
+          </button>
         </div>
       </div>
     </div>
