@@ -2,6 +2,7 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useState } from "react"
 
 export type AddStaffStep3Form = {
   has_login?: boolean
@@ -26,6 +27,35 @@ export function AddStaffStep3LoginAccess({
   onFinish: () => void
   submitting: boolean
 }) {
+  const [errors, setErrors] = useState<{ username?: string; password?: string }>({})
+
+  const validateForm = (): boolean => {
+    if (!form.has_login) {
+      return true
+    }
+
+    const newErrors: { username?: string; password?: string } = {}
+
+    if (!form.login_username?.trim()) {
+      newErrors.username = "Username is required"
+    }
+
+    if (!form.password?.trim()) {
+      newErrors.password = "Password is required"
+    } else if (form.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleFinish = () => {
+    if (validateForm()) {
+      onFinish()
+    }
+  }
+
   return (
     <div className="space-y-8">
       <Label className="text-[22px] font-bold text-foreground">Login Access</Label>
@@ -36,12 +66,15 @@ export function AddStaffStep3LoginAccess({
             <div className="min-w-0">
               <p className="text-base font-medium text-foreground">Give this employee login access?</p>
               <p className="text-sm text-muted-foreground">
-                If enabled, they can sign in using provided credentials.
+                If enabled, they can sign in using provided credentials. Username and password are required.
               </p>
             </div>
             <Switch 
               checked={Boolean(form.has_login)} 
-              onCheckedChange={(checked) => updateForm({ has_login: checked })} 
+              onCheckedChange={(checked) => {
+                updateForm({ has_login: checked })
+                setErrors({})
+              }} 
               className="data-[state=checked]:bg-[#3366FF]"
             />
           </div>
@@ -49,25 +82,47 @@ export function AddStaffStep3LoginAccess({
           {form.has_login ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div className="space-y-2">
-                <Label className="text-base text-foreground">Login Username</Label>
+                <Label className="text-base text-foreground">
+                  Login Username <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   placeholder="e.g. ahsan.khan"
                   value={form.login_username || ""}
-                  onChange={(e) => updateForm({ login_username: e.target.value })}
-                  className="h-10 text-base bg-background border-border"
+                  onChange={(e) => {
+                    updateForm({ login_username: e.target.value })
+                    if (errors.username) {
+                      setErrors({ ...errors, username: undefined })
+                    }
+                  }}
+                  className={`h-10 text-base bg-background border-border ${errors.username ? 'border-destructive' : ''}`}
                 />
-                <p className="text-sm text-muted-foreground">(Username for system login)</p>
+                {errors.username ? (
+                  <p className="text-sm text-destructive">{errors.username}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">(Username for system login)</p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label className="text-base text-foreground">Password</Label>
+                <Label className="text-base text-foreground">
+                  Password <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   type="password"
                   placeholder="Enter password"
                   value={form.password || ""}
-                  onChange={(e) => updateForm({ password: e.target.value })}
-                  className="h-10 text-base bg-background border-border"
+                  onChange={(e) => {
+                    updateForm({ password: e.target.value })
+                    if (errors.password) {
+                      setErrors({ ...errors, password: undefined })
+                    }
+                  }}
+                  className={`h-10 text-base bg-background border-border ${errors.password ? 'border-destructive' : ''}`}
                 />
-                <p className="text-sm text-muted-foreground">(Minimum 8 characters)</p>
+                {errors.password ? (
+                  <p className="text-sm text-destructive">{errors.password}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">(Minimum 8 characters)</p>
+                )}
               </div>
             </div>
           ) : (
@@ -93,7 +148,10 @@ export function AddStaffStep3LoginAccess({
           {onReset && (
             <button
               type="button"
-              onClick={onReset}
+              onClick={() => {
+                updateForm({ has_login: false, login_username: "", password: "" })
+                setErrors({})
+              }}
               className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
             >
               Reset Form
@@ -113,7 +171,7 @@ export function AddStaffStep3LoginAccess({
           {onFinish && (
             <button
               type="button"
-              onClick={onFinish}
+              onClick={handleFinish}
               disabled={submitting}
               className="shrink-0 rounded-md bg-[#3366FF] px-5 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC] disabled:opacity-50 disabled:cursor-not-allowed"
             >
