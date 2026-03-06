@@ -16,12 +16,14 @@ import {
 
 const ZONES = ["zone-a", "zone-b", "zone-c", "main-gate"]
 const GATES = ["main-gate", "gate-1", "gate-2", "vip-gate"]
+/** Radix Select does not allow value=""; use for optional gate and treat as empty when submitting */
+const GATE_PLACEHOLDER = "__none__"
 
 export default function CheckInOutPage() {
   const { toast } = useToast()
   const [qrCodeId, setQrCodeId] = useState("")
   const [zone, setZone] = useState("")
-  const [gate, setGate] = useState("")
+  const [gate, setGate] = useState(GATE_PLACEHOLDER)
   const [scanType, setScanType] = useState<"entry" | "exit">("entry")
   const [lastResult, setLastResult] = useState<ZoneScanResult | null>(null)
 
@@ -30,7 +32,7 @@ export default function CheckInOutPage() {
       zoneScan({
         qr_code_id: qrCodeId.trim(),
         zone: zone || "zone-a",
-        gate: gate || "",
+        gate: gate === GATE_PLACEHOLDER ? "" : gate,
         scan_type: scanType,
       }),
     onSuccess: (data) => {
@@ -112,7 +114,7 @@ export default function CheckInOutPage() {
                 <SelectValue placeholder="Optional" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">—</SelectItem>
+                <SelectItem value={GATE_PLACEHOLDER}>—</SelectItem>
                 {GATES.map((g) => (
                   <SelectItem key={g} value={g}>{g}</SelectItem>
                 ))}

@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { CameraCapture } from "@/components/camera-capture"
+import { useToast } from "@/hooks/use-toast"
 import { getStoredUser } from "@/lib/auth"
 import { fetchStaff, type StaffRecord } from "@/lib/staff-api"
 import {
@@ -58,6 +59,7 @@ type MarkType = "check_in" | "check_out"
 
 export default function AttendancePage() {
   const currentUser = getStoredUser()
+  const { toast } = useToast()
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([])
   const [staff, setStaff] = useState<StaffRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,6 +71,7 @@ export default function AttendancePage() {
   const [cameraOpen, setCameraOpen] = useState(false)
   const [markError, setMarkError] = useState<string | null>(null)
   const [marking, setMarking] = useState(false)
+  const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
 
   const loadData = () => {
     setLoading(true)
@@ -85,7 +88,30 @@ export default function AttendancePage() {
     loadData()
   }, [])
 
-  const presentToday = attendance.filter((r) => r.check_in && r.date === new Date().toISOString().slice(0, 10)).length
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const presentToday = attendance.filter((r) => r.check_in && r.date === todayStr).length
+  const filteredAttendance = filterDate
+    ? attendance.filter((r) => r.date === filterDate)
+    : attendance
+  const thisMonth = attendance.filter((r) => r.date?.startsWith(todayStr.slice(0, 7))).length
+
+  const handleExport = () => {
+    const rows = filteredAttendance.map((r) => ({
+      date: r.date,
+      username: r.username,
+      check_in: r.check_in ?? "",
+      check_out: r.check_out ?? "",
+      status: statusFromRecord(r),
+    }))
+    const headers = ["Date", "Username", "Check-in", "Check-out", "Status"]
+    const csv = [headers.join(","), ...rows.map((r) => [r.date, r.username, r.check_in, r.check_out, r.status].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `attendance-${filterDate || "all"}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
 
   const userIdNum = selectedUserId ? Number(selectedUserId) : currentUser?.id ?? 0
   const todayRecord = userIdNum ? getTodayRecordForUser(attendance, userIdNum) : undefined
@@ -99,6 +125,7 @@ export default function AttendancePage() {
         .then(() => {
           setCameraOpen(false)
           loadData()
+          toast({ title: "Check-in recorded", description: "Attendance marked successfully." })
         })
         .catch((err) => setMarkError(err instanceof Error ? err.message : "Failed to mark check-in"))
         .finally(() => setMarking(false))
@@ -112,6 +139,7 @@ export default function AttendancePage() {
         .then(() => {
           setCameraOpen(false)
           loadData()
+          toast({ title: "Check-out recorded", description: "Attendance updated successfully." })
         })
         .catch((err) => setMarkError(err instanceof Error ? err.message : "Failed to mark check-out"))
         .finally(() => setMarking(false))
@@ -121,8 +149,8 @@ export default function AttendancePage() {
   const staffOptions = [
     ...(currentUser ? [{ id: currentUser.id, label: `Me (${currentUser.username})` }] : []),
     ...staff
-      .filter((s) => s.user_id && s.user_id !== currentUser?.id)
-      .map((s) => ({ id: s.user_id!, label: `${s.full_name || s.user} — ${s.department}` })),
+      .filter((s) => s.user != null && s.user !== currentUser?.id)
+      .map((s) => ({ id: s.user!, label: `${s.full_name ?? "—"} — ${s.department ?? ""}` })),
   ]
 
 
@@ -178,8 +206,8 @@ export default function AttendancePage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{attendance.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Records</p>
+              <div className="text-2xl font-bold">{thisMonth}</div>
+              <p className="text-xs text-muted-foreground mt-1">This month</p>
             </CardContent>
           </Card>
         </div>
@@ -273,8 +301,15 @@ export default function AttendancePage() {
               <CardDescription>Check-in and check-out log for current day</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Input type="date" className="w-40" defaultValue={new Date().toISOString().slice(0, 10)} />
-              <Button variant="outline">Export</Button>
+              <Input
+                type="date"
+                className="w-40"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+              />
+              <Button variant="outline" onClick={handleExport}>
+                Export CSV
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -295,14 +330,16 @@ export default function AttendancePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {attendance.length === 0 ? (
+                {filteredAttendance.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      No attendance records yet.
+                      {attendance.length === 0
+                        ? "No attendance records yet."
+                        : `No records for ${filterDate}. Change the date or export all.`}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  attendance.map((row) => {
+                  filteredAttendance.map((row) => {
                     const status = statusFromRecord(row)
                     return (
                       <TableRow key={row.id}>

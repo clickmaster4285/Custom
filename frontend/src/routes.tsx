@@ -46,6 +46,7 @@ export const router = createBrowserRouter([
   {
     path: ROUTES.DASHBOARD,
     element: <AuthGuard />,
+    errorElement: <RouteErrorFallback />,
     children: [
       { path: "login", element: <LazyRoute><PAGES.Login /></LazyRoute> },
       {

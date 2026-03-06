@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Table,
   TableBody,
@@ -24,11 +24,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { fetchStaff, type StaffRecord } from "@/lib/staff-api"
-import { ROUTES } from "@/routes/config"
+import { API_BASE_URL } from "@/lib/api"
+import { fetchStaff, deleteStaff, type StaffRecord } from "@/lib/staff-api"
+import { ROUTES, getEmployeeDetailPath } from "@/routes/config"
+import { useToast } from "@/hooks/use-toast"
+
+function staffImageUrl(profileImage: string | null | undefined): string | undefined {
+  if (!profileImage) return undefined
+  if (profileImage.startsWith("http")) return profileImage
+  return `${API_BASE_URL}${profileImage.startsWith("/") ? "" : "/"}${profileImage}`
+}
 
 export default function EmployeesPage() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [staff, setStaff] = useState<StaffRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,12 +62,25 @@ export default function EmployeesPage() {
     setViewOpen(true)
   }
 
+  const handleDeleteEmployee = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this employee?")) return
+    try {
+      await deleteStaff(id)
+      toast({ title: "Employee deleted", description: "The record has been removed." })
+      loadStaff()
+    } catch (err) {
+      toast({ 
+        title: "Delete failed", 
+        description: err instanceof Error ? err.message : "Failed to delete employee",
+        variant: "destructive"
+      })
+    }
+  }
+
   const filtered = staff.filter(
     (s) =>
       s.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      s.user?.toLowerCase().includes(search.toLowerCase()) ||
-      s.personal_number?.toLowerCase().includes(search.toLowerCase()) ||
-      s.login_username?.toLowerCase().includes(search.toLowerCase()) ||
+      (s.user?.toString() || "").toLowerCase().includes(search.toLowerCase()) ||
       s.department?.toLowerCase().includes(search.toLowerCase()) ||
       s.designation?.toLowerCase().includes(search.toLowerCase()) ||
       s.cnic?.includes(search)
@@ -127,8 +149,8 @@ export default function EmployeesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-semibold">Disposition List of Assistant/Deputy Collectors</CardTitle>
-              <CardDescription>of respect of Collectorate of Customs (Enforcement), Peshawar</CardDescription>
+              <CardTitle className="text-xl font-semibold">Employee Directory</CardTitle>
+              <CardDescription>Search and manage employee records</CardDescription>
             </div>
             <div className="flex gap-2">
               <div className="relative">
@@ -156,7 +178,7 @@ export default function EmployeesPage() {
             {loading ? (
               <p className="text-sm text-muted-foreground py-8">Loading staff…</p>
             ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -190,17 +212,27 @@ export default function EmployeesPage() {
                         onClick={() => handleViewEmployee(row)}
                       >
                         <TableCell className="text-center font-medium">{index + 1}</TableCell>
-                        <TableCell>{row.personal_number || row.user || "—"}</TableCell>
-                        <TableCell className="font-medium">{row.full_name || row.user}</TableCell>
+                        <TableCell>{row.user || row.employee_id || "—"}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                             <Avatar className="h-6 w-6">
+                                <AvatarImage src={staffImageUrl(row.profile_image)} alt="" />
+                                <AvatarFallback className="text-[10px]">
+                                  {row.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "—"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{row.full_name || row.user}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>{row.father_name || "—"}</TableCell>
                         <TableCell>{row.designation || "—"}</TableCell>
                         <TableCell className="text-center">{row.bps || "—"}</TableCell>
                         <TableCell>{row.cnic || "—"}</TableCell>
-                        <TableCell>{row.phone || "—"}</TableCell>
+                        <TableCell>{row.phone || row.phone_primary || "—"}</TableCell>
                         <TableCell>{row.date_of_birth || "—"}</TableCell>
                         <TableCell>{row.qualification || "—"}</TableCell>
-                        <TableCell>{row.current_posting || "—"}</TableCell>
-                        <TableCell>{row.collector_name || "—"}</TableCell>
+                        <TableCell>{row.current_posting || row.branch_location || "—"}</TableCell>
+                        <TableCell>{row.collector_name || row.manager || "—"}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
                             <Button 
@@ -209,7 +241,7 @@ export default function EmployeesPage() {
                               className="h-8 w-8 text-blue-600"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleViewEmployee(row)
+                                navigate(getEmployeeDetailPath(row.id))
                               }}
                             >
                               <Eye className="h-4 w-4" />
@@ -218,7 +250,10 @@ export default function EmployeesPage() {
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8 text-green-600"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                navigate(`/employees/${row.id}/edit`)
+                              }}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -226,7 +261,10 @@ export default function EmployeesPage() {
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8 text-red-600"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteEmployee(row.id)
+                              }}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -243,7 +281,7 @@ export default function EmployeesPage() {
         </Card>
       </div>
 
-      {/* Employee Details Dialog */}
+      {/* Quick View Dialog */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -258,19 +296,20 @@ export default function EmployeesPage() {
               {/* Header with Avatar and Basic Info */}
               <div className="flex items-start gap-4 pb-4 border-b">
                 <Avatar className="h-20 w-20">
+                  <AvatarImage src={staffImageUrl(selectedEmployee.profile_image)} alt="" />
                   <AvatarFallback className="text-lg">
                     {selectedEmployee.full_name
                       ?.split(" ")
                       .map((n) => n[0])
                       .join("")
-                      .slice(0, 2) ?? selectedEmployee.user?.slice(0, 2) ?? "—"}
+                      .slice(0, 2) ?? selectedEmployee.user?.toString().slice(0, 2) ?? "—"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold">{selectedEmployee.full_name || selectedEmployee.user}</h3>
                   <p className="text-sm text-muted-foreground">{selectedEmployee.designation} • {selectedEmployee.department}</p>
                   <div className="flex gap-2 mt-2">
-                    <Badge>{selectedEmployee.role}</Badge>
+                    <Badge>{selectedEmployee.role || selectedEmployee.job_status}</Badge>
                     <Badge variant="outline">BPS: {selectedEmployee.bps || "—"}</Badge>
                   </div>
                 </div>
@@ -280,7 +319,7 @@ export default function EmployeesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Personal No.</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.personal_number || selectedEmployee.user || "—"}</p>
+                  <p className="text-sm font-medium">{selectedEmployee.user || selectedEmployee.employee_id || "—"}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Father's Name</Label>
@@ -292,7 +331,7 @@ export default function EmployeesPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Mobile Number</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.phone || "—"}</p>
+                  <p className="text-sm font-medium">{selectedEmployee.phone || selectedEmployee.phone_primary || "—"}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Email</Label>
@@ -312,23 +351,23 @@ export default function EmployeesPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Current Place of Posting</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.current_posting || "—"}</p>
+                  <p className="text-sm font-medium">{selectedEmployee.current_posting || selectedEmployee.branch_location || "—"}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Name of Collector</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.collector_name || "—"}</p>
+                  <p className="text-sm font-medium">{selectedEmployee.collector_name || selectedEmployee.manager || "—"}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Joining Date</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.joining_date || "—"}</p>
+                  <p className="text-sm font-medium">{selectedEmployee.joining_date || selectedEmployee.date_of_joining || "—"}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Emergency Contact</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.emergency_contact || "—"}</p>
+                  <p className="text-sm font-medium">{selectedEmployee.emergency_contact || selectedEmployee.emergency_contact_phone || "—"}</p>
                 </div>
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs text-muted-foreground">Address</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.address || "—"}</p>
+                  <p className="text-sm font-medium">{selectedEmployee.address || selectedEmployee.street_address || "—"}</p>
                 </div>
               </div>
             </div>
@@ -338,7 +377,12 @@ export default function EmployeesPage() {
             <Button variant="outline" onClick={() => setViewOpen(false)}>
               Close
             </Button>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white">
+            <Button 
+              className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+              onClick={() => {
+                if (selectedEmployee) navigate(`/employees/${selectedEmployee.id}/edit`)
+              }}
+            >
               <Edit className="h-4 w-4 mr-2" />
               Edit Details
             </Button>
