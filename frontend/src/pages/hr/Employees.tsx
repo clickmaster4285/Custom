@@ -5,7 +5,6 @@ import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Table,
@@ -15,15 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { API_BASE_URL } from "@/lib/api"
 import { fetchStaff, deleteStaff, type StaffRecord } from "@/lib/staff-api"
 import { ROUTES, getEmployeeDetailPath } from "@/routes/config"
@@ -43,8 +33,6 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [viewOpen, setViewOpen] = useState(false)
-  const [selectedEmployee, setSelectedEmployee] = useState<StaffRecord | null>(null)
 
   const loadStaff = () => {
     setLoading(true)
@@ -59,8 +47,7 @@ export default function EmployeesPage() {
   }, [])
 
   const handleViewEmployee = (employee: StaffRecord) => {
-    setSelectedEmployee(employee)
-    setViewOpen(true)
+    navigate(getEmployeeDetailPath(employee.id))
   }
 
   const handleDeleteEmployee = async (id: number) => {
@@ -194,7 +181,7 @@ export default function EmployeesPage() {
                     <TableHead>Date of Birth</TableHead>
                     <TableHead>Qualification</TableHead>
                     <TableHead>Current place of Posting</TableHead>
-                    <TableHead>Name of Collector</TableHead>
+                    <TableHead>Name of Collectorate</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -281,115 +268,6 @@ export default function EmployeesPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick View Dialog */}
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Employee Details</DialogTitle>
-            <DialogDescription>
-              Complete information of the selected employee
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedEmployee && (
-            <div className="grid gap-6 py-4">
-              {/* Header with Avatar and Basic Info */}
-              <div className="flex items-start gap-4 pb-4 border-b">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={staffImageUrl(selectedEmployee.profile_image)} alt="" />
-                  <AvatarFallback className="text-lg">
-                    {selectedEmployee.full_name
-                      ?.split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2) ?? selectedEmployee.user?.toString().slice(0, 2) ?? "—"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold">{selectedEmployee.full_name || selectedEmployee.user}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedEmployee.designation} • {selectedEmployee.department}</p>
-                  <div className="flex gap-2 mt-2">
-                    <Badge>{selectedEmployee.role || selectedEmployee.job_status}</Badge>
-                    <Badge variant="outline">BPS: {selectedEmployee.bps || "—"}</Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Personal No.</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.user || selectedEmployee.employee_id || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Father's Name</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.father_name || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">CNIC</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.cnic || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Mobile Number</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.phone || selectedEmployee.phone_primary || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Email</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.email || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Date of Birth</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.date_of_birth || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Qualification</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.qualification || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">BPS</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.bps || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Current Place of Posting</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.current_posting || selectedEmployee.branch_location || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Name of Collector</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.collector_name || selectedEmployee.manager || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Joining Date</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.joining_date || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Emergency Contact</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.emergency_contact || selectedEmployee.emergency_contact_phone || "—"}</p>
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label className="text-xs text-muted-foreground">Address</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.address || selectedEmployee.street_address || "—"}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewOpen(false)}>
-              Close
-            </Button>
-            <Button 
-              className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
-              onClick={() => {
-                if (selectedEmployee) navigate(`/employees/${selectedEmployee.id}/edit`)
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Details
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </ModulePageLayout>
   )
 }

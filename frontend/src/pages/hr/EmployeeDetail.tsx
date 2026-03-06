@@ -368,13 +368,17 @@ export default function EmployeeDetailPage() {
         <DetailSection title="Personal information" icon={User}>
           <DetailGrid
             items={[
+              ["Personal number", val(s.personal_number ?? s.user)],
               ["First name", val(s.first_name)],
               ["Last name", val(s.last_name)],
+              ["Father's name", val(s.father_name)],
               ["Date of birth", s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString() : "—"],
               ["Gender", val(s.gender)],
-              ["National ID / Passport", val(s.national_id ?? s.cnic)],
+              ["CNIC", val(s.cnic)],
+              ["National ID / Passport", val(s.national_id)],
               ["Marital status", val(s.marital_status)],
               ["Blood group", val(s.blood_group)],
+              ["Qualification", val(s.qualification)],
             ]}
           />
         </DetailSection>
@@ -383,7 +387,7 @@ export default function EmployeeDetailPage() {
           <DetailGrid
             items={[
               ["Email", val(s.email)],
-              ["Phone (primary)", val(s.phone_primary)],
+              ["Phone (primary)", val(s.phone_primary ?? s.phone)],
               ["Phone (alternate)", val(s.phone_alternate)],
               ["Street address", val(s.street_address ?? s.address)],
               ["City", val(s.city)],
@@ -398,9 +402,12 @@ export default function EmployeeDetailPage() {
           <DetailGrid
             items={[
               ["Employee ID", val(s.employee_id)],
+              ["BPS", val(s.bps)],
               ["Designation", val(s.designation)],
               ["Department", val(s.department)],
               ["Branch / Office", val(s.branch_location)],
+              ["Current place of posting", val(s.current_posting)],
+              ["Collectorate / Collector name", val(s.collector_name)],
               ["Manager / Supervisor", val(s.manager)],
               ["Employment type", val(s.employment_type)],
               ["Date of joining", s.joining_date ? new Date(s.joining_date).toLocaleDateString() : "—"],
@@ -428,6 +435,7 @@ export default function EmployeeDetailPage() {
         <DetailSection title="Access & login" icon={Shield}>
           <DetailGrid
             items={[
+              ["Role", val(s.role)],
               ["Role / Access level", val(s.role_access_level)],
               ["System permissions", val(s.system_permissions)],
               ["Linked user", s.user_details ? `${s.user_details.username} (${s.user_details.role})` : "—"],
