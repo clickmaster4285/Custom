@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast"
 
 function staffImageUrl(profileImage: string | null | undefined): string | undefined {
   if (!profileImage) return undefined
+  if (profileImage.startsWith("data:")) return profileImage
   if (profileImage.startsWith("http")) return profileImage
   return `${API_BASE_URL}${profileImage.startsWith("/") ? "" : "/"}${profileImage}`
 }
@@ -359,7 +360,7 @@ export default function EmployeesPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Joining Date</Label>
-                  <p className="text-sm font-medium">{selectedEmployee.joining_date || selectedEmployee.date_of_joining || "—"}</p>
+                  <p className="text-sm font-medium">{selectedEmployee.joining_date || "—"}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Emergency Contact</Label>

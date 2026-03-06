@@ -31,9 +31,11 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 function staffImageUrl(profileImage: string | null | undefined): string | undefined {
   if (!profileImage) return undefined
+  if (profileImage.startsWith("data:")) return profileImage
   if (profileImage.startsWith("http")) return profileImage
   return `${API_BASE_URL}${profileImage.startsWith("/") ? "" : "/"}${profileImage}`
 }
@@ -173,26 +175,34 @@ function DetailSection({
   title,
   icon: Icon,
   children,
+  description,
 }: {
   title: string
   icon: React.ElementType
   children: React.ReactNode
+  description?: string
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground mb-4">
-        <Icon className="h-5 w-5 text-muted-foreground" />
-        {title}
-      </h2>
-      {children}
-    </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-[18px] font-semibold">
+          <Icon className="h-5 w-5 text-[#3b82f6]" /> {title}
+        </CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent className="space-y-4">{children}</CardContent>
+    </Card>
   )
 }
 
 function DetailGrid({ items }: { items: [string, string][] }) {
+  const list = items.filter(([, value]) => value !== "—")
+  if (list.length === 0) {
+    return <p className="text-sm text-muted-foreground">No information provided.</p>
+  }
   return (
-    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-sm">
-      {items.map(([label, value]) => (
+    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+      {list.map(([label, value]) => (
         <div key={label}>
           <dt className="text-muted-foreground">{label}</dt>
           <dd className="font-medium text-foreground">{value}</dd>
@@ -243,37 +253,61 @@ export default function EmployeeDetailPage() {
 
   return (
     <div className="w-full px-4 sm:px-6 py-6">
-      <nav className="text-sm text-muted-foreground mb-6 flex items-center gap-2">
-        <Link to={ROUTES.DASHBOARD} className="hover:text-foreground">Home</Link>
-        <span>/</span>
-        <Link to={ROUTES.EMPLOYEES} className="hover:text-foreground">HR</Link>
-        <span>/</span>
-        <Link to={ROUTES.EMPLOYEES} className="hover:text-foreground">Employees</Link>
-        <span className="text-foreground">/ {s.full_name ?? "Details"}</span>
+      <nav
+        className="text-base text-muted-foreground mb-6 flex flex-wrap items-center gap-x-2 gap-y-1"
+        aria-label="Breadcrumb"
+      >
+        <Link to={ROUTES.DASHBOARD} className="hover:text-foreground transition-colors">
+          Home
+        </Link>
+        <span aria-hidden className="text-muted-foreground/70">
+          /
+        </span>
+        <Link to={ROUTES.EMPLOYEES} className="hover:text-foreground transition-colors">
+          Employees
+        </Link>
+        <span aria-hidden className="text-muted-foreground/70">
+          /
+        </span>
+        <span className="text-[#3b82f6] font-medium" aria-current="page">
+          Employee details
+        </span>
       </nav>
 
-      <div className="flex items-center gap-4 mb-8">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <Avatar className="h-16 w-16">
-          <AvatarImage src={staffImageUrl(s.profile_image)} alt="" />
-          <AvatarFallback className="text-lg">
-            {s.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "—"}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{val(s.full_name)}</h1>
-          <p className="text-sm text-muted-foreground">
-            {val(s.designation)} · {val(s.department)}
-            {s.employee_id ? ` · ID ${s.employee_id}` : ""}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Added {created}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="min-w-0 flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="default"
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+            className="shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar className="h-14 w-14">
+              <AvatarImage src={staffImageUrl(s.profile_image)} alt="" />
+              <AvatarFallback className="text-lg">
+                {s.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "—"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <h1 className="text-[22px] font-bold tracking-tight text-foreground truncate">
+                {val(s.full_name)}
+              </h1>
+              <p className="text-base text-muted-foreground mt-1 truncate">
+                {val(s.designation)} · {val(s.department)}
+                {s.employee_id ? ` · ID ${s.employee_id}` : ""}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Added {created}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          {s.user != null && (
-            <Badge variant="default">Linked account</Badge>
-          )}
+        <div className="flex items-center gap-2">
+          {s.user != null && <Badge variant="default">Linked account</Badge>}
           <Button variant="outline" size="sm" asChild>
             <Link to={`/employees/${s.id}/edit`}>
               <Pencil className="h-4 w-4 mr-2" />

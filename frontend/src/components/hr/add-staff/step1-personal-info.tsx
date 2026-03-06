@@ -5,6 +5,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import type { UploadValue } from "@/components/hr/add-staff/step2-documents-upload"
+import { CameraCapture } from "@/components/camera-capture"
+import { useFormik } from "formik"
+import * as Yup from "yup"
 import {
   Select,
   SelectContent,
@@ -35,6 +38,10 @@ export type AddStaffStep1Form = {
   current_posting?: string
   collector_name?: string
   emergency_contact?: string
+  emergency_contact_name?: string
+  emergency_contact_relationship?: string
+  emergency_contact_phone?: string
+  emergency_contact_address?: string
 }
 
 export function AddStaffStep1PersonalInfo({
@@ -43,7 +50,10 @@ export function AddStaffStep1PersonalInfo({
   form,
   updateForm,
   staffPhotos,
+  cameraOpen,
   onOpenCamera,
+  onCaptureFromCamera,
+  onCloseCamera,
   onUploadPhotoClick,
   onRemovePhoto,
   onCancel,
@@ -61,7 +71,10 @@ export function AddStaffStep1PersonalInfo({
   form: AddStaffStep1Form
   updateForm: (patch: Partial<AddStaffStep1Form>) => void
   staffPhotos: UploadValue[]
+  cameraOpen?: boolean
   onOpenCamera: () => void
+  onCaptureFromCamera?: (file: File) => void
+  onCloseCamera?: () => void
   onUploadPhotoClick: () => void
   onRemovePhoto: (index: number) => void
   onCancel: () => void
@@ -78,11 +91,64 @@ export function AddStaffStep1PersonalInfo({
   const filled = staffPhotos.slice(0, maxPhotos)
   const emptySlots = Math.max(0, maxPhotos - filled.length)
 
+  const formik = useFormik({
+    enableReinitialize: true,
+    initialValues: {
+      personal_number: form.personal_number ?? "",
+      full_name: form.full_name ?? "",
+      gender: form.gender ?? "",
+      cnic: form.cnic ?? "",
+      date_of_birth: form.date_of_birth ?? "",
+      phone: form.phone ?? "",
+      address: form.address ?? "",
+      department: form.department ?? "",
+      designation: form.designation ?? "",
+      role: form.role ?? "",
+      joining_date: form.joining_date ?? "",
+      emergency_contact_name: form.emergency_contact_name ?? "",
+      emergency_contact_relationship: form.emergency_contact_relationship ?? "",
+      emergency_contact_phone: form.emergency_contact_phone ?? form.emergency_contact ?? "",
+      emergency_contact_address: form.emergency_contact_address ?? "",
+    },
+    validationSchema: Yup.object({
+      personal_number: Yup.string().trim().required("Personal number is required"),
+      full_name: Yup.string().trim().required("Full name is required"),
+      gender: Yup.string().trim().required("Gender is required"),
+      cnic: Yup.string().trim().required("CNIC is required"),
+      phone: Yup.string().trim().required("Mobile number is required"),
+      department: Yup.string().trim().required("Department is required"),
+      designation: Yup.string().trim().required("Designation is required"),
+      role: Yup.string().trim().required("Role is required"),
+      date_of_birth: Yup.string().trim(),
+      joining_date: Yup.string().trim(),
+      address: Yup.string().trim(),
+      emergency_contact_name: Yup.string().trim(),
+      emergency_contact_relationship: Yup.string().trim(),
+      emergency_contact_phone: Yup.string().trim(),
+      emergency_contact_address: Yup.string().trim(),
+    }),
+    onSubmit: () => {},
+  })
+
   const handleSubmit = () => {
-    if (onSaveAndContinue) {
-      onSaveAndContinue()
-    }
+    const keys = Object.keys(formik.initialValues) as (keyof typeof formik.initialValues)[]
+    const touched = keys.reduce((acc, k) => {
+      acc[k] = true
+      return acc
+    }, {} as Record<string, boolean>)
+    formik.setTouched(touched, true)
+    formik.validateForm().then((errs) => {
+      if (Object.keys(errs).length === 0 && onSaveAndContinue) onSaveAndContinue()
+    })
   }
+
+  // Helper function to render label with asterisk for required fields
+  const RequiredLabel = ({ children, required = true }: { children: React.ReactNode; required?: boolean }) => (
+    <Label className="text-base text-foreground">
+      {children}
+      {required && <span className="text-destructive ml-1">*</span>}
+    </Label>
+  )
 
   return (
     <div className="space-y-8">
@@ -101,34 +167,47 @@ export function AddStaffStep1PersonalInfo({
                 "border-muted-foreground/30 hover:border-primary/40 hover:bg-muted/30 w-[280px]"
               )}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <Camera className="h-6 w-6 text-primary" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground text-center">
-                Upload a Staff Photograph
-              </p>
-              <p className="text-xs text-muted-foreground text-center">
-                Image size: Max 2MB, Format JPG/PNG. Up to 5 images for recognition.
-              </p>
-              <div className="flex flex-col gap-2 w-full">
-                <Button
-                  type="button"
-                  onClick={onOpenCamera}
-                  disabled={filled.length >= maxPhotos}
-                  className="rounded-md bg-[#3366FF] hover:bg-[#2952CC] px-4 py-2 text-sm font-semibold text-white w-full"
-                >
-                  Capture from camera
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onUploadPhotoClick}
-                  disabled={filled.length >= maxPhotos}
-                  className="w-full"
-                >
-                  Upload Photo
-                </Button>
-              </div>
+              {cameraOpen && onCaptureFromCamera ? (
+                <div className="w-full">
+                  <CameraCapture
+                    title="Capture staff photo"
+                    description="Capture a photo to add into staff images."
+                    onCapture={(file) => onCaptureFromCamera(file)}
+                    onCancel={onCloseCamera}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                    <Camera className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground text-center">
+                    Upload a Staff Photograph
+                  </p>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Image size: Max 2MB, Format JPG/PNG. Up to 5 images for recognition.
+                  </p>
+                  <div className="flex flex-col gap-2 w-full">
+                    <Button
+                      type="button"
+                      onClick={onOpenCamera}
+                      disabled={filled.length >= maxPhotos}
+                      className="rounded-md bg-[#3366FF] hover:bg-[#2952CC] px-4 py-2 text-sm font-semibold text-white w-full"
+                    >
+                      Capture from camera
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onUploadPhotoClick}
+                      disabled={filled.length >= maxPhotos}
+                      className="w-full"
+                    >
+                      Upload Photo
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Captured Images Grid */}
@@ -183,29 +262,49 @@ export function AddStaffStep1PersonalInfo({
         {/* Personal Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Personal Number
-            </Label>
+            <RequiredLabel>Personal Number</RequiredLabel>
             <Input
               placeholder="e.g. 12345"
-              value={form.personal_number || ""}
-              onChange={(e) => updateForm({ personal_number: e.target.value })}
-              className="h-10 text-base bg-background border-border"
+              name="personal_number"
+              value={formik.values.personal_number}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ personal_number: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.personal_number && formik.errors.personal_number ? "border-destructive" : ""
+              )}
             />
-            <p className="text-sm text-muted-foreground">(Employee ID)</p>
+            {formik.touched.personal_number && formik.errors.personal_number ? (
+              <p className="text-sm text-destructive">{formik.errors.personal_number}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">(Employee ID)</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Full Name (As per CNIC/Passport)
-            </Label>
+            <RequiredLabel>Full Name (As per CNIC/Passport)</RequiredLabel>
             <Input
               placeholder="e.g. Mohammad Ali Hassan"
-              value={form.full_name || ""}
-              onChange={(e) => updateForm({ full_name: e.target.value })}
-              className="h-10 text-base bg-background border-border"
+              name="full_name"
+              value={formik.values.full_name}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ full_name: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.full_name && formik.errors.full_name ? "border-destructive" : ""
+              )}
             />
-            <p className="text-sm text-muted-foreground">(As per CNIC/Passport)</p>
+            {formik.touched.full_name && formik.errors.full_name ? (
+              <p className="text-sm text-destructive">{formik.errors.full_name}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">(As per CNIC/Passport)</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -219,11 +318,23 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Gender
-            </Label>
-            <Select value={form.gender || undefined} onValueChange={(value) => updateForm({ gender: value })}>
-              <SelectTrigger className="w-full h-10 bg-background border-border">
+            <RequiredLabel>Gender</RequiredLabel>
+            <Select
+              value={formik.values.gender || undefined}
+              onValueChange={(value) => {
+                formik.setFieldValue("gender", value, true)
+                updateForm({ gender: value })
+              }}
+              onOpenChange={(open) => {
+                if (!open) formik.setFieldTouched("gender", true, true)
+              }}
+            >
+              <SelectTrigger
+                className={cn(
+                  "w-full h-10 bg-background border-border",
+                  formik.touched.gender && formik.errors.gender ? "border-destructive" : ""
+                )}
+              >
                 <SelectValue placeholder="Male/Female/Other" />
               </SelectTrigger>
               <SelectContent>
@@ -232,48 +343,76 @@ export function AddStaffStep1PersonalInfo({
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
+            {formik.touched.gender && formik.errors.gender ? (
+              <p className="text-sm text-destructive">{formik.errors.gender}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              CNIC Number
-            </Label>
+            <RequiredLabel>CNIC Number</RequiredLabel>
             <Input
               placeholder="00000-0000000-0"
-              value={form.cnic || ""}
-              onChange={(e) => updateForm({ cnic: e.target.value })}
-              className="h-10 text-base bg-background border-border"
+              name="cnic"
+              value={formik.values.cnic}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ cnic: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.cnic && formik.errors.cnic ? "border-destructive" : ""
+              )}
             />
+            {formik.touched.cnic && formik.errors.cnic ? (
+              <p className="text-sm text-destructive">{formik.errors.cnic}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Date of Birth
-            </Label>
+            <Label className="text-base text-foreground">Date of Birth</Label>
             <Input
               type="date"
-              value={form.date_of_birth || ""}
-              onChange={(e) => updateForm({ date_of_birth: e.target.value })}
-              className="h-10 text-base bg-background border-border"
+              name="date_of_birth"
+              value={formik.values.date_of_birth}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ date_of_birth: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.date_of_birth && formik.errors.date_of_birth ? "border-destructive" : ""
+              )}
             />
+            {formik.touched.date_of_birth && formik.errors.date_of_birth ? (
+              <p className="text-sm text-destructive">{formik.errors.date_of_birth}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Mobile Number
-            </Label>
+            <RequiredLabel>Mobile Number</RequiredLabel>
             <Input
               placeholder="0000-0000000"
-              value={form.phone || ""}
-              onChange={(e) => updateForm({ phone: e.target.value })}
-              className="h-10 text-base bg-background border-border"
+              name="phone"
+              value={formik.values.phone}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ phone: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.phone && formik.errors.phone ? "border-destructive" : ""
+              )}
             />
+            {formik.touched.phone && formik.errors.phone ? (
+              <p className="text-sm text-destructive">{formik.errors.phone}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Email Address
-            </Label>
+            <Label className="text-base text-foreground">Email Address</Label>
             <Input
               type="email"
               placeholder="emailaddress@email.com"
@@ -303,16 +442,26 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label className="text-base text-foreground">
-              Residential Address
-            </Label>
+            <RequiredLabel required={false}>Residential Address</RequiredLabel>
             <Textarea
               placeholder="e.g. House #, Street Name, City"
-              value={form.address || ""}
-              onChange={(e) => updateForm({ address: e.target.value })}
-              className="min-h-20 text-base bg-background border-border resize-none"
+              name="address"
+              value={formik.values.address}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ address: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "min-h-20 text-base bg-background border-border resize-none",
+                formik.touched.address && formik.errors.address ? "border-destructive" : ""
+              )}
             />
-            <p className="text-sm text-muted-foreground">(Employee Address)</p>
+            {formik.touched.address && formik.errors.address ? (
+              <p className="text-sm text-destructive">{formik.errors.address}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">(Employee Address)</p>
+            )}
           </div>
         </div>
       </div>
@@ -338,14 +487,23 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Department
-            </Label>
+            <RequiredLabel>Department</RequiredLabel>
             <Select
-              value={form.department || undefined}
-              onValueChange={(value) => updateForm({ department: value })}
+              value={formik.values.department || undefined}
+              onValueChange={(value) => {
+                formik.setFieldValue("department", value, true)
+                updateForm({ department: value })
+              }}
+              onOpenChange={(open) => {
+                if (!open) formik.setFieldTouched("department", true, true)
+              }}
             >
-              <SelectTrigger className="w-full h-10 bg-background border-border">
+              <SelectTrigger
+                className={cn(
+                  "w-full h-10 bg-background border-border",
+                  formik.touched.department && formik.errors.department ? "border-destructive" : ""
+                )}
+              >
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
@@ -356,27 +514,51 @@ export function AddStaffStep1PersonalInfo({
                 ))}
               </SelectContent>
             </Select>
+            {formik.touched.department && formik.errors.department ? (
+              <p className="text-sm text-destructive">{formik.errors.department}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Designation
-            </Label>
+            <RequiredLabel>Designation</RequiredLabel>
             <Input
               placeholder="Enter designation"
-              value={form.designation || ""}
-              onChange={(e) => updateForm({ designation: e.target.value })}
-              className="h-10 text-base bg-background border-border"
+              name="designation"
+              value={formik.values.designation}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ designation: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.designation && formik.errors.designation ? "border-destructive" : ""
+              )}
             />
+            {formik.touched.designation && formik.errors.designation ? (
+              <p className="text-sm text-destructive">{formik.errors.designation}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Role
-            </Label>
-            <Select value={form.role || ""} onValueChange={(value) => updateForm({ role: value })}>
-              <SelectTrigger className="w-full h-10 bg-background border-border">
-                <SelectValue />
+            <RequiredLabel>Role</RequiredLabel>
+            <Select
+              value={formik.values.role || ""}
+              onValueChange={(value) => {
+                formik.setFieldValue("role", value, true)
+                updateForm({ role: value })
+              }}
+              onOpenChange={(open) => {
+                if (!open) formik.setFieldTouched("role", true, true)
+              }}
+            >
+              <SelectTrigger
+                className={cn(
+                  "w-full h-10 bg-background border-border",
+                  formik.touched.role && formik.errors.role ? "border-destructive" : ""
+                )}
+              >
+                <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
                 {roleOptions.map((opt) => (
@@ -386,6 +568,9 @@ export function AddStaffStep1PersonalInfo({
                 ))}
               </SelectContent>
             </Select>
+            {formik.touched.role && formik.errors.role ? (
+              <p className="text-sm text-destructive">{formik.errors.role}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -408,15 +593,24 @@ export function AddStaffStep1PersonalInfo({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Joining Date
-            </Label>
+            <Label className="text-base text-foreground">Joining Date</Label>
             <Input
               type="date"
-              value={form.joining_date || ""}
-              onChange={(e) => updateForm({ joining_date: e.target.value })}
-              className="h-10 text-base bg-background border-border"
+              name="joining_date"
+              value={formik.values.joining_date}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ joining_date: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.joining_date && formik.errors.joining_date ? "border-destructive" : ""
+              )}
             />
+            {formik.touched.joining_date && formik.errors.joining_date ? (
+              <p className="text-sm text-destructive">{formik.errors.joining_date}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -438,18 +632,99 @@ export function AddStaffStep1PersonalInfo({
               className="h-10 text-base bg-background border-border"
             />
           </div>
+        </div>
+      </div>
+
+      {/* Emergency Contact */}
+      <div className="space-y-4">
+        <Label className="text-[22px] font-bold text-foreground">Emergency Contact</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <RequiredLabel required={false}>Name</RequiredLabel>
+            <Input
+              placeholder="e.g. Ali Raza"
+              name="emergency_contact_name"
+              value={formik.values.emergency_contact_name}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ emergency_contact_name: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.emergency_contact_name && formik.errors.emergency_contact_name ? "border-destructive" : ""
+              )}
+            />
+            {formik.touched.emergency_contact_name && formik.errors.emergency_contact_name ? (
+              <p className="text-sm text-destructive">{formik.errors.emergency_contact_name}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">(Emergency Contact Person)</p>
+            )}
+          </div>
 
           <div className="space-y-2">
-            <Label className="text-base text-foreground">
-              Emergency Contact
-            </Label>
+            <RequiredLabel required={false}>Relationship</RequiredLabel>
+            <Input
+              placeholder="e.g. Brother, Spouse"
+              name="emergency_contact_relationship"
+              value={formik.values.emergency_contact_relationship}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ emergency_contact_relationship: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.emergency_contact_relationship && formik.errors.emergency_contact_relationship ? "border-destructive" : ""
+              )}
+            />
+            {formik.touched.emergency_contact_relationship && formik.errors.emergency_contact_relationship ? (
+              <p className="text-sm text-destructive">{formik.errors.emergency_contact_relationship}</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-2">
+            <RequiredLabel required={false}>Phone</RequiredLabel>
             <Input
               placeholder="0000-0000000"
-              value={form.emergency_contact || ""}
-              onChange={(e) => updateForm({ emergency_contact: e.target.value })}
-              className="h-10 text-base bg-background border-border"
+              name="emergency_contact_phone"
+              value={formik.values.emergency_contact_phone}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ emergency_contact_phone: e.target.value, emergency_contact: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "h-10 text-base bg-background border-border",
+                formik.touched.emergency_contact_phone && formik.errors.emergency_contact_phone ? "border-destructive" : ""
+              )}
             />
-            <p className="text-sm text-muted-foreground">(Emergency Contact Number)</p>
+            {formik.touched.emergency_contact_phone && formik.errors.emergency_contact_phone ? (
+              <p className="text-sm text-destructive">{formik.errors.emergency_contact_phone}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">(Emergency Contact Number)</p>
+            )}
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <RequiredLabel required={false}>Address</RequiredLabel>
+            <Textarea
+              placeholder="Emergency contact address"
+              name="emergency_contact_address"
+              value={formik.values.emergency_contact_address}
+              onChange={(e) => {
+                formik.handleChange(e)
+                updateForm({ emergency_contact_address: e.target.value })
+              }}
+              onBlur={formik.handleBlur}
+              className={cn(
+                "min-h-20 text-base bg-background border-border resize-none",
+                formik.touched.emergency_contact_address && formik.errors.emergency_contact_address ? "border-destructive" : ""
+              )}
+            />
+            {formik.touched.emergency_contact_address && formik.errors.emergency_contact_address ? (
+              <p className="text-sm text-destructive">{formik.errors.emergency_contact_address}</p>
+            ) : null}
           </div>
         </div>
       </div>

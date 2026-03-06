@@ -68,12 +68,12 @@ export function AddStaffStep3LoginAccess({
                 If enabled, they can sign in using provided credentials. Username and password are required.
               </p>
             </div>
-            <Switch 
-              checked={Boolean(form.has_login)} 
+            <Switch
+              checked={Boolean(form.has_login)}
               onCheckedChange={(checked) => {
                 updateForm({ has_login: checked })
                 setErrors({})
-              }} 
+              }}
               className="data-[state=checked]:bg-[#3366FF]"
             />
           </div>
@@ -83,6 +83,7 @@ export function AddStaffStep3LoginAccess({
               <div className="space-y-2">
                 <Label className="text-base text-foreground">
                   Login Username
+                  {form.has_login && <span className="text-destructive ml-1">*</span>}
                 </Label>
                 <Input
                   placeholder="e.g. ahsan.khan"
@@ -93,7 +94,7 @@ export function AddStaffStep3LoginAccess({
                       setErrors({ ...errors, username: undefined })
                     }
                   }}
-                  className={`h-10 text-base bg-background border-border ${errors.username ? 'border-destructive' : ''}`}
+                  className={`h-10 text-base bg-background border-border ${errors.username ? "border-destructive" : ""}`}
                 />
                 {errors.username ? (
                   <p className="text-sm text-destructive">{errors.username}</p>
@@ -104,6 +105,7 @@ export function AddStaffStep3LoginAccess({
               <div className="space-y-2">
                 <Label className="text-base text-foreground">
                   Password
+                  {form.has_login && <span className="text-destructive ml-1">*</span>}
                 </Label>
                 <Input
                   type="password"
@@ -115,7 +117,7 @@ export function AddStaffStep3LoginAccess({
                       setErrors({ ...errors, password: undefined })
                     }
                   }}
-                  className={`h-10 text-base bg-background border-border ${errors.password ? 'border-destructive' : ''}`}
+                  className={`h-10 text-base bg-background border-border ${errors.password ? "border-destructive" : ""}`}
                 />
                 {errors.password ? (
                   <p className="text-sm text-destructive">{errors.password}</p>

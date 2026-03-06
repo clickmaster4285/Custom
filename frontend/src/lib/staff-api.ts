@@ -93,6 +93,37 @@ type LocalStaffRecord = {
   draft: string | null;
 };
 
+type StoredFile = {
+  name: string;
+  type: string;
+  dataUrl: string;
+};
+
+type AddStaffDraft = {
+  v: 1;
+  savedAt: string;
+  employeeCategory: "new" | "existing";
+  currentStep: number;
+  form: Record<string, unknown>;
+  staffPhotos: (StoredFile | null)[];
+  cnicFront: StoredFile | null;
+  cnicBack: StoredFile | null;
+  appointmentLetter: StoredFile | null;
+  additionalDocument: StoredFile | null;
+};
+
+function getDraftProfileImageDataUrl(item: LocalStaffRecord): string | null {
+  if (!item.draft) return null;
+  try {
+    const parsed = JSON.parse(item.draft) as AddStaffDraft;
+    const first = parsed?.staffPhotos?.find((x) => x && typeof x.dataUrl === "string") as StoredFile | undefined;
+    if (first?.dataUrl && first.dataUrl.startsWith("data:image/")) return first.dataUrl;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 function readLocalStaffStore(): LocalStaffRecord[] {
   if (typeof window === "undefined") return [];
   try {
@@ -116,6 +147,7 @@ function writeLocalStaffStore(items: LocalStaffRecord[]): void {
 function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
   const p = item.payload ?? {};
   const s = p as unknown as Partial<CreateStaffPayload> & Record<string, unknown>;
+  const profileFromDraft = getDraftProfileImageDataUrl(item);
 
   return {
     id: item.id,
@@ -125,7 +157,8 @@ function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
     cnic: String(s.cnic ?? ""),
     date_of_birth: (s.date_of_birth as string) ?? null,
     gender: (s.gender as string) ?? null,
-    profile_image: null,
+    // In local-only mode, we store the image inside the saved draft as a data URL.
+    profile_image: profileFromDraft,
     email: (s.email as string) ?? null,
     phone: (s.phone as string) ?? null,
     address: (s.address as string) ?? null,
@@ -140,6 +173,10 @@ function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
     collector_name: (s.collector_name as string) ?? null,
     role: (s.role as string) ?? null,
     emergency_contact: (s.emergency_contact as string) ?? null,
+    emergency_contact_name: (s.emergency_contact_name as string) ?? null,
+    emergency_contact_relationship: (s.emergency_contact_relationship as string) ?? null,
+    emergency_contact_phone: (s.emergency_contact_phone as string) ?? (s.emergency_contact as string) ?? null,
+    emergency_contact_address: (s.emergency_contact_address as string) ?? null,
     created_at: item.savedAt,
   } as StaffRecord;
 }

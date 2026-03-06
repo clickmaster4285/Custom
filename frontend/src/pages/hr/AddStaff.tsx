@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog"
-import { CameraCapture } from "@/components/camera-capture"
 import type { CreateStaffPayload } from "@/lib/staff-api"
 import { ROUTES } from "@/routes/config"
 import { StaffStepIndicator } from "@/components/hr/add-staff/staff-step-indicator"
@@ -100,6 +95,10 @@ const emptyForm: CreateStaffPayload = {
   designation: "",
   employment_type: "",
   emergency_contact: "",
+  emergency_contact_name: "",
+  emergency_contact_relationship: "",
+  emergency_contact_phone: "",
+  emergency_contact_address: "",
   bps: "",
   qualification: "",
   current_posting: "",
@@ -402,8 +401,10 @@ export default function AddStaffPage() {
         national_id: form.cnic,
         street_address: form.address,
         date_of_joining: form.joining_date,
-        emergency_contact_phone: form.emergency_contact,
-        emergency_contact_name: form.full_name + " Contact", // Placeholder as it's required by serializer logic
+        emergency_contact_phone: form.emergency_contact_phone || form.emergency_contact,
+        emergency_contact_name: form.emergency_contact_name || (form.full_name ? `${form.full_name} Contact` : ""),
+        emergency_contact_relationship: form.emergency_contact_relationship,
+        emergency_contact_address: form.emergency_contact_address,
         profile_image: staffPhotos[0]?.file ?? undefined,
         staff_photos: staffPhotos.map((p) => p.file).filter((f): f is File => f instanceof File),
         cnic_front: cnicFront.file ?? undefined,
@@ -500,7 +501,10 @@ export default function AddStaffPage() {
               form={form}
               updateForm={(patch) => setForm((f) => ({ ...f, ...patch }))}
               staffPhotos={staffPhotos}
+              cameraOpen={cameraOpen}
               onOpenCamera={() => setCameraOpen(true)}
+              onCaptureFromCamera={handleImageCapture}
+              onCloseCamera={() => setCameraOpen(false)}
               onUploadPhotoClick={() => document.getElementById("profile_image")?.click()}
               onRemovePhoto={handleRemovePhotoAt}
               onCancel={() => navigate(ROUTES.EMPLOYEES)}
@@ -550,17 +554,6 @@ export default function AddStaffPage() {
             />
           )}
               </div>
-
-              <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-                <DialogContent className="max-w-md">
-                  <CameraCapture
-                    title="Capture staff photo"
-                    description="Position the staff member in frame and capture. This will be used as their profile image."
-                    onCapture={handleImageCapture}
-                    onCancel={() => setCameraOpen(false)}
-                  />
-                </DialogContent>
-              </Dialog>
 
             </form>
       </div>
