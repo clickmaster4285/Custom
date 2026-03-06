@@ -77,7 +77,7 @@ export default function EmployeesPage() {
   return (
     <ModulePageLayout
       title="Employees"
-      description="Manage employee records, departments, and contact information."
+      description="Disposition list of Assistant/Deputy Collectors of respect of Collectorate of Customs (Enforcement), Peshawar."
       breadcrumbs={[{ label: "HR" }, { label: "Employees" }]}
     >
       <div className="grid gap-6">
@@ -173,22 +173,20 @@ export default function EmployeesPage() {
                     <TableHead className="w-12 text-center">S.No.</TableHead>
                     <TableHead>Personal No.</TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead>Father's Name</TableHead>
                     <TableHead>Designation</TableHead>
                     <TableHead className="text-center">BPS</TableHead>
                     <TableHead>CNIC</TableHead>
                     <TableHead>Mobile No.</TableHead>
-                    <TableHead>Date of Birth</TableHead>
-                    <TableHead>Qualification</TableHead>
                     <TableHead>Current place of Posting</TableHead>
-                    <TableHead>Name of Collectorate</TableHead>
+                    <TableHead>Transferred From</TableHead>
+                    <TableHead>Transferred To</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                         No staff found. Click "Add Staff" to create a new record.
                       </TableCell>
                     </TableRow>
@@ -209,18 +207,16 @@ export default function EmployeesPage() {
                                   {row.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "—"}
                                 </AvatarFallback>
                               </Avatar>
-                              <span>{row.full_name || row.user}</span>
+                              <span className="truncate max-w-[150px]">{row.full_name || row.user}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{row.father_name || "—"}</TableCell>
-                        <TableCell>{row.designation || "—"}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{row.designation || "—"}</TableCell>
                         <TableCell className="text-center">{row.bps || "—"}</TableCell>
-                        <TableCell>{row.cnic || "—"}</TableCell>
-                        <TableCell>{row.phone || row.phone_primary || "—"}</TableCell>
-                        <TableCell>{row.date_of_birth || "—"}</TableCell>
-                        <TableCell>{row.qualification || "—"}</TableCell>
-                        <TableCell>{row.current_posting || row.branch_location || "—"}</TableCell>
-                        <TableCell>{row.collector_name || row.manager || "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap">{row.cnic || "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap">{row.phone || row.phone_primary || "—"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{row.current_posting || row.branch_location || "—"}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{row.transferred_from || "—"}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{row.transferred_to || "—"}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
                             <Button 

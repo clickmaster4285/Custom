@@ -40,6 +40,8 @@ export type AddStaffStep1Form = {
   employment_type?: string
   joining_date?: string
   current_posting?: string
+  transferred_from?: string
+  transferred_to?: string
   collector_name?: string
   emergency_contact?: string
   emergency_contact_name?: string
@@ -461,6 +463,12 @@ export function AddStaffStep1PersonalInfo({
       current_posting: form.current_posting ? 
         currentPostingOptions.find(opt => opt.value === form.current_posting) || 
         { value: form.current_posting, label: form.current_posting } : null,
+      transferred_from: form.transferred_from ? 
+        currentPostingOptions.find(opt => opt.value === form.transferred_from) || 
+        { value: form.transferred_from, label: form.transferred_from } : null,
+      transferred_to: form.transferred_to ? 
+        currentPostingOptions.find(opt => opt.value === form.transferred_to) || 
+        { value: form.transferred_to, label: form.transferred_to } : null,
     },
     validationSchema: Yup.object({
       personal_number: Yup.string().trim().required("Personal number is required"),
@@ -480,6 +488,8 @@ export function AddStaffStep1PersonalInfo({
       emergency_contact_address: Yup.string().trim(),
       qualification: Yup.array().min(1, "At least one qualification is required"),
       current_posting: Yup.object().nullable(),
+      transferred_from: Yup.object().nullable(),
+      transferred_to: Yup.object().nullable(),
     }),
     onSubmit: () => {},
   })
@@ -510,6 +520,20 @@ export function AddStaffStep1PersonalInfo({
     updateForm({ current_posting: value })
   }
 
+  // Handle transferred from change
+  const handleTransferredFromChange = (selectedOption: any) => {
+    const value = selectedOption?.value ?? ""
+    formik.setFieldValue("transferred_from", selectedOption, true)
+    updateForm({ transferred_from: value })
+  }
+
+  // Handle transferred to change
+  const handleTransferredToChange = (selectedOption: any) => {
+    const value = selectedOption?.value ?? ""
+    formik.setFieldValue("transferred_to", selectedOption, true)
+    updateForm({ transferred_to: value })
+  }
+
   // Custom option renderer for React Select with categories
   const formatGroupLabel = (data: any) => (
     <div className="flex items-center justify-between">
@@ -525,6 +549,140 @@ export function AddStaffStep1PersonalInfo({
       {required && <span className="text-destructive ml-1">*</span>}
     </Label>
   )
+
+  // Reusable React Select styles
+  const reactSelectStyles = {
+    container: (base: any) => ({
+      ...base,
+      width: "100%",
+    }),
+    control: (base: any, state: any) => ({
+      ...base,
+      outline: "none !important",
+      borderColor: state.isFocused || state.menuIsOpen
+        ? "#bfdbfe"
+        : "#e5e7eb",
+      boxShadow: state.isFocused || state.menuIsOpen
+        ? "0 0 0 2px rgba(191, 219, 254, 0.9)"
+        : "none",
+      "&:hover": {
+        borderColor: "#bfdbfe",
+      },
+      "&:active": {
+        borderColor: "#bfdbfe",
+      },
+      minHeight: "40px",
+      height: "auto",
+      backgroundColor: "#ffffff",
+      borderRadius: "calc(var(--radius) - 2px)",
+      transition: "border-color 120ms ease, box-shadow 120ms ease",
+    }),
+    valueContainer: (base: any) => ({
+      ...base,
+      padding: "2px 12px",
+      minHeight: "38px",
+      alignItems: "center",
+    }),
+    input: (base: any) => ({
+      ...base,
+      margin: 0,
+      padding: 0,
+      color: "hsl(var(--foreground))",
+      fontSize: "14px",
+      outline: "none !important",
+      boxShadow: "none !important",
+      border: 0,
+    }),
+    indicatorsContainer: (base: any) => ({
+      ...base,
+      minHeight: "38px",
+    }),
+    clearIndicator: (base: any) => ({
+      ...base,
+      padding: 6,
+      color: "#9ca3af",
+      "&:hover": { color: "#4b5563" },
+    }),
+    dropdownIndicator: (base: any) => ({
+      ...base,
+      padding: 6,
+      color: "#9ca3af",
+      "&:hover": { color: "#4b5563" },
+    }),
+    menuPortal: (base: any) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+    menu: (base: any) => ({
+      ...base,
+      zIndex: 50,
+      backgroundColor: "#ffffff",
+      border: "1px solid #e5e7eb",
+      borderRadius: "var(--radius)",
+      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+    }),
+    menuList: (base: any) => ({
+      ...base,
+      padding: "4px",
+      maxHeight: 260,
+    }),
+    option: (base: any, state: any) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? "#3b82f6"
+        : state.isFocused
+          ? "#f3f4f6"
+          : "transparent",
+      color: state.isSelected ? "#ffffff" : "hsl(var(--foreground))",
+      fontSize: "14px",
+      padding: "8px 12px",
+      cursor: "pointer",
+      "&:active": {
+        backgroundColor: state.isSelected ? "#3b82f6" : "#e5e7eb",
+      },
+    }),
+    placeholder: (base: any) => ({
+      ...base,
+      color: "#9ca3af",
+      fontSize: "14px",
+    }),
+    singleValue: (base: any) => ({
+      ...base,
+      color: "hsl(var(--foreground))",
+      fontSize: "14px",
+    }),
+    multiValue: (base: any) => ({
+      ...base,
+      backgroundColor: "#f3f4f6",
+      borderRadius: "calc(var(--radius) - 2px)",
+      margin: "2px 4px 2px 0",
+    }),
+    multiValueLabel: (base: any) => ({
+      ...base,
+      color: "hsl(var(--foreground))",
+      fontSize: "13px",
+      padding: "2px 6px",
+    }),
+    multiValueRemove: (base: any) => ({
+      ...base,
+      color: "#9ca3af",
+      borderRadius: "0 calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0",
+      "&:hover": {
+        backgroundColor: "#ef4444",
+        color: "#ffffff",
+      },
+    }),
+    groupHeading: (base: any) => ({
+      ...base,
+      fontSize: "0.85rem",
+      fontWeight: 600,
+      color: "hsl(var(--muted-foreground))",
+      backgroundColor: "hsl(var(--muted) / 0.35)",
+      padding: "8px 12px",
+      margin: 0,
+      borderBottom: "1px solid hsl(var(--border))",
+    }),
+  }
 
   return (
     <div className="space-y-8">
@@ -820,146 +978,7 @@ export function AddStaffStep1PersonalInfo({
                 formatGroupLabel={formatGroupLabel}
                 isClearable={false}
                 noOptionsMessage={() => "No matching qualifications found"}
-                styles={{
-                  container: (base) => ({
-                    ...base,
-                    width: "100%",
-                  }),
-                  control: (base, state) => ({
-                    ...base,
-                    outline: "none !important",
-                    borderColor: formik.touched.qualification && formik.errors.qualification
-                      ? "hsl(var(--destructive))"
-                      : state.isFocused || state.menuIsOpen
-                        ? "#bfdbfe"
-                        : "#e5e7eb",
-                    boxShadow: formik.touched.qualification && formik.errors.qualification
-                      ? "none"
-                      : state.isFocused || state.menuIsOpen
-                        ? "0 0 0 2px rgba(191, 219, 254, 0.9)"
-                        : "none",
-                    "&:hover": {
-                      borderColor: formik.touched.qualification && formik.errors.qualification
-                        ? "hsl(var(--destructive))"
-                        : "#bfdbfe",
-                    },
-                    "&:active": {
-                      borderColor: formik.touched.qualification && formik.errors.qualification
-                        ? "hsl(var(--destructive))"
-                        : "#bfdbfe",
-                    },
-                    minHeight: "40px",
-                    height: "auto",
-                    backgroundColor: "#ffffff",
-                    borderRadius: "calc(var(--radius) - 2px)",
-                    transition: "border-color 120ms ease, box-shadow 120ms ease",
-                  }),
-                  valueContainer: (base) => ({
-                    ...base,
-                    padding: "2px 12px",
-                    minHeight: "38px",
-                    alignItems: "center",
-                  }),
-                  input: (base) => ({
-                    ...base,
-                    margin: 0,
-                    padding: 0,
-                    color: "hsl(var(--foreground))",
-                    fontSize: "14px",
-                    outline: "none !important",
-                    boxShadow: "none !important",
-                    border: 0,
-                  }),
-                  indicatorsContainer: (base) => ({
-                    ...base,
-                    minHeight: "38px",
-                  }),
-                  clearIndicator: (base) => ({
-                    ...base,
-                    padding: 6,
-                    color: "#9ca3af",
-                    "&:hover": { color: "#4b5563" },
-                  }),
-                  dropdownIndicator: (base) => ({
-                    ...base,
-                    padding: 6,
-                    color: "#9ca3af",
-                    "&:hover": { color: "#4b5563" },
-                  }),
-                  groupHeading: (base) => ({
-                    ...base,
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    color: "hsl(var(--muted-foreground))",
-                    backgroundColor: "hsl(var(--muted) / 0.35)",
-                    padding: "8px 12px",
-                    margin: 0,
-                    borderBottom: "1px solid hsl(var(--border))",
-                  }),
-                  option: (base, state) => ({
-                    ...base,
-                    backgroundColor: state.isSelected
-                      ? "#3b82f6"
-                      : state.isFocused
-                        ? "#f3f4f6"
-                        : "transparent",
-                    color: state.isSelected ? "#ffffff" : "hsl(var(--foreground))",
-                    fontSize: "14px",
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    "&:active": {
-                      backgroundColor: state.isSelected ? "#3b82f6" : "#e5e7eb",
-                    },
-                  }),
-                  multiValue: (base) => ({
-                    ...base,
-                    backgroundColor: "#f3f4f6",
-                    borderRadius: "calc(var(--radius) - 2px)",
-                    margin: "2px 4px 2px 0",
-                  }),
-                  multiValueLabel: (base) => ({
-                    ...base,
-                    color: "hsl(var(--foreground))",
-                    fontSize: "13px",
-                    padding: "2px 6px",
-                  }),
-                  multiValueRemove: (base) => ({
-                    ...base,
-                    color: "#9ca3af",
-                    borderRadius: "0 calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0",
-                    "&:hover": {
-                      backgroundColor: "#ef4444",
-                      color: "#ffffff",
-                    },
-                  }),
-                  menuPortal: (base) => ({
-                    ...base,
-                    zIndex: 9999,
-                  }),
-                  menu: (base) => ({
-                    ...base,
-                    zIndex: 50,
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "var(--radius)",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-                  }),
-                  menuList: (base) => ({
-                    ...base,
-                    padding: "4px",
-                    maxHeight: 260,
-                  }),
-                  placeholder: (base) => ({
-                    ...base,
-                    color: "#9ca3af",
-                    fontSize: "14px",
-                  }),
-                  singleValue: (base) => ({
-                    ...base,
-                    color: "hsl(var(--foreground))",
-                    fontSize: "14px",
-                  }),
-                }}
+                styles={reactSelectStyles}
               />
               {formik.touched.qualification && formik.errors.qualification ? (
                 <p className="text-sm text-destructive">{formik.errors.qualification as string}</p>
@@ -1063,121 +1082,16 @@ export function AddStaffStep1PersonalInfo({
               }}
               onBlur={() => formik.setFieldTouched("designation", true, true)}
               placeholder="Select designation"
-              className="react-select-container"
+              menuPortalTarget={menuPortalTarget ?? undefined}
+              menuPosition={menuPortalTarget ? "fixed" : "absolute"}
+              className={cn(
+                "react-select-container",
+                formik.touched.designation && formik.errors.designation ? "react-select-error" : ""
+              )}
               classNamePrefix="react-select"
-              styles={{
-                container: (base) => ({
-                  ...base,
-                  width: "100%",
-                }),
-                control: (base, state) => ({
-                  ...base,
-                  outline: "none",
-                  borderColor:
-                    formik.touched.designation && formik.errors.designation
-                      ? "hsl(var(--destructive))"
-                      : state.isFocused || state.menuIsOpen
-                        ? "#bfdbfe"
-                        : "#e5e7eb",
-                  boxShadow:
-                    !(
-                      formik.touched.designation && formik.errors.designation
-                    ) && (state.isFocused || state.menuIsOpen)
-                      ? "0 0 0 2px rgba(191,219,254,0.9)"
-                      : "none",
-                  "&:hover": {
-                    borderColor:
-                      formik.touched.designation && formik.errors.designation
-                        ? "hsl(var(--destructive))"
-                        : "#bfdbfe",
-                  },
-                  "&:active": {
-                    borderColor:
-                      formik.touched.designation && formik.errors.designation
-                        ? "hsl(var(--destructive))"
-                        : "#bfdbfe",
-                  },
-                  minHeight: "40px",
-                  height: "auto",
-                  backgroundColor: "#ffffff",
-                  borderRadius: "calc(var(--radius) - 2px)",
-                  transition: "border-color 120ms ease, box-shadow 120ms ease",
-                }),
-                valueContainer: (base) => ({
-                  ...base,
-                  padding: "2px 12px",
-                  minHeight: "38px",
-                  alignItems: "center",
-                }),
-                input: (base) => ({
-                  ...base,
-                  margin: 0,
-                  padding: 0,
-                  color: "hsl(var(--foreground))",
-                  fontSize: "14px",
-                  outline: "none",
-                  boxShadow: "none",
-                  border: 0,
-                }),
-                indicatorsContainer: (base) => ({
-                  ...base,
-                  minHeight: "38px",
-                }),
-                clearIndicator: (base) => ({
-                  ...base,
-                  padding: 6,
-                  color: "#9ca3af",
-                  "&:hover": { color: "#4b5563" },
-                }),
-                dropdownIndicator: (base) => ({
-                  ...base,
-                  padding: 6,
-                  color: "#9ca3af",
-                  "&:hover": { color: "#4b5563" },
-                }),
-                menuPortal: (base) => ({
-                  ...base,
-                  zIndex: 9999,
-                }),
-                menu: (base) => ({
-                  ...base,
-                  zIndex: 50,
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "var(--radius)",
-                  boxShadow:
-                    "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-                }),
-                menuList: (base) => ({
-                  ...base,
-                  padding: "4px",
-                  maxHeight: 260,
-                }),
-                option: (base, state) => ({
-                  ...base,
-                  backgroundColor: state.isSelected
-                    ? "#3b82f6"
-                    : state.isFocused
-                      ? "#f3f4f6"
-                      : "transparent",
-                  color: state.isSelected ? "#ffffff" : "#111827",
-                  fontSize: "14px",
-                  padding: "8px 12px",
-                  "&:active": {
-                    backgroundColor: state.isSelected ? "#2563eb" : "#e5e7eb",
-                  },
-                }),
-                placeholder: (base) => ({
-                  ...base,
-                  color: "#9ca3af",
-                  fontSize: "14px",
-                }),
-                singleValue: (base) => ({
-                  ...base,
-                  color: "hsl(var(--foreground))",
-                  fontSize: "14px",
-                }),
-              }}
+              isClearable={true}
+              noOptionsMessage={() => "No matching designation found"}
+              styles={reactSelectStyles}
             />
             {formik.touched.designation && formik.errors.designation ? (
               <p className="text-sm text-destructive">{formik.errors.designation}</p>
@@ -1276,120 +1190,68 @@ export function AddStaffStep1PersonalInfo({
               classNamePrefix="react-select"
               isClearable={true}
               noOptionsMessage={() => "No matching posting found"}
-              styles={{
-                container: (base) => ({
-                  ...base,
-                  width: "100%",
-                }),
-                control: (base, state) => ({
-                  ...base,
-                  outline: "none !important",
-                  borderColor: formik.touched.current_posting && formik.errors.current_posting
-                    ? "hsl(var(--destructive))"
-                    : state.isFocused || state.menuIsOpen
-                      ? "#bfdbfe"
-                      : "#e5e7eb",
-                  boxShadow: formik.touched.current_posting && formik.errors.current_posting
-                    ? "none"
-                    : state.isFocused || state.menuIsOpen
-                      ? "0 0 0 2px rgba(191, 219, 254, 0.9)"
-                      : "none",
-                  "&:hover": {
-                    borderColor: formik.touched.current_posting && formik.errors.current_posting
-                      ? "hsl(var(--destructive))"
-                      : "#bfdbfe",
-                  },
-                  "&:active": {
-                    borderColor: formik.touched.current_posting && formik.errors.current_posting
-                      ? "hsl(var(--destructive))"
-                      : "#bfdbfe",
-                  },
-                  minHeight: "40px",
-                  height: "auto",
-                  backgroundColor: "#ffffff",
-                  borderRadius: "calc(var(--radius) - 2px)",
-                  transition: "border-color 120ms ease, box-shadow 120ms ease",
-                }),
-                valueContainer: (base) => ({
-                  ...base,
-                  padding: "2px 12px",
-                  minHeight: "38px",
-                  alignItems: "center",
-                }),
-                input: (base) => ({
-                  ...base,
-                  margin: 0,
-                  padding: 0,
-                  color: "hsl(var(--foreground))",
-                  fontSize: "14px",
-                  outline: "none !important",
-                  boxShadow: "none !important",
-                  border: 0,
-                }),
-                indicatorsContainer: (base) => ({
-                  ...base,
-                  minHeight: "38px",
-                }),
-                clearIndicator: (base) => ({
-                  ...base,
-                  padding: 6,
-                  color: "#9ca3af",
-                  "&:hover": { color: "#4b5563" },
-                }),
-                dropdownIndicator: (base) => ({
-                  ...base,
-                  padding: 6,
-                  color: "#9ca3af",
-                  "&:hover": { color: "#4b5563" },
-                }),
-                menuPortal: (base) => ({
-                  ...base,
-                  zIndex: 9999,
-                }),
-                menu: (base) => ({
-                  ...base,
-                  zIndex: 50,
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "var(--radius)",
-                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-                }),
-                menuList: (base) => ({
-                  ...base,
-                  padding: "4px",
-                  maxHeight: 260,
-                }),
-                option: (base, state) => ({
-                  ...base,
-                  backgroundColor: state.isSelected
-                    ? "#3b82f6"
-                    : state.isFocused
-                      ? "#f3f4f6"
-                      : "transparent",
-                  color: state.isSelected ? "#ffffff" : "hsl(var(--foreground))",
-                  fontSize: "14px",
-                  padding: "8px 12px",
-                  cursor: "pointer",
-                  "&:active": {
-                    backgroundColor: state.isSelected ? "#3b82f6" : "#e5e7eb",
-                  },
-                }),
-                placeholder: (base) => ({
-                  ...base,
-                  color: "#9ca3af",
-                  fontSize: "14px",
-                }),
-                singleValue: (base) => ({
-                  ...base,
-                  color: "hsl(var(--foreground))",
-                  fontSize: "14px",
-                }),
-              }}
+              styles={reactSelectStyles}
             />
             {formik.touched.current_posting && formik.errors.current_posting ? (
               <p className="text-sm text-destructive">{formik.errors.current_posting as string}</p>
             ) : (
               <p className="text-sm text-muted-foreground">Select current place of posting</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-base text-foreground">Transferred From</Label>
+            <ReactSelect
+              name="transferred_from"
+              isMulti={false}
+              options={currentPostingOptions}
+              value={formik.values.transferred_from}
+              onChange={handleTransferredFromChange}
+              onBlur={() => formik.setFieldTouched("transferred_from", true, true)}
+              placeholder="Search or select transferred from..."
+              menuPortalTarget={menuPortalTarget ?? undefined}
+              menuPosition={menuPortalTarget ? "fixed" : "absolute"}
+              className={cn(
+                "react-select-container",
+                formik.touched.transferred_from && formik.errors.transferred_from ? "react-select-error" : ""
+              )}
+              classNamePrefix="react-select"
+              isClearable={true}
+              noOptionsMessage={() => "No matching posting found"}
+              styles={reactSelectStyles}
+            />
+            {formik.touched.transferred_from && formik.errors.transferred_from ? (
+              <p className="text-sm text-destructive">{formik.errors.transferred_from as string}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Select previous posting location</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-base text-foreground">Transferred To</Label>
+            <ReactSelect
+              name="transferred_to"
+              isMulti={false}
+              options={currentPostingOptions}
+              value={formik.values.transferred_to}
+              onChange={handleTransferredToChange}
+              onBlur={() => formik.setFieldTouched("transferred_to", true, true)}
+              placeholder="Search or select transferred to..."
+              menuPortalTarget={menuPortalTarget ?? undefined}
+              menuPosition={menuPortalTarget ? "fixed" : "absolute"}
+              className={cn(
+                "react-select-container",
+                formik.touched.transferred_to && formik.errors.transferred_to ? "react-select-error" : ""
+              )}
+              classNamePrefix="react-select"
+              isClearable={true}
+              noOptionsMessage={() => "No matching posting found"}
+              styles={reactSelectStyles}
+            />
+            {formik.touched.transferred_to && formik.errors.transferred_to ? (
+              <p className="text-sm text-destructive">{formik.errors.transferred_to as string}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Select new posting location</p>
             )}
           </div>
 
