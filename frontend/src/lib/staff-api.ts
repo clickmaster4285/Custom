@@ -1,4 +1,4 @@
-import { API_BASE_URL, getAuthHeaders, getAuthHeadersFormData } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
 
 /** Staff record as returned by the backend (list/detail). */
 export type StaffRecord = {
@@ -83,33 +83,114 @@ export type StaffRecord = {
 
 const STAFF_ENDPOINT = `${API_BASE_URL}/api/staff/`;
 
+// Local-only storage key (used when backend is not connected).
+const LOCAL_STAFF_STORE_KEY = "tekeye.hr.staff.local.v1";
+
+type LocalStaffRecord = {
+  id: number;
+  savedAt: string;
+  payload: Record<string, unknown>;
+  draft: string | null;
+};
+
+type StoredFile = {
+  name: string;
+  type: string;
+  dataUrl: string;
+};
+
+type AddStaffDraft = {
+  v: 1;
+  savedAt: string;
+  employeeCategory: "new" | "existing";
+  currentStep: number;
+  form: Record<string, unknown>;
+  staffPhotos: (StoredFile | null)[];
+  cnicFront: StoredFile | null;
+  cnicBack: StoredFile | null;
+  appointmentLetter: StoredFile | null;
+  additionalDocument: StoredFile | null;
+};
+
+function getDraftProfileImageDataUrl(item: LocalStaffRecord): string | null {
+  if (!item.draft) return null;
+  try {
+    const parsed = JSON.parse(item.draft) as AddStaffDraft;
+    const first = parsed?.staffPhotos?.find((x) => x && typeof x.dataUrl === "string") as StoredFile | undefined;
+    if (first?.dataUrl && first.dataUrl.startsWith("data:image/")) return first.dataUrl;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function readLocalStaffStore(): LocalStaffRecord[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_STAFF_STORE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as LocalStaffRecord[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalStaffStore(items: LocalStaffRecord[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LOCAL_STAFF_STORE_KEY, JSON.stringify(items));
+  } catch {
+    // ignore
+  }
+}
+
+function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
+  const p = item.payload ?? {};
+  const s = p as unknown as Partial<CreateStaffPayload> & Record<string, unknown>;
+  const profileFromDraft = getDraftProfileImageDataUrl(item);
+
+  return {
+    id: item.id,
+    user: (s.login_username as string) ?? (s.username as string) ?? (s.personal_number as string) ?? null,
+    full_name: String(s.full_name ?? ""),
+    father_name: (s.father_name as string) ?? null,
+    cnic: String(s.cnic ?? ""),
+    date_of_birth: (s.date_of_birth as string) ?? null,
+    gender: (s.gender as string) ?? null,
+    // In local-only mode, we store the image inside the saved draft as a data URL.
+    profile_image: profileFromDraft,
+    email: (s.email as string) ?? null,
+    phone: (s.phone as string) ?? null,
+    address: (s.address as string) ?? null,
+    designation: String(s.designation ?? ""),
+    department: String(s.department ?? ""),
+    employment_type: (s.employment_type as string) ?? null,
+    joining_date: (s.joining_date as string) ?? undefined,
+    personal_number: (s.personal_number as string) ?? null,
+    bps: (s.bps as string) ?? null,
+    qualification: (s.qualification as string) ?? null,
+    current_posting: (s.current_posting as string) ?? null,
+    collector_name: (s.collector_name as string) ?? null,
+    role: (s.role as string) ?? null,
+    emergency_contact: (s.emergency_contact as string) ?? null,
+    emergency_contact_name: (s.emergency_contact_name as string) ?? null,
+    emergency_contact_relationship: (s.emergency_contact_relationship as string) ?? null,
+    emergency_contact_phone: (s.emergency_contact_phone as string) ?? (s.emergency_contact as string) ?? null,
+    emergency_contact_address: (s.emergency_contact_address as string) ?? null,
+    created_at: item.savedAt,
+  } as StaffRecord;
+}
+
 export async function fetchStaff(): Promise<StaffRecord[]> {
-  const response = await fetch(STAFF_ENDPOINT, {
-    headers: getAuthHeaders(),
-    cache: "no-store",
-  });
-  if (response.status === 401) {
-    throw new Error("Unauthorized");
-  }
-  if (!response.ok) {
-    throw new Error(`Failed to load staff (${response.status})`);
-  }
-  const data = await response.json();
-  if (Array.isArray(data)) return data;
-  if (data && Array.isArray((data as { results?: StaffRecord[] }).results))
-    return (data as { results: StaffRecord[] }).results;
-  return [];
+  // Local-only mode: return staff from localStorage.
+  return readLocalStaffStore().map(localToStaffRecord);
 }
 
 export async function fetchStaffById(id: number): Promise<StaffRecord> {
-  const response = await fetch(`${STAFF_ENDPOINT}${id}/`, {
-    headers: getAuthHeaders(),
-    cache: "no-store",
-  });
-  if (response.status === 401) throw new Error("Unauthorized");
-  if (response.status === 404) throw new Error("Staff not found");
-  if (!response.ok) throw new Error(`Failed to load staff (${response.status})`);
-  return response.json();
+  const items = readLocalStaffStore();
+  const found = items.find((x) => x.id === id);
+  if (!found) throw new Error("Staff not found");
+  return localToStaffRecord(found);
 }
 
 /** URL for downloading a staff document (requires auth when used via fetch). */
@@ -123,30 +204,11 @@ export async function downloadStaffDocument(
   field: string,
   fileName: string
 ): Promise<void> {
-  const url = getStaffDocumentDownloadUrl(staffId, field);
-  const response = await fetch(url, { headers: getAuthHeaders() });
-  if (!response.ok) throw new Error("Download failed");
-  const blob = await response.blob();
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = fileName || "document";
-  a.click();
-  URL.revokeObjectURL(a.href);
+  void staffId;
+  void field;
+  void fileName;
+  throw new Error("Document download is not available in local-only mode.");
 }
-
-const FILE_KEYS = [
-  "profile_image",
-  "resume_file",
-  "joining_letter_file",
-  "contract_file",
-  "id_proof_file",
-  "tax_form_file",
-  "certificates_file",
-  "cnic_front",
-  "cnic_back",
-  "appointment_letter",
-  "additional_document",
-] as const;
 
 /** Full HR template payload accepted by backend. */
 export type CreateStaffPayload = {
@@ -237,53 +299,17 @@ export type CreateStaffPayload = {
   additional_document?: File | null;
 };
 
-function buildBody(payload: CreateStaffPayload): { body: string | FormData; useFormData: boolean } {
-  const hasFile = FILE_KEYS.some((k) => payload[k as keyof CreateStaffPayload] instanceof File) || (payload.staff_photos && payload.staff_photos.length > 0);
-  if (hasFile) {
-    const form = new FormData();
-    Object.entries(payload).forEach(([k, v]) => {
-      if (v === undefined || v === null || v === "") return;
-      if (k === "staff_photos" && Array.isArray(v)) {
-        v.forEach(file => {
-          if (file instanceof File) form.append('staff_photos', file);
-        });
-      } else if (v instanceof File) {
-        form.append(k, v);
-      } else {
-        form.append(k, String(v));
-      }
-    });
-    return { body: form, useFormData: true };
-  }
-  const obj: Record<string, unknown> = {};
-  Object.entries(payload).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === "") return;
-    if (!(v instanceof File) && k !== "staff_photos") obj[k] = v;
-  });
-  return { body: JSON.stringify(obj), useFormData: false };
-}
-
 export async function createStaff(payload: CreateStaffPayload): Promise<StaffRecord> {
-  const { body, useFormData } = buildBody(payload);
-  const headers = useFormData ? getAuthHeadersFormData() : getAuthHeaders();
-  const response = await fetch(STAFF_ENDPOINT, {
-    method: "POST",
-    headers,
-    body,
-  });
-  if (response.status === 401) throw new Error("Unauthorized");
-  if (response.status === 403) throw new Error("Only Admin or HR can add staff.");
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    const msg =
-      typeof data === "object" && data !== null
-        ? Object.entries(data)
-            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
-            .join("; ")
-        : `Failed to create staff (${response.status})`;
-    throw new Error(msg);
-  }
-  return response.json();
+  // Local-only mode: persist to localStorage and return mapped record.
+  const items = readLocalStaffStore();
+  const item: LocalStaffRecord = {
+    id: Date.now(),
+    savedAt: new Date().toISOString(),
+    payload: payload as unknown as Record<string, unknown>,
+    draft: null,
+  };
+  writeLocalStaffStore([item, ...items]);
+  return localToStaffRecord(item);
 }
 
 /** Update staff (PATCH). Supports partial payload and file fields via FormData. */
@@ -291,35 +317,24 @@ export async function updateStaff(
   id: number,
   payload: Partial<CreateStaffPayload>
 ): Promise<StaffRecord> {
-  const { body, useFormData } = buildBody(payload as CreateStaffPayload);
-  const url = `${STAFF_ENDPOINT}${id}/`;
-  const response = await fetch(url, {
-    method: "PATCH",
-    headers: useFormData ? getAuthHeadersFormData() : getAuthHeaders(),
-    body,
-  });
-  if (response.status === 401) throw new Error("Unauthorized");
-  if (response.status === 404) throw new Error("Staff not found");
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    const msg =
-      typeof data === "object" && data !== null
-        ? Object.entries(data)
-            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
-            .join("; ")
-        : `Failed to update staff (${response.status})`;
-    throw new Error(msg);
-  }
-  return response.json();
+  const items = readLocalStaffStore();
+  const idx = items.findIndex((x) => x.id === id);
+  if (idx < 0) throw new Error("Staff not found");
+  const prev = items[idx];
+  const next: LocalStaffRecord = {
+    ...prev,
+    payload: { ...(prev.payload ?? {}), ...(payload as unknown as Record<string, unknown>) },
+  };
+  const updated = [...items];
+  updated[idx] = next;
+  writeLocalStaffStore(updated);
+  return localToStaffRecord(next);
 }
 
 /** Delete staff (hard delete). */
 export async function deleteStaff(id: number): Promise<void> {
-  const response = await fetch(`${STAFF_ENDPOINT}${id}/`, {
-    method: "DELETE",
-    headers: getAuthHeaders(),
-  });
-  if (response.status === 401) throw new Error("Unauthorized");
-  if (response.status === 404) throw new Error("Staff not found");
-  if (!response.ok) throw new Error(`Failed to delete staff (${response.status})`);
+  const items = readLocalStaffStore();
+  const next = items.filter((x) => x.id !== id);
+  if (next.length === items.length) throw new Error("Staff not found");
+  writeLocalStaffStore(next);
 }

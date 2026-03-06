@@ -17,7 +17,8 @@ export function ActivityLogger() {
     if (prevPathRef.current === pathname) return
     prevPathRef.current = pathname
     const action = pathname === "/" || pathname === "" ? "Viewed / (Dashboard)" : `Viewed ${pathname}`
-    reportActivityLog(action)
+    // Fire-and-forget: the logger must never crash the app if backend is unavailable.
+    void reportActivityLog(action)
   }, [location.pathname])
 
   return null
