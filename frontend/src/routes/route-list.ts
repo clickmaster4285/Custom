@@ -109,6 +109,7 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.ACTIVITY_LOGS), page: "SecurityAccess" },
   // HR
   { path: toChildPath(ROUTES.EMPLOYEES), page: "Employees" },
+  { path: toChildPath(ROUTES.ADD_STAFF), page: "AddStaff" },
   { path: toChildPath(ROUTES.ATTENDANCE), page: "Attendance" },
   { path: toChildPath(ROUTES.LEAVE_MANAGEMENT), page: "LeaveManagement" },
   { path: toChildPath(ROUTES.PAYROLL), page: "Payroll" },

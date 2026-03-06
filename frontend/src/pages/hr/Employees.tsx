@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import { Users, UserPlus, Building2, Mail } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Users, UserPlus, Building2, Mail, Search, Eye, Edit, Trash2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,58 +23,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Camera } from "lucide-react"
-import { CameraCapture } from "@/components/camera-capture"
-import { fetchStaff, createStaff, type StaffRecord, type CreateStaffPayload } from "@/lib/staff-api"
-
-const ROLE_OPTIONS = [
-  { value: "ADMIN", label: "Admin" },
-  { value: "INSPECTOR", label: "Inspector" },
-  { value: "COLLECTOR", label: "Collector" },
-  { value: "DEPUTY_COLLECTOR", label: "Deputy Collector" },
-  { value: "ASSISTANT_COLLECTOR", label: "Assistant Collector" },
-  { value: "RECEPTIONIST", label: "Receptionist" },
-  { value: "HR", label: "Human Resource" },
-  { value: "WAREHOUSE_OFFICER", label: "Warehouse Officer" },
-  { value: "DETECTION_OFFICER", label: "Detection Officer" },
-]
-
-const emptyForm: CreateStaffPayload = {
-  username: "",
-  password: "",
-  email: "",
-  role: "RECEPTIONIST",
-  phone: "",
-  full_name: "",
-  cnic: "",
-  address: "",
-  date_of_birth: "",
-  joining_date: new Date().toISOString().slice(0, 10),
-  department: "",
-  designation: "",
-  emergency_contact: "",
-}
+import { fetchStaff, type StaffRecord } from "@/lib/staff-api"
+import { ROUTES } from "@/routes/config"
 
 export default function EmployeesPage() {
+  const navigate = useNavigate()
   const [staff, setStaff] = useState<StaffRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [addOpen, setAddOpen] = useState(false)
-  const [form, setForm] = useState<CreateStaffPayload>(emptyForm)
-  const [profileImage, setProfileImage] = useState<File | null>(null)
-  const [cameraOpen, setCameraOpen] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  const [viewOpen, setViewOpen] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState<StaffRecord | null>(null)
 
   const loadStaff = () => {
     setLoading(true)
@@ -87,31 +48,20 @@ export default function EmployeesPage() {
     loadStaff()
   }, [])
 
-  const handleAddStaff = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitError(null)
-    setSubmitting(true)
-    try {
-      await createStaff({
-        ...form,
-        profile_image: profileImage ?? undefined,
-      })
-      setForm(emptyForm)
-      setProfileImage(null)
-      setAddOpen(false)
-      loadStaff()
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to add staff")
-    } finally {
-      setSubmitting(false)
-    }
+  const handleViewEmployee = (employee: StaffRecord) => {
+    setSelectedEmployee(employee)
+    setViewOpen(true)
   }
 
   const filtered = staff.filter(
     (s) =>
       s.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       s.user?.toLowerCase().includes(search.toLowerCase()) ||
-      s.department?.toLowerCase().includes(search.toLowerCase())
+      s.personal_number?.toLowerCase().includes(search.toLowerCase()) ||
+      s.login_username?.toLowerCase().includes(search.toLowerCase()) ||
+      s.department?.toLowerCase().includes(search.toLowerCase()) ||
+      s.designation?.toLowerCase().includes(search.toLowerCase()) ||
+      s.cnic?.includes(search)
   )
 
   return (
@@ -177,224 +127,26 @@ export default function EmployeesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Employee Directory</CardTitle>
-              <CardDescription>Search and manage employee records</CardDescription>
+              <CardTitle className="text-xl font-semibold">Disposition List of Assistant/Deputy Collectors</CardTitle>
+              <CardDescription>of respect of Collectorate of Customs (Enforcement), Peshawar</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Input
-                placeholder="Search by name or ID..."
-                className="w-64"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) setSubmitError(null) }}>
-                <DialogTrigger asChild>
-                  <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Staff
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add Staff</DialogTitle>
-                    <DialogDescription>
-                      Create a new staff member. Your session token is sent automatically for authorization.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleAddStaff} className="grid gap-4 py-4">
-                    {submitError && (
-                      <p className="text-sm text-destructive">{submitError}</p>
-                    )}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="username">Username</Label>
-                        <Input
-                          id="username"
-                          value={form.username}
-                          onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={form.password}
-                          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={form.email}
-                          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone</Label>
-                        <Input
-                          id="phone"
-                          value={form.phone}
-                          onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Role</Label>
-                      <Select
-                        value={form.role}
-                        onValueChange={(value) => setForm((f) => ({ ...f, role: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ROLE_OPTIONS.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="full_name">Full name</Label>
-                      <Input
-                        id="full_name"
-                        value={form.full_name}
-                        onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cnic">CNIC</Label>
-                        <Input
-                          id="cnic"
-                          value={form.cnic}
-                          onChange={(e) => setForm((f) => ({ ...f, cnic: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="emergency_contact">Emergency contact</Label>
-                        <Input
-                          id="emergency_contact"
-                          value={form.emergency_contact}
-                          onChange={(e) => setForm((f) => ({ ...f, emergency_contact: e.target.value }))}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Address</Label>
-                      <Input
-                        id="address"
-                        value={form.address}
-                        onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="date_of_birth">Date of birth</Label>
-                        <Input
-                          id="date_of_birth"
-                          type="date"
-                          value={form.date_of_birth}
-                          onChange={(e) => setForm((f) => ({ ...f, date_of_birth: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="joining_date">Joining date</Label>
-                        <Input
-                          id="joining_date"
-                          type="date"
-                          value={form.joining_date}
-                          onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="department">Department</Label>
-                        <Input
-                          id="department"
-                          value={form.department}
-                          onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="designation">Designation</Label>
-                        <Input
-                          id="designation"
-                          value={form.designation}
-                          onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Profile image (optional)</Label>
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <Input
-                          id="profile_image"
-                          type="file"
-                          accept="image/*"
-                          className="max-w-xs"
-                          onChange={(e) => setProfileImage(e.target.files?.[0] ?? null)}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCameraOpen(true)}
-                        >
-                          <Camera className="h-4 w-4 mr-2" />
-                          Capture from camera
-                        </Button>
-                        {profileImage && (
-                          <span className="text-xs text-muted-foreground">
-                            {profileImage.name}
-                          </span>
-                        )}
-                      </div>
-                      <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-                        <DialogContent className="max-w-md">
-                          <CameraCapture
-                            title="Capture staff photo"
-                            description="Position the staff member in frame and capture. This will be used as their profile image."
-                            onCapture={(file) => {
-                              setProfileImage(file)
-                              setCameraOpen(false)
-                            }}
-                            onCancel={() => setCameraOpen(false)}
-                          />
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <DialogFooter>
-                      <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button type="submit" className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" disabled={submitting}>
-                        {submitting ? "Adding…" : "Add Staff"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Search by name, CNIC, designation..."
+                  className="pl-9 w-80"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Button 
+                className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+                onClick={() => navigate(ROUTES.ADD_STAFF)}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Staff
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -404,61 +156,195 @@ export default function EmployeesPage() {
             {loading ? (
               <p className="text-sm text-muted-foreground py-8">Loading staff…</p>
             ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Designation</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      No staff found. Click &quot;Add Staff&quot; to create a new record.
-                    </TableCell>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-12 text-center">S.No.</TableHead>
+                    <TableHead>Personal No.</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Father's Name</TableHead>
+                    <TableHead>Designation</TableHead>
+                    <TableHead className="text-center">BPS</TableHead>
+                    <TableHead>CNIC</TableHead>
+                    <TableHead>Mobile No.</TableHead>
+                    <TableHead>Date of Birth</TableHead>
+                    <TableHead>Qualification</TableHead>
+                    <TableHead>Current place of Posting</TableHead>
+                    <TableHead>Name of Collector</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  filtered.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {row.full_name
-                                ?.split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .slice(0, 2) ?? row.user?.slice(0, 2) ?? "—"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{row.full_name ?? row.user}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-muted-foreground">{row.user}</TableCell>
-                      <TableCell>{row.department}</TableCell>
-                      <TableCell>{row.designation}</TableCell>
-                      <TableCell>
-                        <Badge variant="default">{row.role}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" className="text-[#3b82f6]">
-                          View
-                        </Button>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
+                        No staff found. Click "Add Staff" to create a new record.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    filtered.map((row, index) => (
+                      <TableRow 
+                        key={row.id} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleViewEmployee(row)}
+                      >
+                        <TableCell className="text-center font-medium">{index + 1}</TableCell>
+                        <TableCell>{row.personal_number || row.user || "—"}</TableCell>
+                        <TableCell className="font-medium">{row.full_name || row.user}</TableCell>
+                        <TableCell>{row.father_name || "—"}</TableCell>
+                        <TableCell>{row.designation || "—"}</TableCell>
+                        <TableCell className="text-center">{row.bps || "—"}</TableCell>
+                        <TableCell>{row.cnic || "—"}</TableCell>
+                        <TableCell>{row.phone || "—"}</TableCell>
+                        <TableCell>{row.date_of_birth || "—"}</TableCell>
+                        <TableCell>{row.qualification || "—"}</TableCell>
+                        <TableCell>{row.current_posting || "—"}</TableCell>
+                        <TableCell>{row.collector_name || "—"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-blue-600"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleViewEmployee(row)
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-green-600"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-red-600"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Employee Details Dialog */}
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Employee Details</DialogTitle>
+            <DialogDescription>
+              Complete information of the selected employee
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedEmployee && (
+            <div className="grid gap-6 py-4">
+              {/* Header with Avatar and Basic Info */}
+              <div className="flex items-start gap-4 pb-4 border-b">
+                <Avatar className="h-20 w-20">
+                  <AvatarFallback className="text-lg">
+                    {selectedEmployee.full_name
+                      ?.split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2) ?? selectedEmployee.user?.slice(0, 2) ?? "—"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold">{selectedEmployee.full_name || selectedEmployee.user}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedEmployee.designation} • {selectedEmployee.department}</p>
+                  <div className="flex gap-2 mt-2">
+                    <Badge>{selectedEmployee.role}</Badge>
+                    <Badge variant="outline">BPS: {selectedEmployee.bps || "—"}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Personal No.</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.personal_number || selectedEmployee.user || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Father's Name</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.father_name || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">CNIC</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.cnic || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Mobile Number</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.phone || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.email || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Date of Birth</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.date_of_birth || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Qualification</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.qualification || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">BPS</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.bps || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Current Place of Posting</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.current_posting || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Name of Collector</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.collector_name || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Joining Date</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.joining_date || "—"}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Emergency Contact</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.emergency_contact || "—"}</p>
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs text-muted-foreground">Address</Label>
+                  <p className="text-sm font-medium">{selectedEmployee.address || "—"}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewOpen(false)}>
+              Close
+            </Button>
+            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Details
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ModulePageLayout>
   )
 }

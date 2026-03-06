@@ -121,6 +121,7 @@ export const ROUTES = {
 
   // HR
   EMPLOYEES: "/employees",
+  ADD_STAFF: "/employees/add",
   ATTENDANCE: "/attendance",
   LEAVE_MANAGEMENT: "/leave-management",
   PAYROLL: "/payroll",
