@@ -380,15 +380,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         ],
       },
 
-      {
-        label: "Integration",
-        children: [
-          { label: "Employees", href: ROUTES.EMPLOYEES },
-          { label: "Attendance", href: ROUTES.ATTENDANCE },
-          { label: "Leave", href: ROUTES.LEAVE_MANAGEMENT },
-          { label: "Payroll", href: ROUTES.PAYROLL },
-        ],
-      },
+
       {
         label: "Download Reports",
         children: [

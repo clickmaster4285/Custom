@@ -27,6 +27,7 @@ type GoodsLineItem = {
   assessableValuePkr: string
   identificationRef: string
   itemNotes: string
+  perishable?: boolean
 }
 
 type DetentionMemoRow = {
@@ -192,7 +193,8 @@ export default function DetentionMemoDetailPage() {
                       <TableHead>Qty</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>Condition</TableHead>
-                      <TableHead>Assessable Value (PKR)</TableHead>
+                      <TableHead>Assessable</TableHead>
+                      <TableHead>Perishable</TableHead>
                       <TableHead>ID / Chassis</TableHead>
                       <TableHead>Item Notes</TableHead>
                     </TableRow>
@@ -207,6 +209,7 @@ export default function DetentionMemoDetailPage() {
                         <TableCell>{item.unit || "—"}</TableCell>
                         <TableCell>{item.condition || "—"}</TableCell>
                         <TableCell>{item.assessableValuePkr || "—"}</TableCell>
+                        <TableCell>{item.perishable ? "Yes" : "No"}</TableCell>
                         <TableCell>{item.identificationRef || "—"}</TableCell>
                         <TableCell className="text-muted-foreground max-w-[200px] truncate">{item.itemNotes || "—"}</TableCell>
                       </TableRow>

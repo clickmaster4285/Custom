@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, Package, Plus, Printer } from "lucide-react"
+import { AlertTriangle, BookOpen, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, Package, Plus, Printer } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -138,10 +138,8 @@ function getFullMemoById(id: string): Record<string, unknown> | null {
   }
 }
 
-function addToSeizedInventory(sourceId: string): boolean {
-  const full = getFullMemoById(sourceId)
-  if (!full) return false
-  const seized = { ...full, id: `seized-${Date.now()}`, sourceDetentionId: sourceId, seizedAt: new Date().toISOString() }
+function addToSeizedInventory(row: DetentionMemoRow): boolean {
+  const seized = { ...row, id: `seized-${Date.now()}`, sourceDetentionId: row.id, seizedAt: new Date().toISOString() }
   try {
     const raw = localStorage.getItem(SEIZED_STORAGE_KEY)
     const list = raw ? JSON.parse(raw) : []
@@ -151,6 +149,35 @@ function addToSeizedInventory(sourceId: string): boolean {
     return true
   } catch {
     localStorage.setItem(SEIZED_STORAGE_KEY, JSON.stringify([seized]))
+    return true
+  }
+}
+
+// create a minimal deposit entry using fields from the memo row
+function addToDepositAccount(row: DetentionMemoRow): boolean {
+  // build a deposit row with defaults
+  const deposit = {
+    id: `dep-${Date.now()}`,
+    treasuryChallanNo: "",
+    depositType: "Detention",
+    caseSeizureRef: row.caseNo,
+    firNo: row.firNumber || "",
+    customsStation: row.placeOfDetention,
+    amount: "",
+    depositDate: new Date().toISOString().slice(0, 10),
+    bankTreasuryName: "",
+    status: "Pending",
+    remarks: ""
+  }
+  try {
+    const raw = localStorage.getItem("wms_deposit_account_register")
+    const list = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(list)) throw new Error()
+    list.unshift(deposit)
+    localStorage.setItem("wms_deposit_account_register", JSON.stringify(list))
+    return true
+  } catch {
+    localStorage.setItem("wms_deposit_account_register", JSON.stringify([deposit]))
     return true
   }
 }
@@ -214,8 +241,14 @@ export default function DetentionMemoPage() {
   const handleSearch = () => setPage(1)
   const handleClear = () => { setCaseNumberSearch(""); setPage(1) }
   const handleSeize = (row: DetentionMemoRow) => {
-    if (addToSeizedInventory(row.id)) {
+    if (addToSeizedInventory(row)) {
       window.alert("Added to Seizure Register. View it under Seizure & Receipt → Seizure Register.")
+    } else window.alert("Could not load memo. Please try again.")
+  }
+
+  const handleDeposit = (row: DetentionMemoRow) => {
+    if (addToDepositAccount(row)) {
+      window.alert("Created deposit entry. Check Deposit Account Register for details.")
     } else window.alert("Could not load memo. Please try again.")
   }
 
@@ -287,6 +320,7 @@ export default function DetentionMemoPage() {
                           <TableCell className="text-right flex gap-1 flex-wrap">
                             <Button variant="ghost" size="sm" asChild><Link to={getDetentionMemoDetailPath(row.id)}><Eye className="h-4 w-4 mr-1"/>View</Link></Button>
                             <Button variant="outline" size="sm" onClick={() => printMemo(row.id)} title="Print (A4)"><Printer className="h-4 w-4 mr-1"/>Print</Button>
+                            <Button variant="outline" size="sm" onClick={() => handleDeposit(row)} title="Add to Deposit Account"><BookOpen className="h-4 w-4 mr-1"/>Deposit</Button>
                             <Button variant="outline" size="sm" onClick={() => handleSeize(row)} title="Add to Seizure Register"><Package className="h-4 w-4 mr-1"/>Seize</Button>
                           </TableCell>
                         </TableRow>
