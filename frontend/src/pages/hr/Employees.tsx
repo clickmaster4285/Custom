@@ -19,11 +19,14 @@ import { fetchStaff, deleteStaff, type StaffRecord } from "@/lib/staff-api"
 import { ROUTES, getEmployeeDetailPath } from "@/routes/config"
 import { useToast } from "@/hooks/use-toast"
 
-function staffImageUrl(profileImage: string | null | undefined): string | undefined {
-  if (!profileImage) return undefined
-  if (profileImage.startsWith("data:")) return profileImage
-  if (profileImage.startsWith("http")) return profileImage
-  return `${API_BASE_URL}${profileImage.startsWith("/") ? "" : "/"}${profileImage}`
+function staffImageUrl(profileImage: string | null | undefined, id?: number): string {
+  if (profileImage) {
+    if (profileImage.startsWith("data:")) return profileImage
+    if (profileImage.startsWith("http")) return profileImage
+    return `${API_BASE_URL}${profileImage.startsWith("/") ? "" : "/"}${profileImage}`
+  }
+  const seed = id ?? Math.floor(Math.random() * 1000)
+  return `https://i.pravatar.cc/150?u=${seed}`
 }
 
 export default function EmployeesPage() {
@@ -206,7 +209,7 @@ export default function EmployeesPage() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={staffImageUrl(row.profile_image)} alt="" />
+                                <AvatarImage src={staffImageUrl(row.profile_image, row.id)} alt="" />
                                 <AvatarFallback className="text-[10px]">
                                   {row.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "—"}
                                 </AvatarFallback>

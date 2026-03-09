@@ -33,11 +33,15 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-function staffImageUrl(profileImage: string | null | undefined): string | undefined {
-  if (!profileImage) return undefined
-  if (profileImage.startsWith("data:")) return profileImage
-  if (profileImage.startsWith("http")) return profileImage
-  return `${API_BASE_URL}${profileImage.startsWith("/") ? "" : "/"}${profileImage}`
+function staffImageUrl(profileImage: string | null | undefined, id?: number): string {
+  // if provided, use it; otherwise return deterministic placeholder based on id
+  if (profileImage) {
+    if (profileImage.startsWith("data:")) return profileImage
+    if (profileImage.startsWith("http")) return profileImage
+    return `${API_BASE_URL}${profileImage.startsWith("/") ? "" : "/"}${profileImage}`
+  }
+  const seed = id ?? Math.floor(Math.random() * 1000)
+  return `https://i.pravatar.cc/150?u=${seed}`
 }
 
 /** Build full URL for a document path returned by the API */
@@ -294,7 +298,7 @@ export default function EmployeeDetailPage() {
             />
             {/* small avatar fallback (hidden if image loads) */}
             <Avatar className="h-24 w-24 hidden">
-              <AvatarImage src={staffImageUrl(s.profile_image)} alt="" />
+              <AvatarImage src={staffImageUrl(s.profile_image, s.id)} alt="" />
               <AvatarFallback className="text-2xl">
                 {s.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "—"}
               </AvatarFallback>

@@ -159,16 +159,11 @@ function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
     gender: (s.gender as string) ?? null,
     // In local-only mode, we store the image inside the saved draft as a data URL.
     profile_image: profileFromDraft || (() => {
-      // if draft didn't have an image, generate a random avatar
-      // use full_name to create simple initials avatar if available
+      // if draft didn't have an image, generate a deterministic avatar
+      // prefer pravatar seeded by staff id for consistency between list/detail
       if (profileFromDraft) return profileFromDraft;
-      if (s.full_name) {
-        const name = String(s.full_name).trim().replace(/ /g, "+");
-        return `https://ui-avatars.com/api/?name=${name}&background=random`;
-      }
-      // fallback to pravatar
-      const rand = Math.floor(Math.random() * 70) + 1;
-      return `https://i.pravatar.cc/150?img=${rand}`;
+      const seed = item.id || Math.floor(Math.random() * 1000);
+      return `https://i.pravatar.cc/150?u=${seed}`;
     })(),
     email: (s.email as string) ?? null,
     phone: (s.phone as string) ?? null,
@@ -200,7 +195,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "499948",
     full_name: "Ali Khan",
     cnic: "12345-6789012-3",
-    profile_image: "https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150", // direct URL
+    profile_image: `https://i.pravatar.cc/150?img=11`,
     designation: "Inspector",
     department: "Enforcement",
     phone: "0301-1234567",
@@ -227,7 +222,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "285591",
     full_name: "Sara Ahmed",
     cnic: "23456-7890123-4",
-    profile_image: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150",
+    profile_image: `https://i.pravatar.cc/150?img=12`,
     designation: "Assistant Collector",
     department: "Intelligence",
     phone: "0302-2345678",
@@ -254,7 +249,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "707664",
     full_name: "Mustafa Ali",
     cnic: "34567-8901234-5",
-    profile_image: "https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=150",
+    profile_image: `https://i.pravatar.cc/150?img=13`,
     designation: "Deputy Collector",
     department: "Legal",
     phone: "0303-3456789",
@@ -281,7 +276,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "878685",
     full_name: "Fatima Noor",
     cnic: "45678-9012345-6",
-    profile_image: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150",
+    profile_image: `https://i.pravatar.cc/150?img=14`,
     designation: "Inspector",
     department: "Human Resources",
     phone: "0304-4567890",
@@ -308,7 +303,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "691102",
     full_name: "Rao Sheikh",
     cnic: "56789-0123456-7",
-    profile_image: "https://images.pexels.com/photos/91227/pexels-photo-91227.jpeg?auto=compress&cs=tinysrgb&w=150",
+    profile_image: `https://i.pravatar.cc/150?img=15`,
     designation: "Assistant Inspector",
     department: "Operations",
     phone: "0305-5678901",
@@ -370,7 +365,8 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
     const needsMerge =
       (!rec.phone || rec.phone === "—") ||
       (!rec.transferred_from || rec.transferred_from === "—") ||
-      (!rec.transferred_to || rec.transferred_to === "—");
+      (!rec.transferred_to || rec.transferred_to === "—") ||
+      (!rec.profile_image || rec.profile_image === "");
     if (!needsMerge) return it;
 
     updated = true;
@@ -378,6 +374,7 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
       phone: def.phone,
       transferred_from: def.transferred_from,
       transferred_to: def.transferred_to,
+      profile_image: def.profile_image,
     } as Record<string, unknown>;
     return { ...it, payload: mergedPayload };
   });
