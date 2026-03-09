@@ -68,10 +68,14 @@ export default function EmployeesPage() {
   const filtered = staff.filter(
     (s) =>
       s.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      (s.personal_number?.toString() || "").toLowerCase().includes(search.toLowerCase()) ||
       (s.user?.toString() || "").toLowerCase().includes(search.toLowerCase()) ||
       s.department?.toLowerCase().includes(search.toLowerCase()) ||
       s.designation?.toLowerCase().includes(search.toLowerCase()) ||
-      s.cnic?.includes(search)
+      s.cnic?.includes(search) ||
+      s.phone?.includes(search) ||
+      s.transferred_from?.toLowerCase().includes(search.toLowerCase()) ||
+      s.transferred_to?.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -198,7 +202,7 @@ export default function EmployeesPage() {
                         onClick={() => handleViewEmployee(row)}
                       >
                         <TableCell className="text-center font-medium">{index + 1}</TableCell>
-                        <TableCell>{row.user || row.employee_id || "—"}</TableCell>
+                        <TableCell>{row.personal_number || row.user || row.employee_id || "—"}</TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                              <Avatar className="h-6 w-6">

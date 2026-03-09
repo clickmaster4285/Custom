@@ -158,7 +158,18 @@ function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
     date_of_birth: (s.date_of_birth as string) ?? null,
     gender: (s.gender as string) ?? null,
     // In local-only mode, we store the image inside the saved draft as a data URL.
-    profile_image: profileFromDraft,
+    profile_image: profileFromDraft || (() => {
+      // if draft didn't have an image, generate a random avatar
+      // use full_name to create simple initials avatar if available
+      if (profileFromDraft) return profileFromDraft;
+      if (s.full_name) {
+        const name = String(s.full_name).trim().replace(/ /g, "+");
+        return `https://ui-avatars.com/api/?name=${name}&background=random`;
+      }
+      // fallback to pravatar
+      const rand = Math.floor(Math.random() * 70) + 1;
+      return `https://i.pravatar.cc/150?img=${rand}`;
+    })(),
     email: (s.email as string) ?? null,
     phone: (s.phone as string) ?? null,
     address: (s.address as string) ?? null,
@@ -166,7 +177,7 @@ function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
     department: String(s.department ?? ""),
     employment_type: (s.employment_type as string) ?? null,
     joining_date: (s.joining_date as string) ?? undefined,
-    personal_number: (s.personal_number as string) ?? null,
+    personal_number: (s.personal_number as string) ?? `PN${Math.floor(100000 + Math.random() * 900000)}`,
     bps: (s.bps as string) ?? null,
     qualification: (s.qualification as string) ?? null,
     current_posting: (s.current_posting as string) ?? null,
@@ -181,9 +192,71 @@ function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
   } as StaffRecord;
 }
 
+// sample data used when there are no staff records in localStorage
+const DEFAULT_STAFF: StaffRecord[] = [
+  { id: 1, user: "PN499948", personal_number: "PN499948", full_name: "Ali Khan", cnic: "12345-6789012-3", profile_image: `https://i.pravatar.cc/150?img=11`, designation: "Inspector", department: "Enforcement", phone: "0301-1234567", bank_account: null, employment_type: null, joining_date: null, bps: "16", qualification: null, current_posting: "Peshawar", collector_name: null, role: null, emergency_contact: null, emergency_contact_name: null, emergency_contact_relationship: null, emergency_contact_phone: null, emergency_contact_address: null, transferred_from: "HQ (Peshawar)", transferred_to: "AC ASD, Nowshera", created_at: new Date().toISOString() } as any,
+  { id: 2, user: "PN285591", personal_number: "PN285591", full_name: "Sara Ahmed", cnic: "23456-7890123-4", profile_image: `https://i.pravatar.cc/150?img=12`, designation: "Assistant Collector", department: "Intelligence", phone: "0302-2345678", bank_account: null, employment_type: null, joining_date: null, bps: "17", qualification: null, current_posting: "Lahore", collector_name: null, role: null, emergency_contact: null, emergency_contact_name: null, emergency_contact_relationship: null, emergency_contact_phone: null, emergency_contact_address: null, transferred_from: "AC (HQ-I)", transferred_to: "ASD, Kohat", created_at: new Date().toISOString() } as any,
+  { id: 3, user: "PN707664", personal_number: "PN707664", full_name: "Mustafa Ali", cnic: "34567-8901234-5", profile_image: `https://i.pravatar.cc/150?img=13`, designation: "Deputy Collector", department: "Legal", phone: "0303-3456789", bank_account: null, employment_type: null, joining_date: null, bps: "18", qualification: null, current_posting: "Karachi", collector_name: null, role: null, emergency_contact: null, emergency_contact_name: null, emergency_contact_relationship: null, emergency_contact_phone: null, emergency_contact_address: null, transferred_from: "SWH, Peshawar (HQ)", transferred_to: "AC ASD, D.I. Khan-I", created_at: new Date().toISOString() } as any,
+  { id: 4, user: "PN878685", personal_number: "PN878685", full_name: "Fatima Noor", cnic: "45678-9012345-6", profile_image: `https://i.pravatar.cc/150?img=14`, designation: "Inspector", department: "Human Resources", phone: "0304-4567890", bank_account: null, employment_type: null, joining_date: null, bps: "16", qualification: null, current_posting: "Islamabad", collector_name: null, role: null, emergency_contact: null, emergency_contact_name: null, emergency_contact_relationship: null, emergency_contact_phone: null, emergency_contact_address: null, transferred_from: "DC ASD, Peshawar/Kohat & Bannu", transferred_to: "AC ASD, Hazara", created_at: new Date().toISOString() } as any,
+  { id: 5, user: "PN691102", personal_number: "PN691102", full_name: "Rao Sheikh", cnic: "56789-0123456-7", profile_image: `https://i.pravatar.cc/150?img=15`, designation: "Assistant Inspector", department: "Operations", phone: "0305-5678901", bank_account: null, employment_type: null, joining_date: null, bps: "15", qualification: null, current_posting: "Multan", collector_name: null, role: null, emergency_contact: null, emergency_contact_name: null, emergency_contact_relationship: null, emergency_contact_phone: null, emergency_contact_address: null, transferred_from: "ASD, Hazara", transferred_to: "ASD, D.I. Khan", created_at: new Date().toISOString() } as any,
+];
+
+const LOCAL_STAFF_STORE_VERSION = 2; // bump when default data format changes
+
 export async function fetchStaff(): Promise<StaffRecord[]> {
-  // Local-only mode: return staff from localStorage.
-  return readLocalStaffStore().map(localToStaffRecord);
+  // Local-only mode: pull from localStorage and convert
+  let storedItems = readLocalStaffStore();
+
+  // if there are no items at all, or they look very old, rebuild entirely
+  const initialCheck = storedItems.length === 0 ||
+    storedItems.some((it) => {
+      try {
+        const p = it.payload as any;
+        return !p.personal_number || (typeof p.personal_number === "string" && !p.personal_number.startsWith("PN"));
+      } catch {
+        return true;
+      }
+    });
+
+  if (initialCheck) {
+    const items = DEFAULT_STAFF.map((s) => ({
+      id: s.id,
+      savedAt: s.created_at || new Date().toISOString(),
+      payload: s,
+      draft: null,
+      v: LOCAL_STAFF_STORE_VERSION,
+    }));
+    writeLocalStaffStore(items as LocalStaffRecord[]);
+    return DEFAULT_STAFF;
+  }
+
+  // merge defaults for any record that is missing phone/transfer info
+  let updated = false;
+  storedItems = storedItems.map((it) => {
+    const rec = localToStaffRecord(it);
+    const def = DEFAULT_STAFF.find((d) => d.id === rec.id);
+    if (!def) return it;
+
+    const needsMerge =
+      (!rec.phone || rec.phone === "—") ||
+      (!rec.transferred_from || rec.transferred_from === "—") ||
+      (!rec.transferred_to || rec.transferred_to === "—");
+    if (!needsMerge) return it;
+
+    updated = true;
+    const mergedPayload = { ...(it.payload ?? {}),
+      phone: def.phone,
+      transferred_from: def.transferred_from,
+      transferred_to: def.transferred_to,
+    } as Record<string, unknown>;
+    return { ...it, payload: mergedPayload };
+  });
+
+  if (updated) {
+    writeLocalStaffStore(storedItems);
+  }
+
+  return storedItems.map(localToStaffRecord);
 }
 
 export async function fetchStaffById(id: number): Promise<StaffRecord> {

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
   TableBody,
@@ -66,6 +67,7 @@ export type GoodsLineItem = {
   assessableValuePkr: string
   identificationRef: string
   itemNotes: string
+  perishable: boolean
 }
 
 const emptyGoodsItem = (): GoodsLineItem => ({
@@ -79,6 +81,7 @@ const emptyGoodsItem = (): GoodsLineItem => ({
   assessableValuePkr: "",
   identificationRef: "",
   itemNotes: "",
+  perishable: false,
 })
 
 export default function DetentionMemoCreatePage() {
@@ -119,7 +122,7 @@ export default function DetentionMemoCreatePage() {
 
   const addGoodsLine = () => setGoodsItems((prev) => [...prev, emptyGoodsItem()])
   const removeGoodsLine = (id: string) => setGoodsItems((prev) => prev.filter((i) => i.id !== id))
-  const updateGoodsLine = (id: string, field: keyof GoodsLineItem, value: string) => {
+  const updateGoodsLine = (id: string, field: keyof GoodsLineItem, value: string | boolean) => {
     setGoodsItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)))
   }
 
@@ -414,13 +417,15 @@ export default function DetentionMemoCreatePage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[140px]">QR Code No</TableHead>
+                          {/* <TableHead className="w-[140px]">QR Code</TableHead> */}
+                          {/* <TableHead className="w-[140px]">QR Code</TableHead> */}
                           <TableHead className="min-w-[160px]">Description of Goods *</TableHead>
                           <TableHead className="w-[90px]">PCT Code</TableHead>
                           <TableHead className="w-[80px]">Qty</TableHead>
                           <TableHead className="w-[70px]">Unit</TableHead>
                           <TableHead className="w-[120px]">Condition</TableHead>
                           <TableHead className="w-[110px]">Assessable Value (PKR)</TableHead>
+                          <TableHead className="w-[90px]">Perishable</TableHead>
                           <TableHead className="min-w-[100px]">ID / Chassis No.</TableHead>
                           <TableHead className="min-w-[140px]">Item Notes</TableHead>
                           <TableHead className="w-[44px]"></TableHead>
@@ -434,11 +439,11 @@ export default function DetentionMemoCreatePage() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          goodsItems.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell className="font-mono text-xs align-middle whitespace-nowrap" title={item.qrCodeNumber}>
+                          goodsItems.map((item, idx) => (
+                            <TableRow key={item.id} className={idx % 2 === 1 ? "bg-muted/10" : ""}>
+                              {/* <TableCell className="font-mono text-xs align-middle whitespace-nowrap" title={item.qrCodeNumber}>
                                 {item.qrCodeNumber}
-                              </TableCell>
+                              </TableCell> */}
                               <TableCell>
                                 <Input
                                   value={item.description}
@@ -490,6 +495,12 @@ export default function DetentionMemoCreatePage() {
                                   placeholder="PKR"
                                 />
                               </TableCell>
+                              <TableCell className="text-center">
+                                <Checkbox
+                                  checked={item.perishable}
+                                  onCheckedChange={(checked) => updateGoodsLine(item.id, "perishable", !!checked)}
+                                />
+                              </TableCell>
                               <TableCell>
                                 <Input
                                   value={item.identificationRef}
@@ -515,6 +526,18 @@ export default function DetentionMemoCreatePage() {
                       </TableBody>
                     </Table>
                   </div>
+                  {/* {goodsItems.some((i) => i.perishable) && (
+                    <div className="mt-4 p-3 border rounded bg-yellow-50">
+                      <h5 className="text-sm font-medium mb-1">Perishable items</h5>
+                      <ul className="list-disc pl-5 text-sm">
+                        {goodsItems
+                          .filter((i) => i.perishable)
+                          .map((i) => (
+                            <li key={i.id}>{i.description || "(no description)"}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )} */}
                   <Button type="button" variant="outline" size="sm" className="mt-3" onClick={addGoodsLine}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add line
