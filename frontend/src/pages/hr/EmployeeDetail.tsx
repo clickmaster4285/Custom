@@ -286,13 +286,20 @@ export default function EmployeeDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-3 min-w-0">
-            <Avatar className="h-14 w-14">
+            {/* large photo display */}
+            <img
+              src={staffImageUrl(s.profile_image)}
+              alt="Profile"
+              className="h-40 w-40 rounded-full object-cover bg-muted/30"
+            />
+            {/* small avatar fallback (hidden if image loads) */}
+            <Avatar className="h-24 w-24 hidden">
               <AvatarImage src={staffImageUrl(s.profile_image)} alt="" />
-              <AvatarFallback className="text-lg">
+              <AvatarFallback className="text-2xl">
                 {s.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "—"}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 text-center sm:text-left">
               <h1 className="text-[22px] font-bold tracking-tight text-foreground truncate">
                 {val(s.full_name)}
               </h1>
