@@ -11,9 +11,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Clock, Pencil } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Clock, Pencil, Calendar, Shield, AlertCircle, Users, CheckCircle } from "lucide-react"
 import { useFormik } from "formik"
 import * as Yup from "yup"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { useToast } from "@/hooks/use-toast"
 
 export interface WalkInStep3VisitDetailsFormData {
   visitPurpose: string
@@ -46,6 +50,7 @@ interface WalkInStep3VisitDetailsProps {
   onCancel?: () => void
   onReset?: () => void
   onPrevious?: () => void
+  onSaveToDraft?: () => void
   onSaveAndContinue?: () => void
 }
 
@@ -53,27 +58,38 @@ const visitPurposeOptions = [
   { value: "hearing-and-adjudication", label: "Hearing and Adjudication" },
   { value: "license-renewal", label: "License Renewal" },
   { value: "auction-verification", label: "Auction verification" },
-  { value: "vehicle-verification", label: "Vehicle Verification" },
+  { value: "Meeting", label: "Meeting" },
+  { value: "delivery", label: "Delivery" },
+  { value: "Maintenance", label: "Maintenance" },
+  { value: "Consultation", label: "Consultation" },
+  { value: "Other", label: "Other" },
 ]
 
 const departmentOptions = [
-  { value: "enforcement", label: "Enforcement" },
-  { value: "hr", label: "Human Resource" },
-  { value: "it", label: "IT Department" },
-  { value: "operations", label: "Operations" },
-  { value: "finance", label: "Finance" },
+  { value: "enforcement", label: "Enforcement", color: "bg-blue-100 text-blue-800" },
+  { value: "hr", label: "Human Resource", color: "bg-green-100 text-green-800" },
+  { value: "it", label: "IT Department", color: "bg-purple-100 text-purple-800" },
+  { value: "operations", label: "Operations", color: "bg-orange-100 text-orange-800" },
+  { value: "finance", label: "Finance", color: "bg-emerald-100 text-emerald-800" },
 ]
 
 const securityLevelOptions = [
-  { value: "standard", label: "Standard" },
-  { value: "elevated", label: "Elevated" },
-  { value: "high", label: "High" },
+  { value: "standard", label: "Standard", description: "Regular access" },
+  { value: "elevated", label: "Elevated", description: "Additional verification" },
+  { value: "high", label: "High", description: "Strict clearance required" },
 ]
 
 const entryGateOptions = [
-  { value: "main", label: "Main Gate" },
-  { value: "side", label: "Side Gate" },
-  { value: "rear", label: "Rear Gate" },
+  { value: "main", label: "Main Gate", description: "Main entrance" },
+  { value: "side", label: "Side Gate", description: "Side entrance" },
+  { value: "rear", label: "Rear Gate", description: "Rear entrance" },
+  { value: "vip", label: "VIP Entrance", description: "Special access" },
+]
+
+const priorityLevelOptions = [
+  { value: "normal", label: "Normal", color: "bg-gray-100 text-gray-800", icon: Users },
+  { value: "urgent", label: "Urgent", color: "bg-orange-100 text-orange-800", icon: AlertCircle },
+  { value: "high-security", label: "High Security", color: "bg-red-100 text-red-800", icon: Shield },
 ]
 
 export function WalkInStep3VisitDetails({
@@ -82,8 +98,47 @@ export function WalkInStep3VisitDetails({
   onCancel,
   onReset,
   onPrevious,
+  onSaveToDraft,
   onSaveAndContinue,
 }: WalkInStep3VisitDetailsProps) {
+  const { toast } = useToast()
+
+  const handleCheckAvailability = () => {
+    if (!formik.values.hostFullName) {
+      toast({
+        title: "No host selected",
+        description: "Please select a host officer first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Get host name based on selected value
+    const hostName = 
+      formik.values.hostFullName === "jahandad" ? "Mr. Jahandad Khan" :
+      formik.values.hostFullName === "ali" ? "Mr. Ali Ahmed" :
+      formik.values.hostFullName === "khan" ? "Mr. Hassan Khan" :
+      formik.values.hostFullName
+
+    // Show success toast with host availability
+    toast({
+      title: "Host Available",
+      description: (
+        <div className="flex flex-col gap-1 mt-1">
+          <p className="font-medium">{hostName} is available</p>
+          <p className="text-xs text-muted-foreground">
+            {formik.values.hostDesignation} • {formik.values.hostDepartment ? departmentOptions.find(d => d.value === formik.values.hostDepartment)?.label : ''}
+          </p>
+          <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+            <CheckCircle className="h-3 w-3" />
+            Ready to accept visitors
+          </p>
+        </div>
+      ),
+      duration: 5000,
+    })
+  }
+
   const formik = useFormik({
     initialValues: {
       visitPurpose: formData.visitPurpose || "",
@@ -114,7 +169,6 @@ export function WalkInStep3VisitDetails({
       department: Yup.string().trim().required("Department to visit is required"),
     }),
     onSubmit: (values) => {
-      // mirror field changes to parent state in case user never touched inputs directly
       updateFormData(values)
       if (onSaveAndContinue) {
         onSaveAndContinue()
@@ -122,14 +176,37 @@ export function WalkInStep3VisitDetails({
     },
   })
 
+  const getDepartmentLabel = (value: string) => {
+    return departmentOptions.find(d => d.value === value)?.label || value
+  }
+
+  const getDepartmentColor = (value: string) => {
+    return departmentOptions.find(d => d.value === value)?.color || "bg-gray-100 text-gray-800"
+  }
+
   return (
     <div className="space-y-8">
-      <Label className="text-[22px] font-bold text-foreground">Visit Details</Label>
+      {/* Header with icon */}
+      <div className="flex items-center gap-3 border-b border-border pb-4">
+        <div className="p-2 rounded-lg bg-[#3b82f6]/10 text-[#3b82f6]">
+          <Calendar className="h-6 w-6" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Visit Details</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Configure visit purpose, host information, and security settings
+          </p>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left column: Visit Purpose, Department to Visit */}
+      {/* Main grid - 2 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Visit Purpose */}
         <div className="space-y-2">
-          <Label className="text-base text-foreground">Visit Purpose<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
+          <Label className="text-sm font-medium text-foreground flex items-center gap-1">
+            Visit Purpose
+            <span className="text-destructive">*</span>
+          </Label>
           <Select
             value={formik.values.visitPurpose || undefined}
             onValueChange={(v) => {
@@ -137,36 +214,46 @@ export function WalkInStep3VisitDetails({
               updateFormData({ visitPurpose: v })
             }}
           >
-            <SelectTrigger className="w-full h-10 text-base bg-background border-border">
+            <SelectTrigger className="w-full h-11 text-base bg-background border-border focus:ring-2 focus:ring-[#3b82f6]/20">
               <SelectValue placeholder="Select visit purpose" />
             </SelectTrigger>
             <SelectContent>
               {visitPurposeOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
+                <SelectItem key={o.value} value={o.value} className="py-2.5">
                   {o.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {formik.touched.visitPurpose && formik.errors.visitPurpose && (
-            <p className="text-sm text-destructive">{String(formik.errors.visitPurpose)}</p>
+            <p className="text-sm text-destructive flex items-center gap-1 mt-1">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {String(formik.errors.visitPurpose)}
+            </p>
           )}
         </div>
+
+        {/* Visit Description */}
         <div className="space-y-2">
-          <Label className="text-base text-foreground">Visit Description</Label>
+          <Label className="text-sm font-medium text-foreground">Visit Description</Label>
           <Input
             name="visitPurposeDescription"
-            placeholder="To discuss some security matters."
+            placeholder="e.g., To discuss security matters, license renewal, etc."
             value={formik.values.visitPurposeDescription}
             onChange={(e) => {
               formik.handleChange(e)
               updateFormData({ visitPurposeDescription: e.target.value })
             }}
-            className="h-10 text-base bg-background border-border"
+            className="h-11 text-base bg-background border-border focus:ring-2 focus:ring-[#3b82f6]/20"
           />
         </div>
+
+        {/* Department to Visit */}
         <div className="space-y-2">
-          <Label className="text-base text-foreground">Department to Visit<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
+          <Label className="text-sm font-medium text-foreground flex items-center gap-1">
+            Department to Visit
+            <span className="text-destructive">*</span>
+          </Label>
           <Select
             value={formik.values.department || undefined}
             onValueChange={(v) => {
@@ -174,139 +261,223 @@ export function WalkInStep3VisitDetails({
               updateFormData({ department: v, departmentForSlot: v })
             }}
           >
-            <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-              <SelectValue placeholder="Enforcement" />
+            <SelectTrigger className="w-full h-11 text-base bg-background border-border focus:ring-2 focus:ring-[#3b82f6]/20">
+              <SelectValue placeholder="Select department" />
             </SelectTrigger>
             <SelectContent>
               {departmentOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
+                <SelectItem key={o.value} value={o.value} className="py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={o.color}>
+                      {o.label}
+                    </Badge>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {formik.touched.department && formik.errors.department && (
-            <p className="text-sm text-destructive">{String(formik.errors.department)}</p>
+            <p className="text-sm text-destructive flex items-center gap-1 mt-1">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {String(formik.errors.department)}
+            </p>
           )}
         </div>
+
+        {/* Host Officer Name */}
         <div className="space-y-2">
-          <Label className="text-base text-foreground">Host Officer Name</Label>
+          <Label className="text-sm font-medium text-foreground">Host Officer Name</Label>
           <Select
             value={formik.values.hostFullName || undefined}
             onValueChange={(v) => {
               const host = v === "jahandad"
-                ? { hostDesignation: "Manager HR", hostDepartment: "Human Resource", hostEmail: "jahandad123@email.com", hostContactNumber: "051-1234567" }
+                ? { hostDesignation: "Manager HR", hostDepartment: "hr", hostEmail: "jahandad123@email.com", hostContactNumber: "051-1234567" }
                 : v === "ali"
-                  ? { hostDesignation: "Officer", hostDepartment: "IT Department", hostEmail: "ali@email.com", hostContactNumber: "051-7654321" }
+                  ? { hostDesignation: "IT Officer", hostDepartment: "it", hostEmail: "ali@email.com", hostContactNumber: "051-7654321" }
                   : v === "khan"
-                    ? { hostDesignation: "Director", hostDepartment: "Operations", hostEmail: "khan@email.com", hostContactNumber: "051-1122334" }
+                    ? { hostDesignation: "Operations Director", hostDepartment: "operations", hostEmail: "khan@email.com", hostContactNumber: "051-1122334" }
                     : {}
               formik.setValues({ ...formik.values, hostFullName: v, ...host })
               updateFormData({ hostFullName: v, ...host })
             }}
           >
-            <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-              <SelectValue placeholder="Mr. Jahandad Khan" />
+            <SelectTrigger className="w-full h-11 text-base bg-background border-border focus:ring-2 focus:ring-[#3b82f6]/20">
+              <SelectValue placeholder="Select host officer" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="jahandad">Mr. Jahandad Khan</SelectItem>
-              <SelectItem value="ali">Mr. Ali Ahmed</SelectItem>
-              <SelectItem value="khan">Mr. Hassan Khan</SelectItem>
+              <SelectItem value="jahandad" className="py-2.5">Mr. Jahandad Khan (HR)</SelectItem>
+              <SelectItem value="ali" className="py-2.5">Mr. Ali Ahmed (IT)</SelectItem>
+              <SelectItem value="khan" className="py-2.5">Mr. Hassan Khan (Operations)</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Hosting Officer Details - light blue background */}
-      <div className="rounded-lg border border-border bg-[#eff6ff] p-6 space-y-4">
-        <Label className="text-[22px] font-bold text-foreground">Hosting Officer Details</Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-1">
-            <Label className="text-sm text-muted-foreground">Hosting Officer Name</Label>
-            <p className="text-base font-normal text-foreground">
-              {formik.values.hostFullName === "jahandad"
-                ? "Mr. Jahandad Khan"
-                : formik.values.hostFullName === "ali"
-                  ? "Mr. Ali Ahmed"
-                  : formik.values.hostFullName === "khan"
-                    ? "Mr. Hassan Khan"
-                    : formik.values.hostFullName || "—"}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-sm text-muted-foreground">Hosting Officer Designation</Label>
-            <p className="text-base font-normal text-foreground">
-              {formik.values.hostDesignation || "—"}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-sm text-muted-foreground">Hosting Officer Department</Label>
-            <p className="text-base font-normal text-foreground">
-              {formik.values.hostDepartment || "—"}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-sm text-muted-foreground">Hosting Officer Email</Label>
-            <p className="text-base font-normal text-foreground">
-              {formik.values.hostEmail || "—"}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-sm text-muted-foreground">Hosting Officer Contact Number</Label>
+      {/* Hosting Officer Details Card */}
+      {formik.values.hostFullName && (
+        <div className="rounded-xl border border-[#3b82f6]/20 bg-gradient-to-br from-[#eff6ff] to-white p-6 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <p className="text-base font-normal text-foreground">
+              <div className="p-1.5 rounded-lg bg-[#3b82f6]/10">
+                <Users className="h-5 w-5 text-[#3b82f6]" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Hosting Officer Details</h3>
+            </div>
+            <Badge variant="outline" className="bg-white">
+              On Duty
+              <CheckCircle className="h-3.5 w-3.5 ml-1 text-green-600" />
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-1 p-3 bg-white/50 rounded-lg">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Officer Name</Label>
+              <p className="text-base font-medium text-foreground">
+                {formik.values.hostFullName === "jahandad"
+                  ? "Mr. Jahandad Khan"
+                  : formik.values.hostFullName === "ali"
+                    ? "Mr. Ali Ahmed"
+                    : formik.values.hostFullName === "khan"
+                      ? "Mr. Hassan Khan"
+                      : formik.values.hostFullName || "—"}
+              </p>
+            </div>
+            
+            <div className="space-y-1 p-3 bg-white/50 rounded-lg">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Designation</Label>
+              <p className="text-base font-medium text-foreground">
+                {formik.values.hostDesignation || "—"}
+              </p>
+            </div>
+            
+            <div className="space-y-1 p-3 bg-white/50 rounded-lg">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Department</Label>
+              {formik.values.hostDepartment ? (
+                <Badge className={getDepartmentColor(formik.values.hostDepartment)}>
+                  {getDepartmentLabel(formik.values.hostDepartment)}
+                </Badge>
+              ) : (
+                <p className="text-base font-medium text-foreground">—</p>
+              )}
+            </div>
+            
+            <div className="space-y-1 p-3 bg-white/50 rounded-lg">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Email</Label>
+              <p className="text-base font-medium text-foreground break-all">
+                {formik.values.hostEmail || "—"}
+              </p>
+            </div>
+            
+            <div className="space-y-1 p-3 bg-white/50 rounded-lg">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Contact Number</Label>
+              <p className="text-base font-medium text-foreground">
                 {formik.values.hostContactNumber || "—"}
               </p>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 text-base font-normal text-[#3366CC] hover:underline"
-              >
-                Edit <Pencil className="h-4 w-4" />
-              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Priority Level */}
-      <div className="space-y-3 border-t border-border pt-6">
-        <Label className="text-[22px] font-bold text-foreground">Priority Level</Label>
+          <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#3b82f6]/10">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-[#3366CC] hover:text-[#2952CC] hover:bg-[#3b82f6]/5"
+            >
+              <Pencil className="h-4 w-4 mr-1.5" />
+              Edit Details
+            </Button>
+            <Separator orientation="vertical" className="h-5" />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCheckAvailability}
+              className="border-[#3366CC]/20 text-[#3366CC] hover:bg-[#3366CC]/5"
+            >
+              <Clock className="h-4 w-4 mr-1.5" />
+              Check Availability
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Priority Level Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground">Priority Level</h3>
+          <Badge variant="outline" className="text-xs">
+            Optional
+          </Badge>
+        </div>
+        
         <RadioGroup
           value={formik.values.priorityLevel || "normal"}
           onValueChange={(v) => {
             formik.setFieldValue("priorityLevel", v)
             updateFormData({ priorityLevel: v })
           }}
-          className="flex flex-row gap-6"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
         >
-          <div className="flex items-center gap-2">
-            <RadioGroupItem value="normal" id="priority-normal" />
-            <Label htmlFor="priority-normal" className="text-base font-normal cursor-pointer">
-              Normal
-            </Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <RadioGroupItem value="urgent" id="priority-urgent" />
-            <Label htmlFor="priority-urgent" className="text-base font-normal cursor-pointer">
-              Urgent
-            </Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <RadioGroupItem value="high-security" id="priority-high" />
-            <Label htmlFor="priority-high" className="text-base font-normal cursor-pointer">
-              High Security
-            </Label>
-          </div>
+          {priorityLevelOptions.map((option) => {
+            const Icon = option.icon
+            return (
+              <div key={option.value} className="relative">
+                <RadioGroupItem
+                  value={option.value}
+                  id={`priority-${option.value}`}
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor={`priority-${option.value}`}
+                  className={`
+                    flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer
+                    transition-all duration-200
+                    ${formik.values.priorityLevel === option.value
+                      ? 'border-[#3b82f6] bg-[#3b82f6]/5'
+                      : 'border-border hover:border-[#3b82f6]/50 hover:bg-muted/50'
+                    }
+                  `}
+                >
+                  <div className={`
+                    p-2 rounded-lg
+                    ${option.value === 'normal' ? 'bg-gray-100' : ''}
+                    ${option.value === 'urgent' ? 'bg-orange-100' : ''}
+                    ${option.value === 'high-security' ? 'bg-red-100' : ''}
+                  `}>
+                    <Icon className={`
+                      h-5 w-5
+                      ${option.value === 'normal' ? 'text-gray-600' : ''}
+                      ${option.value === 'urgent' ? 'text-orange-600' : ''}
+                      ${option.value === 'high-security' ? 'text-red-600' : ''}
+                    `} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{option.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {option.value === 'normal' && 'Standard processing'}
+                      {option.value === 'urgent' && 'Priority handling'}
+                      {option.value === 'high-security' && 'Enhanced security checks'}
+                    </p>
+                  </div>
+                </Label>
+              </div>
+            )
+          })}
         </RadioGroup>
-        <p className="text-sm text-muted-foreground">(Priority level for the visit)</p>
       </div>
 
-      {/* Security Clearance */}
-      <div className="space-y-4 border-t border-border pt-6">
-        <Label className="text-[22px] font-bold text-foreground">Security Clearance</Label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Security Clearance Section */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground">Security Clearance</h3>
+          <Badge variant="outline" className="text-xs">
+            Advanced Settings
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Security Level</Label>
+            <Label className="text-sm font-medium text-foreground">Security Level</Label>
             <Select
               value={formik.values.securityLevel || undefined}
               onValueChange={(v) => {
@@ -314,33 +485,43 @@ export function WalkInStep3VisitDetails({
                 updateFormData({ securityLevel: v })
               }}
             >
-              <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-                <SelectValue placeholder="Select level" />
+              <SelectTrigger className="w-full h-11 text-base bg-background border-border">
+                <SelectValue placeholder="Select security level" />
               </SelectTrigger>
               <SelectContent>
                 {securityLevelOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
+                  <SelectItem key={o.value} value={o.value} className="py-2.5">
+                    <div>
+                      <span className="font-medium">{o.label}</span>
+                      <span className="text-xs text-muted-foreground ml-2">({o.description})</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Maximum Visit Duration</Label>
-            <Input
-              placeholder="Set limit"
-              value={formik.values.maxVisitDuration}
-              onChange={(e) => {
-                formik.setFieldValue("maxVisitDuration", e.target.value)
-                updateFormData({ maxVisitDuration: e.target.value })
-              }}
-              className="h-10 text-base bg-background border-border"
-            />
-            <p className="text-sm text-muted-foreground">(Capacity Control)</p>
+            <Label className="text-sm font-medium text-foreground">Maximum Visit Duration</Label>
+            <div className="relative">
+              <Input
+                placeholder="e.g., 2 hours"
+                value={formik.values.maxVisitDuration}
+                onChange={(e) => {
+                  formik.setFieldValue("maxVisitDuration", e.target.value)
+                  updateFormData({ maxVisitDuration: e.target.value })
+                }}
+                className="h-11 text-base bg-background border-border pr-20"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                hours
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">Time limit for the visit</p>
           </div>
+
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Allowed Departments</Label>
+            <Label className="text-sm font-medium text-foreground">Allowed Departments</Label>
             <Select
               value={formik.values.allowedDepartments || undefined}
               onValueChange={(v) => {
@@ -348,20 +529,23 @@ export function WalkInStep3VisitDetails({
                 updateFormData({ allowedDepartments: v })
               }}
             >
-              <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-                <SelectValue placeholder="Select department(s)" />
+              <SelectTrigger className="w-full h-11 text-base bg-background border-border">
+                <SelectValue placeholder="Select departments" />
               </SelectTrigger>
               <SelectContent>
                 {departmentOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
+                  <SelectItem key={o.value} value={o.value} className="py-2.5">
+                    <Badge variant="outline" className={o.color}>
+                      {o.label}
+                    </Badge>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Allowed Zones</Label>
+            <Label className="text-sm font-medium text-foreground">Allowed Zones</Label>
             <Select
               value={formik.values.allowedZones || undefined}
               onValueChange={(v) => {
@@ -369,20 +553,20 @@ export function WalkInStep3VisitDetails({
                 updateFormData({ allowedZones: v })
               }}
             >
-              <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-                <SelectValue placeholder="Select department(s)" />
+              <SelectTrigger className="w-full h-11 text-base bg-background border-border">
+                <SelectValue placeholder="Select zones" />
               </SelectTrigger>
               <SelectContent>
-                {departmentOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
+                <SelectItem value="zone-a" className="py-2.5">Zone A - Administrative</SelectItem>
+                <SelectItem value="zone-b" className="py-2.5">Zone B - Secure Area</SelectItem>
+                <SelectItem value="zone-c" className="py-2.5">Zone C - Restricted</SelectItem>
+                <SelectItem value="all" className="py-2.5">All Zones</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Entry Gate</Label>
+            <Label className="text-sm font-medium text-foreground">Entry Gate</Label>
             <Select
               value={formik.values.entryGate || undefined}
               onValueChange={(v) => {
@@ -390,46 +574,53 @@ export function WalkInStep3VisitDetails({
                 updateFormData({ entryGate: v })
               }}
             >
-              <SelectTrigger className="w-full h-10 text-base bg-background border-border">
-                <SelectValue placeholder="Select department(s)" />
+              <SelectTrigger className="w-full h-11 text-base bg-background border-border">
+                <SelectValue placeholder="Select entry gate" />
               </SelectTrigger>
               <SelectContent>
                 {entryGateOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
+                  <SelectItem key={o.value} value={o.value} className="py-2.5">
+                    <div>
+                      <span className="font-medium">{o.label}</span>
+                      <span className="text-xs text-muted-foreground ml-2">({o.description})</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
-            <Label className="text-base text-foreground">Time Validity<span className="text-destructive -ml-px" aria-hidden="true">*</span></Label>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
+            <Label className="text-sm font-medium text-foreground flex items-center gap-1">
+              Time Validity
+              <span className="text-destructive">*</span>
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative">
                 <Input
                   type="time"
-                  placeholder="---"
+                  placeholder="Start"
                   value={formik.values.timeValidityStart}
                   onChange={(e) => {
                     formik.setFieldValue("timeValidityStart", e.target.value)
                     updateFormData({ timeValidityStart: e.target.value })
                   }}
-                  className="h-10 text-base bg-background border-border pr-9"
+                  className="h-11 text-base bg-background border-border pl-10"
                 />
-                <Clock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               </div>
-              <div className="relative flex-1">
+              <div className="relative">
                 <Input
                   type="time"
-                  placeholder="---"
+                  placeholder="End"
                   value={formik.values.timeValidityEnd}
                   onChange={(e) => {
                     formik.setFieldValue("timeValidityEnd", e.target.value)
                     updateFormData({ timeValidityEnd: e.target.value })
                   }}
-                  className="h-10 text-base bg-background border-border pr-9"
+                  className="h-11 text-base bg-background border-border pl-10"
                 />
-                <Clock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               </div>
             </div>
           </div>
@@ -437,22 +628,22 @@ export function WalkInStep3VisitDetails({
       </div>
 
       {/* Additional Remarks */}
-      <div className="space-y-2 border-t border-border pt-6">
-        <Label className="text-base text-foreground">Additional Remarks</Label>
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-foreground">Additional Remarks</Label>
         <Textarea
-          placeholder="Add remarks"
+          placeholder="Add any special instructions, requirements, or notes..."
           value={formik.values.additionalRemarks}
           onChange={(e) => {
             formik.setFieldValue("additionalRemarks", e.target.value)
             updateFormData({ additionalRemarks: e.target.value })
           }}
-          className="min-h-20 text-base bg-background border-border resize-none"
+          className="min-h-24 text-base bg-background border-border resize-none focus:ring-2 focus:ring-[#3b82f6]/20"
         />
       </div>
 
       {/* Escort Mandatory */}
-      <div className="space-y-3 border-t border-border pt-6">
-        <Label className="text-[22px] font-bold text-foreground">Escort Mandatory</Label>
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold text-foreground">Escort Required</h3>
         <RadioGroup
           value={formik.values.escortMandatory || "yes"}
           onValueChange={(v) => {
@@ -461,61 +652,74 @@ export function WalkInStep3VisitDetails({
           }}
           className="flex flex-row gap-6"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
             <RadioGroupItem value="yes" id="escort-yes" />
-            <Label htmlFor="escort-yes" className="text-base font-normal cursor-pointer">
-              Yes
+            <Label htmlFor="escort-yes" className="text-base font-medium cursor-pointer flex items-center gap-2">
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Required</Badge>
             </Label>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
             <RadioGroupItem value="no" id="escort-no" />
-            <Label htmlFor="escort-no" className="text-base font-normal cursor-pointer">
-              No
+            <Label htmlFor="escort-no" className="text-base font-medium cursor-pointer flex items-center gap-2">
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Not Required</Badge>
             </Label>
           </div>
         </RadioGroup>
       </div>
 
-      {/* Action buttons – same as first form */}
+      {/* Action Buttons */}
       <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 border-t border-border">
         <div className="flex items-center gap-3">
           {onCancel && (
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onCancel}
-              className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
+              className="h-11 px-6 border-border text-foreground hover:bg-muted"
             >
               Cancel
-            </button>
+            </Button>
           )}
           {onReset && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={onReset}
-              className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
+              className="h-11 px-6 text-[#3366CC] hover:bg-[#3366CC]/5"
             >
               Reset Form
-            </button>
+            </Button>
           )}
         </div>
         <div className="flex items-center gap-3">
           {onPrevious && (
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onPrevious}
-              className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
+              className="h-11 px-6 border-border"
             >
               Previous
-            </button>
+            </Button>
+          )}
+          {onSaveToDraft && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onSaveToDraft}
+              className="h-11 px-6 border-border bg-transparent hover:bg-muted"
+            >
+              Save to draft
+            </Button>
           )}
           {onSaveAndContinue && (
-            <button
+            <Button
               type="button"
               onClick={() => formik.submitForm()}
-              className="shrink-0 rounded-md bg-[#3366FF] px-5 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
+              className="h-11 px-8 bg-[#3366FF] hover:bg-[#2952CC] text-white"
             >
               Save & Continue
-            </button>
+            </Button>
           )}
         </div>
       </div>
