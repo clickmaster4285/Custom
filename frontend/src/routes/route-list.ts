@@ -145,7 +145,9 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.ALERTS_NOTIFICATIONS), page: "AlertsNotifications" },
   { path: toChildPath(ROUTES.INCIDENT_MANAGEMENT), page: "IncidentManagement" },
   { path: toChildPath(ROUTES.PEOPLE_DATABASE), page: "PeopleDatabase" },
+  { path: toChildPath(ROUTES.PEOPLE_DATABASE_DETAIL), page: "PeopleDatabaseDetail" },
   { path: toChildPath(ROUTES.VEHICLE_DATABASE), page: "VehicleDatabase" },
+  { path: toChildPath(ROUTES.VEHICLE_DATABASE_DETAIL), page: "VehicleDatabaseDetail" },
   { path: toChildPath(ROUTES.MOBILE_APP), page: "MobileApp" },
   { path: toChildPath(ROUTES.DATABASE_TABLES), page: "DatabaseTables" },
 ]

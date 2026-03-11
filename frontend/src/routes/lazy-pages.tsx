@@ -122,7 +122,9 @@ export const PAGES = {
   AlertsNotifications: lazy(() => import("@/pages/operations/AlertsNotifications").then((m) => ({ default: m.default }))),
   IncidentManagement: lazy(() => import("@/pages/operations/IncidentManagement").then((m) => ({ default: m.default }))),
   PeopleDatabase: lazy(() => import("@/pages/operations/PeopleDatabase").then((m) => ({ default: m.default }))),
+  PeopleDatabaseDetail: lazy(() => import("@/pages/operations/PeopleDatabaseDetail").then((m) => ({ default: m.default }))),
   VehicleDatabase: lazy(() => import("@/pages/operations/VehicleDatabase").then((m) => ({ default: m.default }))),
   MobileApp: lazy(() => import("@/pages/operations/MobileApp").then((m) => ({ default: m.default }))),
   DatabaseTables: lazy(() => import("@/pages/operations/DatabaseTables").then((m) => ({ default: m.default }))),
+VehicleDatabaseDetail: lazy(() => import("@/pages/operations/VehicleDatabaseDetail").then((m) => ({ default: m.default }))),
 } as const
