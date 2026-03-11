@@ -405,35 +405,69 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
   {
     label: "AI Analytics",
     children: [
-      { label: "Analytics Dashboard", href: ROUTES.ANALYTICS_DASHBOARD },
-      { label: "AI Models", href: ROUTES.AI_MODELS },
-      // {
-      //   label: "Computer Vision",
-      //   children: [
-      //     { label: "Cameras", href: ROUTES.CAMERA_MANAGEMENT },
-      //     { label: "Object Detection", href: ROUTES.OBJECT_DETECTION },
-      //     { label: "ANPR Settings", href: ROUTES.ANPR_SETTINGS },
-      //     { label: "Anomaly Detection", href: ROUTES.ANOMALY_DETECTION },
-      //   ],
-      // },                      
-      { label: "JCP/Toll Plaza Entry (ANPR)", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
-
-      { label: "Zones", href: ROUTES.AI_ZONES },
-      { label: "Rules", href: ROUTES.AI_RULES },
-      { label: "Training", href: ROUTES.AI_TRAINING },
-      { label: "Live View", href: ROUTES.LIVE_CAMERA_GRID },
-      { label: "Playback & Search", href: ROUTES.PLAYBACK_SEARCH },
-      { label: "Thermal Imaging", href: ROUTES.THERMAL_IMAGING },
-      { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
-      { label: "Incident Management", href: ROUTES.INCIDENT_MANAGEMENT },
-      { label: "People Database", href: ROUTES.PEOPLE_DATABASE },
-      { label: "Vehicle Database", href: ROUTES.VEHICLE_DATABASE },
-      { label: "Vehicle Detection", href: ROUTES.VEHICLE_DETECTION },
-      { label: "Reports & Analytics", href: ROUTES.REPORTS },
-      { label: "Predictive Insights", href: ROUTES.PREDICTIVE_INSIGHTS },
-      { label: "Data Visualization", href: ROUTES.DATA_VISUALIZATION },
-
-      { label: "Database Tables", href: ROUTES.DATABASE_TABLES },
+      {
+        label: "Dashboard",
+        href: ROUTES.ANALYTICS_DASHBOARD
+      },
+      {
+        label: "AI Models",
+        href: ROUTES.AI_MODELS
+      },
+      {
+        label: "Computer Vision",
+        children: [
+          { label: "Cameras", href: ROUTES.CAMERA_MANAGEMENT },
+          { label: "Object Detection", href: ROUTES.OBJECT_DETECTION },
+          { label: "ANPR Settings", href: ROUTES.ANPR_SETTINGS },
+          { label: "Anomaly Detection", href: ROUTES.ANOMALY_DETECTION },
+        ],
+      },
+      {
+        label: "JCP/Toll Operations",
+        children: [
+          { label: "Plaza Entry (ANPR)", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
+        ],
+      },
+      {
+        label: "Surveillance & Monitoring",
+        children: [
+          { label: "Live View", href: ROUTES.LIVE_CAMERA_GRID },
+          { label: "Playback & Search", href: ROUTES.PLAYBACK_SEARCH },
+          { label: "Thermal Imaging", href: ROUTES.THERMAL_IMAGING },
+        ],
+      },
+      {
+        label: "Rules & Configuration",
+        children: [
+          { label: "Zones", href: ROUTES.AI_ZONES },
+          { label: "Rules", href: ROUTES.AI_RULES },
+          { label: "Training", href: ROUTES.AI_TRAINING },
+        ],
+      },
+      {
+        label: "Incident Management",
+        children: [
+          { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
+          { label: "Incident Management", href: ROUTES.INCIDENT_MANAGEMENT },
+        ],
+      },
+      {
+        label: "Databases",
+        children: [
+          { label: "People Database", href: ROUTES.PEOPLE_DATABASE },
+          { label: "Vehicle Database", href: ROUTES.VEHICLE_DATABASE },
+          { label: "Vehicle Detection", href: ROUTES.VEHICLE_DETECTION },
+          { label: "Database Tables", href: ROUTES.DATABASE_TABLES },
+        ],
+      },
+      {
+        label: "Analytics & Insights",
+        children: [
+          { label: "Reports & Analytics", href: ROUTES.REPORTS },
+          { label: "Predictive Insights", href: ROUTES.PREDICTIVE_INSIGHTS },
+          { label: "Data Visualization", href: ROUTES.DATA_VISUALIZATION },
+        ],
+      },
     ],
   },
   {
