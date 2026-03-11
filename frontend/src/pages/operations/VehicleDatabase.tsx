@@ -199,12 +199,12 @@ interface Vehicle {
 
 // Dummy vehicle images
 const dummyImages = {
-  car: "https://images.unsplash.com/photo-1614200179396-2bdb77ebf81b?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bHV4dXJ5JTIwY2FyfGVufDB8fDB8fHww",
+  car: "https://miro.medium.com/v2/resize:fit:1400/1*qre-gAVNTuazaUPvNw2w-Q.jpeg",
   truck: "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=400&q=80",
-  motorcycle: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQm8bOHkbNkxlfRJr6E3OnpGxSXdk9Jf5GVOg&s",
+  motorcycle: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcREr50YLuEgNaPh2bYOxgM7rR11H9pLIWQVaA&s",
   suv: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRV2EmTviiWkhhw8oDHvlFA_KhszHSJZ_PqDw&s",
-  van: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQgGpXRx-BTMWunEk1PkF74eA7rPhOvLgCMA&s",
-  bus:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTuV8GBSycrg2YxlKrhoFE4j0pTd6v4u5-7ew&s"
+  van: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgmJMhTFIouAOuPdEcA26uVKPPkw5BFGYPhw&s",
+  bus:"https://cpimg.tistatic.com/5770042/b/4/roadways-bus-body.jpg"
 }
 
 // Sample vehicle data
@@ -214,8 +214,8 @@ const generateSampleVehicles = (): Vehicle[] => {
     // Added vehicles
     {
       id: "V007",
-      registrationNumber: "GOV-001",
-      registrationNumberFormatted: "GOV-001",
+      registrationNumber: "MH20EE7602",
+      registrationNumberFormatted: "MH20EE7602",
       province: "Islamabad",
       make: "Toyota",
       model: "Corolla",
@@ -235,7 +235,7 @@ const generateSampleVehicles = (): Vehicle[] => {
         {
           id: "O008",
           name: "Government of Pakistan",
-          cnic: "GOV-001",
+          cnic: "MH20EE7602",
           phone: "+92 51 1234567",
           email: "transport@gov.pk",
           relation: "owner",
@@ -286,8 +286,8 @@ const generateSampleVehicles = (): Vehicle[] => {
     },
     {
       id: "V008",
-      registrationNumber: "RENT-567",
-      registrationNumberFormatted: "RENT-567",
+      registrationNumber: "MH20EE7602",
+      registrationNumberFormatted: "MH20EE7602",
       province: "Sindh",
       make: "Suzuki",
       model: "Wagon R",
@@ -411,8 +411,8 @@ const generateSampleVehicles = (): Vehicle[] => {
     // Three more vehicles (examples)
     {
       id: "V009",
-      registrationNumber: "BUS-2026",
-      registrationNumberFormatted: "BUS-2026",
+      registrationNumber: "WB-39A-3583",
+      registrationNumberFormatted: "WB-39A-3583",
       province: "Punjab",
       make: "Daewoo",
       model: "Express",
@@ -486,8 +486,8 @@ const generateSampleVehicles = (): Vehicle[] => {
     },
     {
       id: "V010",
-      registrationNumber: "VAN-2026",
-      registrationNumberFormatted: "VAN-2026",
+      registrationNumber: "M25DJC",
+      registrationNumberFormatted: "M25DJC",
       province: "Sindh",
       make: "Suzuki",
       model: "Carry",
@@ -561,8 +561,8 @@ const generateSampleVehicles = (): Vehicle[] => {
     },
     {
       id: "V011",
-      registrationNumber: "BIKE-2026",
-      registrationNumberFormatted: "BIKE-2026",
+      registrationNumber: "DBR-53",
+      registrationNumberFormatted: "DBR-53",
       province: "Punjab",
       make: "Honda",
       model: "CD 70",
