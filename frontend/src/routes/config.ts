@@ -156,7 +156,10 @@ export const ROUTES = {
   ALERTS_NOTIFICATIONS: "/alerts-notifications",
   INCIDENT_MANAGEMENT: "/incident-management",
   PEOPLE_DATABASE: "/people-database",
+  /** Person detail page for People Database */
+  PEOPLE_DATABASE_DETAIL: "/people-database/:id",
   VEHICLE_DATABASE: "/vehicle-database",
+  VEHICLE_DATABASE_DETAIL: "/vehicle-database/:id",
   MOBILE_APP: "/mobile-app",
   DATABASE_TABLES: "/database-tables",
 
@@ -169,6 +172,10 @@ export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
 /** Build path to employee detail page */
 export function getEmployeeDetailPath(id: number): string {
   return `/employees/${id}`
+}
+
+export function getVehicleDatabaseDetailPath(id: string): string {
+  return `/vehicle-database/${encodeURIComponent(id)}`
 }
 
 /** Build path to Inventory Management detail pages */
@@ -204,6 +211,11 @@ export function isDashboardRoute(pathname: string): boolean {
 /** URL for the shared visitor detail page (used by both Walk-In and Pre-Registration). */
 export function getVisitorDetailPath(id: number | string): string {
   return `/visitors/${id}`
+}
+
+/** Build path to People Database person detail page */
+export function getPeopleDatabaseDetailPath(id: number | string): string {
+  return `/people-database/${encodeURIComponent(String(id))}`
 }
 
 /** Nav item for sidebar (leaf) */
@@ -414,7 +426,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         href: ROUTES.AI_MODELS
       },
       {
-        label: "Computer Vision",
+        label: "AI Computer Vision",
         children: [
           { label: "Cameras", href: ROUTES.CAMERA_MANAGEMENT },
           { label: "Object Detection", href: ROUTES.OBJECT_DETECTION },
@@ -423,13 +435,13 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         ],
       },
       {
-        label: "JCP/Toll Operations",
+        label: "AI JCP/Toll Operations",
         children: [
           { label: "Plaza Entry (ANPR)", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
         ],
       },
       {
-        label: "Surveillance & Monitoring",
+        label: "AI Surveillance & Monitoring",
         children: [
           { label: "Live View", href: ROUTES.LIVE_CAMERA_GRID },
           { label: "Playback & Search", href: ROUTES.PLAYBACK_SEARCH },
@@ -437,7 +449,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         ],
       },
       {
-        label: "Rules & Configuration",
+        label: "AI Rules & Configuration",
         children: [
           { label: "Zones", href: ROUTES.AI_ZONES },
           { label: "Rules", href: ROUTES.AI_RULES },
@@ -445,14 +457,14 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         ],
       },
       {
-        label: "Incident Management",
+        label: "AI Incident Management",
         children: [
           { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
           { label: "Incident Management", href: ROUTES.INCIDENT_MANAGEMENT },
         ],
       },
       {
-        label: "Databases",
+        label: "AI Databases",
         children: [
           { label: "People Database", href: ROUTES.PEOPLE_DATABASE },
           { label: "Vehicle Database", href: ROUTES.VEHICLE_DATABASE },
@@ -461,7 +473,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         ],
       },
       {
-        label: "Analytics & Insights",
+        label: "AI Analytics & Insights",
         children: [
           { label: "Reports & Analytics", href: ROUTES.REPORTS },
           { label: "Predictive Insights", href: ROUTES.PREDICTIVE_INSIGHTS },
