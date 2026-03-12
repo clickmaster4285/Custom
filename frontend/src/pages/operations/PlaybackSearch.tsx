@@ -26,6 +26,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChevronDown, Search, Calendar, Zap, User, Truck, Activity, Package, Thermometer, Film, Bookmark, Download, Wrench } from "lucide-react"
 
+const LOCATIONS = ["Peshawar", "Yarik", "DI Khan", "Kohat", "Mardan", "Nowshera","Chamkani"]
 const MOCK_CAMERAS = ["Gate-01", "Parking-A", "Warehouse-2", "Entrance", "Hall-B", "Loading-1"]
 const RECORDING_TYPES = ["Continuous", "Motion", "Event", "Manual"]
 const EVENT_TYPES = ["Alert", "Bookmark", "Incident", "AI event"]
@@ -63,6 +64,11 @@ export default function PlaybackSearchPage() {
                 <ChevronDown className="h-4 w-4" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2 space-y-3 pl-1">
+                <div>
+                  <Label className="text-xs">Location *</Label>
+                  <Select><SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Select location" /></SelectTrigger>
+                    <SelectContent>{LOCATIONS.map((loc) => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}</SelectContent></Select>
+                </div>
                 <div>
                   <Label className="text-xs">Camera selection *</Label>
                   <Select><SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Select cameras" /></SelectTrigger>
