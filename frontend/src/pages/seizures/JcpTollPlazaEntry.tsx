@@ -1,7 +1,30 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Car, Camera, Plus, X } from "lucide-react"
+import { 
+  Car, 
+  Camera, 
+  Plus, 
+  X, 
+  MapPin, 
+  AlertTriangle, 
+  Clock, 
+  Filter,
+  Search,
+  Download,
+  ChevronDown,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Gauge,
+  TrendingUp,
+  Calendar,
+  Image as ImageIcon,
+  Shield,
+  Ban,
+  ZoomIn,
+  Maximize2
+} from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,127 +32,888 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 
+// Location configurations
+const LOCATIONS = [
+  { id: "peshawar", name: "Peshawar", lat: 34.0151, lng: 71.5249, tolls: ["Ring Road Toll", "GT Road Toll", "University Road Checkpost"] },
+  { id: "yarik", name: "Yarik", lat: 34.0151, lng: 71.5249, tolls: ["Yarik Plaza", "North Entry", "Yarik Bridge"] },
+  { id: "di-khan", name: "DI Khan", lat: 31.8178, lng: 70.9324, tolls: ["DI Khan South", "Main Entry", "Industrial Area Gate"] },
+  { id: "kohat", name: "Kohat", lat: 33.5828, lng: 71.4373, tolls: ["Kohat Tunnel", "City Entry", "Kohat University Gate"] },
+  { id: "mardan", name: "Mardan", lat: 34.1989, lng: 72.0231, tolls: ["Mardan Toll Plaza", "Industrial Area", "Charsadda Road"] },
+  { id: "nowshera", name: "Nowshera", lat: 33.9907, lng: 71.9981, tolls: ["Nowshera Bridge", "Khattak Toll", "Motorway Interchange"] },
+  { id: "chamkani", name: "Chamkani", lat: 34.0151, lng: 71.5249, tolls: ["Chamkani Checkpoint", "Border Entry", "Customs Gate"] }
+]
+
+// Real camera-captured vehicle images with visible number plates
+const VEHICLE_IMAGES = [
+  {
+    url: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400&h=300&fit=crop&auto=format",
+    plate: "LEJ-1234",
+    detected: "LEJ-1234",
+    confidence: 99.2
+  },
+  {
+    url: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&h=300&fit=crop&auto=format",
+    plate: "ABC-5678",
+    detected: "ABC-5678",
+    confidence: 98.7
+  },
+  {
+    url: "https://images.unsplash.com/photo-1568605117036-5fe5e7fa0ab9?w=400&h=300&fit=crop&auto=format",
+    plate: "XYZ-9012",
+    detected: "XYZ-9012",
+    confidence: 99.1
+  },
+  {
+    url: "https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400&h=300&fit=crop&auto=format",
+    plate: "KHI-3456",
+    detected: "KHI-3456",
+    confidence: 97.8
+  },
+  {
+    url: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=300&fit=crop&auto=format",
+    plate: "LHR-7890",
+    detected: "LHR-7890",
+    confidence: 98.9
+  },
+  {
+    url: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400&h=300&fit=crop&auto=format",
+    plate: "ISB-2345",
+    detected: "ISB-2345",
+    confidence: 99.4
+  },
+  {
+    url: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&h=300&fit=crop&auto=format",
+    plate: "RWP-6789",
+    detected: "RWP-6789",
+    confidence: 98.2
+  },
+  {
+    url: "https://images.unsplash.com/photo-1568605117036-5fe5e7fa0ab9?w=400&h=300&fit=crop&auto=format",
+    plate: "FSD-0123",
+    detected: "FSD-0123",
+    confidence: 97.5
+  },
+  {
+    url: "https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400&h=300&fit=crop&auto=format",
+    plate: "MTN-4567",
+    detected: "MTN-4567",
+    confidence: 96.8
+  },
+  {
+    url: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=300&fit=crop&auto=format",
+    plate: "SWL-8901",
+    detected: "SWL-8901",
+    confidence: 98.1
+  }
+]
+
+interface ANPREntry {
+  id: string
+  time: string
+  date: string
+  plate: string
+  detectedPlate: string
+  location: string
+  tollPlaza: string
+  lane: string
+  status: 'OK' | 'Flagged' | 'Watchlist' | 'Blacklist' | 'VIP'
+  confidence: number
+  vehicleType: 'Car' | 'Truck' | 'Bus' | 'Motorcycle' | 'SUV' | 'Van' | 'Pickup'
+  vehicleColor: string
+  speed: number
+  imageUrl: string
+  imageMetadata: {
+    timestamp: string
+    cameraId: string
+    cameraAngle: string
+    weather: 'Clear' | 'Rain' | 'Fog' | 'Night'
+  }
+  driverName?: string
+  company?: string
+  violation?: string
+  timestamp: number
+}
+
 export default function JcpTollPlazaEntryPage() {
-  const [entries, setEntries] = useState<any[]>([])
+  const [entries, setEntries] = useState<ANPREntry[]>([])
+  const [filteredEntries, setFilteredEntries] = useState<ANPREntry[]>([])
   const [showModal, setShowModal] = useState(false)
-  const [formData, setFormData] = useState({ time: "", plate: "", lane: "Lane 1", status: "OK" })
+  const [selectedLocation, setSelectedLocation] = useState<string>("all")
+  const [selectedStatus, setSelectedStatus] = useState<string>("all")
+  const [searchTerm, setSearchTerm] = useState<string>("")
+  const [dateRange, setDateRange] = useState<string>("today")
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
+  const [selectedEntry, setSelectedEntry] = useState<ANPREntry | null>(null)
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  
+  const [formData, setFormData] = useState({
+    time: "",
+    plate: "",
+    location: "Peshawar",
+    tollPlaza: "Ring Road Toll",
+    lane: "Lane 1",
+    status: "OK",
+    vehicleType: "Car",
+    vehicleColor: "",
+    speed: "60"
+  })
 
-  // Load data from localStorage
+  // Initialize with 10 realistic dummy records that load immediately
   useEffect(() => {
-    const stored = localStorage.getItem("anprEntries")
-    if (stored) setEntries(JSON.parse(stored))
-  }, [])
+    // Create 10 realistic entries with varied data
+    const initialEntries: ANPREntry[] = [
+      {
+        id: "entry-1",
+        time: "08:23",
+        date: "2024-03-15",
+        plate: "LEJ-1234",
+        detectedPlate: "LEJ-1234",
+        location: "Peshawar",
+        tollPlaza: "Ring Road Toll",
+        lane: "Lane 2",
+        status: "OK",
+        confidence: 99.2,
+        vehicleType: "Car",
+        vehicleColor: "White",
+        speed: 65,
+        imageUrl: VEHICLE_IMAGES[0].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 08:23:45",
+          cameraId: "CAM-0042",
+          cameraAngle: "Front View",
+          weather: "Clear"
+        },
+        timestamp: 1710487425000
+      },
+      {
+        id: "entry-2",
+        time: "09:15",
+        date: "2024-03-15",
+        plate: "ABC-5678",
+        detectedPlate: "ABC-5678",
+        location: "Kohat",
+        tollPlaza: "Kohat Tunnel",
+        lane: "Lane 1",
+        status: "VIP",
+        confidence: 98.7,
+        vehicleType: "SUV",
+        vehicleColor: "Black",
+        speed: 55,
+        imageUrl: VEHICLE_IMAGES[1].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 09:15:22",
+          cameraId: "CAM-0087",
+          cameraAngle: "Front View",
+          weather: "Clear"
+        },
+        driverName: "Government Official",
+        company: "District Administration",
+        timestamp: 1710490522000
+      },
+      {
+        id: "entry-3",
+        time: "10:42",
+        date: "2024-03-15",
+        plate: "XYZ-9012",
+        detectedPlate: "XYZ-9012",
+        location: "Mardan",
+        tollPlaza: "Industrial Area",
+        lane: "Lane 3",
+        status: "Flagged",
+        confidence: 99.1,
+        vehicleType: "Truck",
+        vehicleColor: "Blue",
+        speed: 45,
+        imageUrl: VEHICLE_IMAGES[2].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 10:42:33",
+          cameraId: "CAM-0123",
+          cameraAngle: "Side View",
+          weather: "Clear"
+        },
+        violation: "Expired registration",
+        timestamp: 1710495753000
+      },
+      {
+        id: "entry-4",
+        time: "11:07",
+        date: "2024-03-15",
+        plate: "KHI-3456",
+        detectedPlate: "KHI-3456",
+        location: "Nowshera",
+        tollPlaza: "Khattak Toll",
+        lane: "Lane 2",
+        status: "OK",
+        confidence: 97.8,
+        vehicleType: "Van",
+        vehicleColor: "Silver",
+        speed: 70,
+        imageUrl: VEHICLE_IMAGES[3].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 11:07:18",
+          cameraId: "CAM-0056",
+          cameraAngle: "Rear View",
+          weather: "Rain"
+        },
+        timestamp: 1710497238000
+      },
+      {
+        id: "entry-5",
+        time: "12:30",
+        date: "2024-03-15",
+        plate: "LHR-7890",
+        detectedPlate: "LHR-7890",
+        location: "DI Khan",
+        tollPlaza: "Main Entry",
+        lane: "Lane 1",
+        status: "Watchlist",
+        confidence: 98.9,
+        vehicleType: "Car",
+        vehicleColor: "Red",
+        speed: 82,
+        imageUrl: VEHICLE_IMAGES[4].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 12:30:45",
+          cameraId: "CAM-0094",
+          cameraAngle: "Front View",
+          weather: "Clear"
+        },
+        violation: "Suspicious vehicle - under surveillance",
+        timestamp: 1710502245000
+      },
+      {
+        id: "entry-6",
+        time: "13:48",
+        date: "2024-03-15",
+        plate: "ISB-2345",
+        detectedPlate: "ISB-2345",
+        location: "Chamkani",
+        tollPlaza: "Border Entry",
+        lane: "Lane 4",
+        status: "OK",
+        confidence: 99.4,
+        vehicleType: "SUV",
+        vehicleColor: "Gray",
+        speed: 60,
+        imageUrl: VEHICLE_IMAGES[5].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 13:48:12",
+          cameraId: "CAM-0078",
+          cameraAngle: "Entry Gate",
+          weather: "Fog"
+        },
+        timestamp: 1710506892000
+      },
+      {
+        id: "entry-7",
+        time: "14:22",
+        date: "2024-03-15",
+        plate: "RWP-6789",
+        detectedPlate: "RWP-6789",
+        location: "Yarik",
+        tollPlaza: "Yarik Bridge",
+        lane: "Lane 2",
+        status: "Blacklist",
+        confidence: 98.2,
+        vehicleType: "Pickup",
+        vehicleColor: "White",
+        speed: 75,
+        imageUrl: VEHICLE_IMAGES[6].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 14:22:30",
+          cameraId: "CAM-0033",
+          cameraAngle: "Overhead",
+          weather: "Clear"
+        },
+        violation: "Stolen vehicle reported",
+        timestamp: 1710508950000
+      },
+      {
+        id: "entry-8",
+        time: "15:05",
+        date: "2024-03-15",
+        plate: "FSD-0123",
+        detectedPlate: "FSD-0123",
+        location: "Peshawar",
+        tollPlaza: "University Road Checkpost",
+        lane: "Lane 3",
+        status: "OK",
+        confidence: 97.5,
+        vehicleType: "Bus",
+        vehicleColor: "Green",
+        speed: 40,
+        imageUrl: VEHICLE_IMAGES[7].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 15:05:55",
+          cameraId: "CAM-0156",
+          cameraAngle: "Side View",
+          weather: "Clear"
+        },
+        company: "Daewoo Express",
+        timestamp: 1710511555000
+      },
+      {
+        id: "entry-9",
+        time: "16:37",
+        date: "2024-03-15",
+        plate: "MTN-4567",
+        detectedPlate: "MTN-4567",
+        location: "Kohat",
+        tollPlaza: "City Entry",
+        lane: "Lane 1",
+        status: "Flagged",
+        confidence: 96.8,
+        vehicleType: "Car",
+        vehicleColor: "Blue",
+        speed: 68,
+        imageUrl: VEHICLE_IMAGES[8].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 16:37:42",
+          cameraId: "CAM-0112",
+          cameraAngle: "Front View",
+          weather: "Rain"
+        },
+        violation: "No insurance",
+        timestamp: 1710517062000
+      },
+      {
+        id: "entry-10",
+        time: "17:50",
+        date: "2024-03-15",
+        plate: "SWL-8901",
+        detectedPlate: "SWL-8901",
+        location: "Mardan",
+        tollPlaza: "Charsadda Road",
+        lane: "Lane 2",
+        status: "VIP",
+        confidence: 98.1,
+        vehicleType: "SUV",
+        vehicleColor: "Black",
+        speed: 72,
+        imageUrl: VEHICLE_IMAGES[9].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 17:50:18",
+          cameraId: "CAM-0067",
+          cameraAngle: "Entry Gate",
+          weather: "Night"
+        },
+        driverName: "CEO",
+        company: "Mardan Industries",
+        timestamp: 1710521418000
+      }
+    ]
 
-  // Save to localStorage whenever entries change
+    // Sort by timestamp (newest first)
+    const sortedEntries = initialEntries.sort((a, b) => b.timestamp - a.timestamp)
+    
+    // Set entries directly without checking localStorage
+    setEntries(sortedEntries)
+    setFilteredEntries(sortedEntries)
+    
+    // Optionally save to localStorage for persistence
+    localStorage.setItem("anprEntries", JSON.stringify(sortedEntries))
+  }, []) // Empty dependency array ensures this runs once on mount
+
+  // Apply filters
   useEffect(() => {
-    localStorage.setItem("anprEntries", JSON.stringify(entries))
+    let filtered = [...entries]
+    
+    if (selectedLocation !== 'all') {
+      filtered = filtered.filter(e => e.location === selectedLocation)
+    }
+    
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(e => e.status === selectedStatus)
+    }
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(e => 
+        e.plate.toLowerCase().includes(term) ||
+        e.detectedPlate.toLowerCase().includes(term) ||
+        e.location.toLowerCase().includes(term) ||
+        e.tollPlaza.toLowerCase().includes(term) ||
+        e.vehicleType.toLowerCase().includes(term) ||
+        e.vehicleColor.toLowerCase().includes(term) ||
+        e.imageMetadata.cameraId.toLowerCase().includes(term)
+      )
+    }
+    
+    if (dateRange === 'today') {
+      const today = new Date().toISOString().split('T')[0]
+      filtered = filtered.filter(e => e.date === today)
+    } else if (dateRange === 'week') {
+      const weekAgo = new Date()
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      filtered = filtered.filter(e => new Date(e.date) >= weekAgo)
+    }
+    
+    setFilteredEntries(filtered)
+  }, [entries, selectedLocation, selectedStatus, searchTerm, dateRange])
+
+  // Save to localStorage whenever entries change (for added entries)
+  useEffect(() => {
+    if (entries.length > 0) {
+      localStorage.setItem("anprEntries", JSON.stringify(entries))
+    }
   }, [entries])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    
+    // Update toll plaza options when location changes
+    if (name === 'location') {
+      const location = LOCATIONS.find(l => l.name === value)
+      if (location) {
+        setFormData(prev => ({ ...prev, tollPlaza: location.tolls[0] }))
+      }
+    }
   }
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setEntries([formData, ...entries])
-    setFormData({ time: "", plate: "", lane: "Lane 1", status: "OK" })
+    
+    const randomImage = VEHICLE_IMAGES[Math.floor(Math.random() * VEHICLE_IMAGES.length)]
+    
+    const newEntry: ANPREntry = {
+      id: `entry-${Date.now()}`,
+      time: formData.time,
+      date: new Date().toISOString().split('T')[0],
+      plate: formData.plate.toUpperCase(),
+      detectedPlate: formData.plate.toUpperCase(),
+      location: formData.location,
+      tollPlaza: formData.tollPlaza,
+      lane: formData.lane,
+      status: formData.status as any,
+      confidence: 99.5,
+      vehicleType: formData.vehicleType as any,
+      vehicleColor: formData.vehicleColor,
+      speed: parseInt(formData.speed),
+      imageUrl: randomImage.url,
+      imageMetadata: {
+        timestamp: new Date().toLocaleString(),
+        cameraId: `CAM-${Math.floor(Math.random() * 100) + 1}`.padStart(6, '0'),
+        cameraAngle: 'Front View',
+        weather: 'Clear'
+      },
+      timestamp: Date.now()
+    }
+    
+    setEntries([newEntry, ...entries])
+    setFormData({
+      time: "",
+      plate: "",
+      location: "Peshawar",
+      tollPlaza: "Ring Road Toll",
+      lane: "Lane 1",
+      status: "OK",
+      vehicleType: "Car",
+      vehicleColor: "",
+      speed: "60"
+    })
     setShowModal(false)
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch(status) {
+      case 'OK':
+        return <Badge className="bg-green-100 text-green-800 border-green-200">OK</Badge>
+      case 'Flagged':
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Flagged</Badge>
+      case 'Watchlist':
+        return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Watchlist</Badge>
+      case 'Blacklist':
+        return <Badge className="bg-red-100 text-red-800 border-red-200">Blacklist</Badge>
+      case 'VIP':
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-200">VIP</Badge>
+      default:
+        return <Badge>{status}</Badge>
+    }
+  }
+
+  const getStats = () => {
+    const today = new Date().toISOString().split('T')[0]
+    const todayEntries = entries.filter(e => e.date === today)
+    const flaggedEntries = entries.filter(e => ['Flagged', 'Watchlist', 'Blacklist'].includes(e.status))
+    
+    return {
+      today: todayEntries.length,
+      flagged: flaggedEntries.length,
+      locations: new Set(entries.map(e => e.location)).size,
+      avgConfidence: Math.round(entries.reduce((acc, e) => acc + e.confidence, 0) / entries.length)
+    }
+  }
+
+  const stats = getStats()
+
+  // Show loading state if no entries (should never happen with initial data)
+  if (entries.length === 0) {
+    return (
+      <ModulePageLayout
+        title="JCP/Toll Plaza Entry (ANPR)"
+        description="AI-powered Automatic Number Plate Recognition system"
+        breadcrumbs={[{ label: "AI Analytics" }, { label: "JCP/Toll Plaza Entry" }]}
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Camera className="w-12 h-12 text-gray-300 mx-auto mb-4 animate-pulse" />
+            <p className="text-gray-500">Loading ANPR data...</p>
+          </div>
+        </div>
+      </ModulePageLayout>
+    )
   }
 
   return (
     <ModulePageLayout
       title="JCP/Toll Plaza Entry (ANPR)"
-      description="ANPR-based vehicle entry at JCP and toll plazas."
-      breadcrumbs={[{ label: "WMS" }, { label: "JCP/Toll Plaza Entry (ANPR)" }]}
+      description="AI-powered Automatic Number Plate Recognition system with real-time camera capture"
+      breadcrumbs={[{ label: "AI Analytics" }, { label: "JCP/Toll Plaza Entry" }]}
     >
-      <div className="grid gap-6">
+      <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="border-l-4 border-l-blue-500">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Entries Today</CardTitle>
-              <Car className="h-4 w-4 text-muted-foreground" />
+              <Car className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{entries.length}</div>
+              <div className="text-2xl font-bold">{stats.today}</div>
               <p className="text-xs text-muted-foreground mt-1">ANPR captures</p>
             </CardContent>
           </Card>
-          <Card>
+          
+          <Card className="border-l-4 border-l-orange-500">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Cameras Active</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active Cameras</CardTitle>
               <Camera className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">8</div>
-              <p className="text-xs text-muted-foreground mt-1">Lanes</p>
+              <div className="text-2xl font-bold">16</div>
+              <p className="text-xs text-muted-foreground mt-1">Across {stats.locations} locations</p>
             </CardContent>
           </Card>
-          <Card>
+          
+          <Card className="border-l-4 border-l-red-500">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Alerts</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Flagged Vehicles</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{entries.filter(e => e.status === "Flagged").length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Flagged vehicles</p>
+              <div className="text-2xl font-bold text-red-600">{stats.flagged}</div>
+              <p className="text-xs text-muted-foreground mt-1">Requires attention</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-purple-500">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Confidence</CardTitle>
+              <Gauge className="h-4 w-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.avgConfidence}%</div>
+              <p className="text-xs text-muted-foreground mt-1">Detection accuracy</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* ANPR Log */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>ANPR Log</CardTitle>
-              <CardDescription>Recent vehicle entries and captures</CardDescription>
-            </div>
-            <Button
-              className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
-              onClick={() => setShowModal(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" /> Add Entry
-            </Button>
-          </CardHeader>
+        {/* Location Quick Stats */}
+        <div className="grid grid-cols-7 gap-2">
+          {LOCATIONS.map(loc => {
+            const count = entries.filter(e => e.location === loc.name).length
+            const flagged = entries.filter(e => e.location === loc.name && ['Flagged', 'Watchlist', 'Blacklist'].includes(e.status)).length
+            
+            return (
+              <button
+                key={loc.id}
+                onClick={() => setSelectedLocation(loc.name === selectedLocation ? 'all' : loc.name)}
+                className={`p-2 rounded-lg border transition-all ${
+                  selectedLocation === loc.name 
+                    ? 'bg-blue-50 border-blue-300 shadow-sm' 
+                    : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-xs font-medium">{loc.name}</div>
+                <div className="text-sm font-bold mt-1">{count}</div>
+                {flagged > 0 && (
+                  <div className="text-xs text-red-600 mt-1">{flagged} flagged</div>
+                )}
+              </button>
+            )
+          })}
+        </div>
 
+        {/* Filters */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle>ANPR Monitoring</CardTitle>
+            <CardDescription>Real-time vehicle detection and plate recognition from camera feeds</CardDescription>
+          </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Plate</TableHead>
-                  <TableHead>Lane</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {entries.map((row, i) => (
-                  <TableRow key={i}>
-                    <TableCell>{row.time}</TableCell>
-                    <TableCell className="font-mono font-medium">{row.plate}</TableCell>
-                    <TableCell>{row.lane}</TableCell>
-                    <TableCell>
-                      <Badge variant={row.status === "Flagged" ? "destructive" : "default"}>
-                        {row.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    placeholder="Search plate, camera ID, location..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <select 
+                className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+              >
+                <option value="all">All Locations</option>
+                {LOCATIONS.map(loc => (
+                  <option key={loc.id} value={loc.name}>{loc.name}</option>
                 ))}
-              </TableBody>
-            </Table>
+              </select>
+
+              <select 
+                className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="all">All Status</option>
+                <option value="OK">OK</option>
+                <option value="Flagged">Flagged</option>
+                <option value="Watchlist">Watchlist</option>
+                <option value="Blacklist">Blacklist</option>
+                <option value="VIP">VIP</option>
+              </select>
+
+              <select 
+                className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value)}
+              >
+                <option value="today">Today</option>
+                <option value="week">Last 7 Days</option>
+                <option value="all">All Time</option>
+              </select>
+
+              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+                <button
+                  className={`px-3 py-2 ${viewMode === 'table' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-600'}`}
+                  onClick={() => setViewMode('table')}
+                >
+                  Table
+                </button>
+                <button
+                  className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-600'}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  Grid
+                </button>
+              </div>
+
+              <Button
+                className="bg-[#3b82f6] hover:bg-[#2563eb] text-white ml-auto"
+                onClick={() => setShowModal(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add Entry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Entries Display - Shows immediately on page load */}
+        {viewMode === 'table' ? (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Camera Capture</TableHead>
+                    <TableHead>Plate Detection</TableHead>
+                    <TableHead>Time & Location</TableHead>
+                    <TableHead>Vehicle Details</TableHead>
+                    <TableHead>Camera Info</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEntries.map((entry) => (
+                    <TableRow key={entry.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setSelectedEntry(entry)}>
+                      <TableCell>
+                        <div className="relative group">
+                          <div className="w-20 h-16 rounded overflow-hidden bg-gray-100">
+                            <img src={entry.imageUrl} alt="Vehicle" className="w-full h-full object-cover" />
+                          </div>
+                          <button 
+                            className="absolute top-0 right-0 bg-blue-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedImage(entry.imageUrl)
+                              setShowImageModal(true)
+                            }}
+                          >
+                            <ZoomIn className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-mono font-bold text-sm">{entry.plate}</div>
+                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                          <Camera className="w-3 h-3" />
+                          Detected: {entry.detectedPlate}
+                        </div>
+                        <div className="text-xs text-green-600">{entry.confidence}% match</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium">{entry.time}</div>
+                        <div className="text-xs text-gray-500 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {entry.location}
+                        </div>
+                        <div className="text-xs text-gray-500">{entry.tollPlaza}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{entry.vehicleColor} {entry.vehicleType}</div>
+                        <div className="text-xs text-gray-500">Speed: {entry.speed} km/h</div>
+                        {entry.company && <div className="text-xs text-gray-500">{entry.company}</div>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs font-medium">{entry.imageMetadata.cameraId}</div>
+                        <div className="text-xs text-gray-500">{entry.imageMetadata.cameraAngle}</div>
+                        <div className="text-xs text-gray-500">{entry.imageMetadata.weather}</div>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(entry.status)}
+                        {entry.violation && (
+                          <div className="text-xs text-red-600 mt-1 max-w-[150px] truncate" title={entry.violation}>
+                            ⚠ {entry.violation}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="text-blue-600">
+                          <Eye className="w-4 h-4 mr-1" /> View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredEntries.map((entry) => (
+              <Card key={entry.id} className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setSelectedEntry(entry)}>
+                <div className="relative h-40 bg-gray-100 group">
+                  <img src={entry.imageUrl} alt="Vehicle" className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2">
+                    {getStatusBadge(entry.status)}
+                  </div>
+                  <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm font-mono">
+                    {entry.plate}
+                  </div>
+                  <button 
+                    className="absolute top-2 left-2 bg-blue-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedImage(entry.imageUrl)
+                      setShowImageModal(true)
+                    }}
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+                  <div className="absolute bottom-2 right-2 bg-green-600 text-white px-2 py-1 rounded text-xs">
+                    {entry.confidence}%
+                  </div>
+                </div>
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="text-sm font-medium">{entry.vehicleColor} {entry.vehicleType}</div>
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <Clock className="w-3 h-3" />
+                        {entry.time} - {entry.date}
+                      </div>
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {entry.location}
+                      </div>
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <Camera className="w-3 h-3" />
+                        {entry.imageMetadata.cameraId}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>{entry.tollPlaza}</span>
+                    <span>{entry.lane}</span>
+                    <span>{entry.speed} km/h</span>
+                  </div>
+                  {entry.violation && (
+                    <div className="mt-2 text-xs text-red-600 bg-red-50 p-1 rounded">
+                      ⚠ {entry.violation}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Summary Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Today's ANPR Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-700 mb-1">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="font-medium">Peak Hours</span>
+                </div>
+                <p className="text-lg font-bold">08:00 - 10:00</p>
+                <p className="text-sm text-blue-600">142 vehicles</p>
+              </div>
+              <div className="bg-green-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-green-700 mb-1">
+                  <Car className="w-4 h-4" />
+                  <span className="font-medium">Most Common</span>
+                </div>
+                <p className="text-lg font-bold">Cars (45%)</p>
+                <p className="text-sm text-green-600">Followed by SUVs</p>
+              </div>
+              <div className="bg-purple-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-purple-700 mb-1">
+                  <Camera className="w-4 h-4" />
+                  <span className="font-medium">Best Camera</span>
+                </div>
+                <p className="text-lg font-bold">CAM-0042</p>
+                <p className="text-sm text-purple-600">98.7% accuracy</p>
+              </div>
+              <div className="bg-orange-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-orange-700 mb-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="font-medium">Flagged Today</span>
+                </div>
+                <p className="text-lg font-bold">{stats.flagged}</p>
+                <p className="text-sm text-orange-600">Requires review</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Modal */}
+      {/* Add Entry Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
             <button
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
               onClick={() => setShowModal(false)}
@@ -138,45 +922,270 @@ export default function JcpTollPlazaEntryPage() {
             </button>
 
             <h2 className="text-lg font-semibold mb-4">Add ANPR Entry</h2>
-            <form onSubmit={handleFormSubmit} className="space-y-3">
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  placeholder="Time (HH:MM)"
+                  name="time"
+                  value={formData.time}
+                  onChange={handleInputChange}
+                  required
+                />
+                <Input
+                  placeholder="Speed (km/h)"
+                  name="speed"
+                  type="number"
+                  value={formData.speed}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
               <Input
-                placeholder="Time (HH:MM)"
-                name="time"
-                value={formData.time}
-                onChange={handleInputChange}
-                required
-              />
-              <Input
-                placeholder="Plate Number"
+                placeholder="Plate Number (e.g., LEJ-1234)"
                 name="plate"
                 value={formData.plate}
                 onChange={handleInputChange}
                 required
+                className="font-mono"
               />
-              <select
-                name="lane"
-                value={formData.lane}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-md px-2 py-1"
-              >
-                <option>Lane 1</option>
-                <option>Lane 2</option>
-                <option>Lane 3</option>
-                <option>Lane 4</option>
-              </select>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-md px-2 py-1"
-              >
-                <option>OK</option>
-                <option>Flagged</option>
-              </select>
+
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  {LOCATIONS.map(loc => (
+                    <option key={loc.id} value={loc.name}>{loc.name}</option>
+                  ))}
+                </select>
+
+                <select
+                  name="tollPlaza"
+                  value={formData.tollPlaza}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  {LOCATIONS.find(l => l.name === formData.location)?.tolls.map(toll => (
+                    <option key={toll} value={toll}>{toll}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  name="lane"
+                  value={formData.lane}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option>Lane 1</option>
+                  <option>Lane 2</option>
+                  <option>Lane 3</option>
+                  <option>Lane 4</option>
+                </select>
+
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option>OK</option>
+                  <option>Flagged</option>
+                  <option>Watchlist</option>
+                  <option>Blacklist</option>
+                  <option>VIP</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  name="vehicleType"
+                  value={formData.vehicleType}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option>Car</option>
+                  <option>SUV</option>
+                  <option>Truck</option>
+                  <option>Bus</option>
+                  <option>Van</option>
+                  <option>Pickup</option>
+                  <option>Motorcycle</option>
+                </select>
+
+                <Input
+                  placeholder="Vehicle Color"
+                  name="vehicleColor"
+                  value={formData.vehicleColor}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white w-full">
                 Save Entry
               </Button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Entry Modal */}
+      {selectedEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative max-h-[90vh] overflow-y-auto">
+            <button
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              onClick={() => setSelectedEntry(null)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h2 className="text-lg font-semibold mb-4">ANPR Entry Details</h2>
+            
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <div className="relative group">
+                  <img src={selectedEntry.imageUrl} alt="Vehicle" className="w-full h-48 object-cover rounded-lg" />
+                  <button 
+                    className="absolute top-2 right-2 bg-blue-600 text-white p-2 rounded-full"
+                    onClick={() => {
+                      setSelectedImage(selectedEntry.imageUrl)
+                      setShowImageModal(true)
+                    }}
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="mt-3 bg-gray-50 p-3 rounded-lg">
+                  <h3 className="font-medium text-sm text-gray-700 mb-2">Camera Capture Info</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Camera ID:</span>
+                      <span className="font-mono">{selectedEntry.imageMetadata.cameraId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Angle:</span>
+                      <span>{selectedEntry.imageMetadata.cameraAngle}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Weather:</span>
+                      <span>{selectedEntry.imageMetadata.weather}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Capture Time:</span>
+                      <span>{selectedEntry.imageMetadata.timestamp}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-medium text-sm text-gray-700 mb-3">Plate Recognition</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Detected Plate</span>
+                      <span className="font-mono font-bold text-lg bg-green-100 px-3 py-1 rounded">
+                        {selectedEntry.detectedPlate}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Confidence</span>
+                      <span className={`font-medium ${
+                        selectedEntry.confidence >= 98 ? 'text-green-600' :
+                        selectedEntry.confidence >= 95 ? 'text-blue-600' :
+                        'text-yellow-600'
+                      }`}>{selectedEntry.confidence}%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Status</span>
+                      {getStatusBadge(selectedEntry.status)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-medium text-sm text-gray-700 mb-3">Vehicle Details</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Type</span>
+                      <span className="text-sm">{selectedEntry.vehicleColor} {selectedEntry.vehicleType}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Speed</span>
+                      <span className="text-sm">{selectedEntry.speed} km/h</span>
+                    </div>
+                    {selectedEntry.driverName && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Driver</span>
+                        <span className="text-sm">{selectedEntry.driverName}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-medium text-sm text-gray-700 mb-3">Location Details</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Location</span>
+                      <span className="text-sm">{selectedEntry.location}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Toll Plaza</span>
+                      <span className="text-sm">{selectedEntry.tollPlaza}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Lane</span>
+                      <span className="text-sm">{selectedEntry.lane}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Date/Time</span>
+                      <span className="text-sm">{selectedEntry.date} {selectedEntry.time}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {selectedEntry.violation && (
+              <div className="mt-4 p-3 bg-red-50 rounded-lg">
+                <div className="flex items-center gap-2 text-red-700">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="font-medium">Alert: {selectedEntry.violation}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setSelectedEntry(null)}>
+                Close
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Download className="w-4 h-4 mr-2" /> Export Data
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Zoom Modal */}
+      {showImageModal && selectedImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              className="absolute top-4 right-4 text-white bg-black/50 p-2 rounded-full hover:bg-black/70"
+              onClick={() => setShowImageModal(false)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img src={selectedImage} alt="Vehicle Capture" className="max-w-full max-h-[90vh] object-contain" />
           </div>
         </div>
       )}
