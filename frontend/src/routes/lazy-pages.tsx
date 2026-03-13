@@ -121,6 +121,7 @@ export const PAGES = {
   ThermalImaging: lazy(() => import("@/pages/operations/ThermalImaging").then((m) => ({ default: m.default }))),
   AlertsNotifications: lazy(() => import("@/pages/operations/AlertsNotifications").then((m) => ({ default: m.default }))),
   IncidentManagement: lazy(() => import("@/pages/operations/IncidentManagement").then((m) => ({ default: m.default }))),
+  AIIncidentManagement: lazy(() => import("@/pages/operations/AIIncidentManagement").then((m) => ({ default: m.default }))),
   ThermalAlerts: lazy(() => import("@/pages/operations/ThermalAlerts").then((m) => ({ default: m.default }))),
   AIDetectionAlerts: lazy(() => import("@/pages/operations/AIDetectionAlerts").then((m) => ({ default: m.default }))),
   ZoneAlerts: lazy(() => import("@/pages/operations/ZoneAlerts").then((m) => ({ default: m.default }))),

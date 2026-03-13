@@ -154,7 +154,9 @@ export const ROUTES = {
   PLAYBACK_SEARCH: "/playback-search",
   THERMAL_IMAGING: "/thermal-imaging",
   ALERTS_NOTIFICATIONS: "/alerts-notifications",
+  INCIDENT_CREATION: "/incident-management",
   INCIDENT_MANAGEMENT: "/incident-management",
+  AI_INCIDENT_MANAGEMENT: "/ai-incident-management",
   PEOPLE_DATABASE: "/people-database",
   /** Person detail page for People Database */
   PEOPLE_DATABASE_DETAIL: "/people-database/:id",
@@ -163,7 +165,7 @@ export const ROUTES = {
   MOBILE_APP: "/mobile-app",
   DATABASE_TABLES: "/database-tables",
 
-   AI_MONITORING: "/ai-detection-alerts",
+  AI_MONITORING: "/ai-detection-alerts",
   AI_ALERTS_DASHBOARD: "/ai-thermal-alerts",
   AI_ALERTS_HISTORY: "/ai-zone-alerts",
   AI_ALERTS_CONFIGURATION: "/system-alerts",
@@ -465,8 +467,8 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       {
         label: "AI Incident Management",
         children: [
-          { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
-          { label: "Incident Management", href: ROUTES.INCIDENT_MANAGEMENT },
+          { label: "AI Incident Management", href: ROUTES.AI_INCIDENT_MANAGEMENT },
+          { label: "Incident Creation", href: ROUTES.INCIDENT_CREATION },
         ],
       },
       {
@@ -481,6 +483,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       {
         label: "AI Monitoring & Alerts",
         children: [
+          { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
           { label: "AI Detection Alerts", href: ROUTES.AI_MONITORING },
           { label: "Thermal Alerts", href: ROUTES.AI_ALERTS_DASHBOARD },
           { label: "Zone Alerts", href: ROUTES.AI_ALERTS_HISTORY },
