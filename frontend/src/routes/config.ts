@@ -154,21 +154,13 @@ export const ROUTES = {
   PLAYBACK_SEARCH: "/playback-search",
   THERMAL_IMAGING: "/thermal-imaging",
   ALERTS_NOTIFICATIONS: "/alerts-notifications",
-  INCIDENT_CREATION: "/incident-management",
   INCIDENT_MANAGEMENT: "/incident-management",
-  AI_INCIDENT_MANAGEMENT: "/ai-incident-management",
   PEOPLE_DATABASE: "/people-database",
   /** Person detail page for People Database */
   PEOPLE_DATABASE_DETAIL: "/people-database/:id",
   VEHICLE_DATABASE: "/vehicle-database",
-  VEHICLE_DATABASE_DETAIL: "/vehicle-database/:id",
   MOBILE_APP: "/mobile-app",
   DATABASE_TABLES: "/database-tables",
-
-  AI_MONITORING: "/ai-detection-alerts",
-  AI_ALERTS_DASHBOARD: "/ai-thermal-alerts",
-  AI_ALERTS_HISTORY: "/ai-zone-alerts",
-  AI_ALERTS_CONFIGURATION: "/system-alerts",
 
   // Fallback
   NOT_FOUND: "/404",
@@ -179,10 +171,6 @@ export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
 /** Build path to employee detail page */
 export function getEmployeeDetailPath(id: number): string {
   return `/employees/${id}`
-}
-
-export function getVehicleDatabaseDetailPath(id: string): string {
-  return `/vehicle-database/${encodeURIComponent(id)}`
 }
 
 /** Build path to Inventory Management detail pages */
@@ -311,7 +299,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
     ],
   },
   {
-    label: "Warehouse Management", href: ROUTES.OPERATIONS_DASHBOARD,
+    label: "Warehouse Management",href: ROUTES.OPERATIONS_DASHBOARD,
     children: [
       {
         label: "Dashboard", href: ROUTES.OPERATIONS_DASHBOARD,
@@ -320,7 +308,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       {
         label: "Detentions",
         children: [
-          { label: "Detention Account Register", href: ROUTES.DETENTION_MEMO },
+          { label: "Detention Account Register", href: ROUTES.DETENTION_MEMO},
           // { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
         ],
       },
@@ -422,7 +410,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
     ],
   },
   {
-    label: "AI Monitoring & Analytics",
+    label: "AI Analytics",
     children: [
       {
         label: "Dashboard",
@@ -441,17 +429,16 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
           { label: "Anomaly Detection", href: ROUTES.ANOMALY_DETECTION },
         ],
       },
-      // {
-      //   label: "AI JCP/Toll Operations",
-      //   children: [
-      //     { label: "Plaza Entry (ANPR)", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
-      //   ],
-      // },
+      {
+        label: "AI JCP/Toll Operations",
+        children: [
+          { label: "Plaza Entry (ANPR)", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
+        ],
+      },
       {
         label: "AI Surveillance & Monitoring",
         children: [
           { label: "Live View", href: ROUTES.LIVE_CAMERA_GRID },
-          { label: "LPR/ANPR", href: ROUTES.JCP_TOLL_PLAZA_ENTRY },
           { label: "Playback & Search", href: ROUTES.PLAYBACK_SEARCH },
           { label: "Thermal Imaging", href: ROUTES.THERMAL_IMAGING },
         ],
@@ -467,8 +454,8 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       {
         label: "AI Incident Management",
         children: [
-          { label: "AI Incident Management", href: ROUTES.AI_INCIDENT_MANAGEMENT },
-          { label: "Incident Creation", href: ROUTES.INCIDENT_CREATION },
+          { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
+          { label: "Incident Management", href: ROUTES.INCIDENT_MANAGEMENT },
         ],
       },
       {
@@ -481,16 +468,6 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         ],
       },
       {
-        label: "AI Monitoring & Alerts",
-        children: [
-          { label: "Alerts & Notifications", href: ROUTES.ALERTS_NOTIFICATIONS },
-          { label: "AI Detection Alerts", href: ROUTES.AI_MONITORING },
-          { label: "Thermal Alerts", href: ROUTES.AI_ALERTS_DASHBOARD },
-          { label: "Zone Alerts", href: ROUTES.AI_ALERTS_HISTORY },
-          { label: "System Alerts", href: ROUTES.AI_ALERTS_CONFIGURATION },
-        ],
-      },
-      {
         label: "AI Analytics & Insights",
         children: [
           { label: "Reports & Analytics", href: ROUTES.REPORTS },
@@ -500,7 +477,6 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       },
     ],
   },
-
   {
     label: "Human Resource",
     children: [
