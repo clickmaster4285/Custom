@@ -144,6 +144,7 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.THERMAL_IMAGING), page: "ThermalImaging" },
   { path: toChildPath(ROUTES.ALERTS_NOTIFICATIONS), page: "AlertsNotifications" },
   { path: toChildPath(ROUTES.INCIDENT_MANAGEMENT), page: "IncidentManagement" },
+  { path: toChildPath(ROUTES.AI_INCIDENT_MANAGEMENT), page: "AIIncidentManagement" },
   { path: toChildPath(ROUTES.AI_MONITORING), page: "AIDetectionAlerts" },
   { path: toChildPath(ROUTES.AI_ALERTS_DASHBOARD), page: "ThermalAlerts" },
   { path: toChildPath(ROUTES.AI_ALERTS_HISTORY), page: "ZoneAlerts" },
