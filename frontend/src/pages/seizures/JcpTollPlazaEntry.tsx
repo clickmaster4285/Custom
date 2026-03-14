@@ -23,7 +23,13 @@ import {
   Shield,
   Ban,
   ZoomIn,
-  Maximize2
+  Maximize2,
+  Truck,
+  Scale,
+  Ruler,
+  Package,
+  FileText,
+  ClipboardCheck
 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,6 +37,20 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
+import { Progress } from "@/components/ui/progress"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 // Location configurations
 const LOCATIONS = [
@@ -107,6 +127,31 @@ const VEHICLE_IMAGES = [
   }
 ]
 
+// Oversize vehicle images for customs
+const OVERSIZE_VEHICLES = [
+  {
+    url: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=400&h=300&fit=crop&auto=format",
+    plate: "OVS-1234",
+    type: "Heavy Truck",
+    dimensions: "18.5m x 3.2m x 4.1m",
+    weight: "42 tons"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=300&fit=crop&auto=format",
+    plate: "OVS-5678",
+    type: "Container Truck",
+    dimensions: "16.2m x 2.8m x 3.9m",
+    weight: "38 tons"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=400&h=300&fit=crop&auto=format",
+    plate: "OVS-9012",
+    type: "Dump Truck",
+    dimensions: "14.8m x 3.0m x 3.8m",
+    weight: "35 tons"
+  }
+]
+
 interface ANPREntry {
   id: string
   time: string
@@ -118,7 +163,7 @@ interface ANPREntry {
   lane: string
   status: 'OK' | 'Flagged' | 'Watchlist' | 'Blacklist' | 'VIP'
   confidence: number
-  vehicleType: 'Car' | 'Truck' | 'Bus' | 'Motorcycle' | 'SUV' | 'Van' | 'Pickup'
+  vehicleType: 'Car' | 'Truck' | 'Bus' | 'Motorcycle' | 'SUV' | 'Van' | 'Pickup' | 'Heavy Truck' | 'Container' | 'Dump Truck'
   vehicleColor: string
   speed: number
   imageUrl: string
@@ -132,6 +177,23 @@ interface ANPREntry {
   company?: string
   violation?: string
   timestamp: number
+  // Oversize vehicle fields
+  isOversize?: boolean
+  oversizeFlag?: 'Height' | 'Width' | 'Length' | 'Weight' | 'Combination'
+  oversizeDetails?: {
+    height?: number
+    width?: number
+    length?: number
+    weight?: number
+    dimensions: string
+    permitRequired: boolean
+    permitPresent?: boolean
+    customsRouting: 'Inspection' | 'Weighbridge' | 'Direct' | 'Quarantine'
+    examinationRequired: boolean
+    examinationType?: 'Physical' | 'X-Ray' | 'Radiation' | 'Customs'
+    customsDeclaration?: string
+    cargoType?: 'General' | 'Hazardous' | 'Perishable' | 'High Value' | 'Restricted'
+  }
 }
 
 export default function JcpTollPlazaEntryPage() {
@@ -140,12 +202,17 @@ export default function JcpTollPlazaEntryPage() {
   const [showModal, setShowModal] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<string>("all")
   const [selectedStatus, setSelectedStatus] = useState<string>("all")
+  const [selectedOversizeFilter, setSelectedOversizeFilter] = useState<string>("all")
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [dateRange, setDateRange] = useState<string>("today")
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
   const [selectedEntry, setSelectedEntry] = useState<ANPREntry | null>(null)
   const [showImageModal, setShowImageModal] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState("all")
+  const [customsRoutingDialog, setCustomsRoutingDialog] = useState(false)
+  const [selectedOversizeEntry, setSelectedOversizeEntry] = useState<ANPREntry | null>(null)
+  const [customsAction, setCustomsAction] = useState<string>("")
   
   const [formData, setFormData] = useState({
     time: "",
@@ -156,12 +223,19 @@ export default function JcpTollPlazaEntryPage() {
     status: "OK",
     vehicleType: "Car",
     vehicleColor: "",
-    speed: "60"
+    speed: "60",
+    isOversize: false,
+    oversizeHeight: "",
+    oversizeWidth: "",
+    oversizeLength: "",
+    oversizeWeight: "",
+    customsRouting: "Inspection",
+    cargoType: "General"
   })
 
-  // Initialize with 10 realistic dummy records that load immediately
+  // Initialize with realistic dummy records including oversize vehicles
   useEffect(() => {
-    // Create 10 realistic entries with varied data
+    // Create entries with varied data including oversize vehicles
     const initialEntries: ANPREntry[] = [
       {
         id: "entry-1",
@@ -401,19 +475,138 @@ export default function JcpTollPlazaEntryPage() {
         driverName: "CEO",
         company: "Mardan Industries",
         timestamp: 1710521418000
+      },
+      // Oversize vehicles for customs examination
+      {
+        id: "oversize-1",
+        time: "09:30",
+        date: "2024-03-15",
+        plate: "OVS-1234",
+        detectedPlate: "OVS-1234",
+        location: "Chamkani",
+        tollPlaza: "Customs Gate",
+        lane: "Lane 5",
+        status: "Flagged",
+        confidence: 98.5,
+        vehicleType: "Heavy Truck",
+        vehicleColor: "Red",
+        speed: 35,
+        imageUrl: OVERSIZE_VEHICLES[0].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 09:30:22",
+          cameraId: "CAM-0201",
+          cameraAngle: "Overhead",
+          weather: "Clear"
+        },
+        company: "Oversize Logistics",
+        isOversize: true,
+        oversizeFlag: "Combination",
+        oversizeDetails: {
+          height: 4.1,
+          width: 3.2,
+          length: 18.5,
+          weight: 42,
+          dimensions: "18.5m x 3.2m x 4.1m",
+          permitRequired: true,
+          permitPresent: false,
+          customsRouting: "Inspection",
+          examinationRequired: true,
+          examinationType: "Physical",
+          cargoType: "General",
+          customsDeclaration: "CD-2024-0892"
+        },
+        timestamp: 1710495022000
+      },
+      {
+        id: "oversize-2",
+        time: "11:15",
+        date: "2024-03-15",
+        plate: "OVS-5678",
+        detectedPlate: "OVS-5678",
+        location: "Chamkani",
+        tollPlaza: "Customs Gate",
+        lane: "Lane 5",
+        status: "Flagged",
+        confidence: 97.9,
+        vehicleType: "Container",
+        vehicleColor: "Blue",
+        speed: 30,
+        imageUrl: OVERSIZE_VEHICLES[1].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 11:15:45",
+          cameraId: "CAM-0202",
+          cameraAngle: "Side View",
+          weather: "Clear"
+        },
+        company: "Global Shipping",
+        isOversize: true,
+        oversizeFlag: "Height",
+        oversizeDetails: {
+          height: 3.9,
+          width: 2.8,
+          length: 16.2,
+          weight: 38,
+          dimensions: "16.2m x 2.8m x 3.9m",
+          permitRequired: true,
+          permitPresent: true,
+          customsRouting: "Weighbridge",
+          examinationRequired: true,
+          examinationType: "X-Ray",
+          cargoType: "High Value",
+          customsDeclaration: "CD-2024-0895"
+        },
+        timestamp: 1710501345000
+      },
+      {
+        id: "oversize-3",
+        time: "14:45",
+        date: "2024-03-15",
+        plate: "OVS-9012",
+        detectedPlate: "OVS-9012",
+        location: "Chamkani",
+        tollPlaza: "Customs Gate",
+        lane: "Lane 5",
+        status: "Flagged",
+        confidence: 98.2,
+        vehicleType: "Dump Truck",
+        vehicleColor: "Yellow",
+        speed: 25,
+        imageUrl: OVERSIZE_VEHICLES[2].url,
+        imageMetadata: {
+          timestamp: "2024-03-15 14:45:33",
+          cameraId: "CAM-0203",
+          cameraAngle: "Entry Gate",
+          weather: "Clear"
+        },
+        company: "Mining Corp",
+        isOversize: true,
+        oversizeFlag: "Weight",
+        oversizeDetails: {
+          height: 3.8,
+          width: 3.0,
+          length: 14.8,
+          weight: 35,
+          dimensions: "14.8m x 3.0m x 3.8m",
+          permitRequired: true,
+          permitPresent: true,
+          customsRouting: "Quarantine",
+          examinationRequired: true,
+          examinationType: "Radiation",
+          cargoType: "Restricted",
+          customsDeclaration: "CD-2024-0901"
+        },
+        timestamp: 1710513933000
       }
     ]
 
     // Sort by timestamp (newest first)
     const sortedEntries = initialEntries.sort((a, b) => b.timestamp - a.timestamp)
     
-    // Set entries directly without checking localStorage
     setEntries(sortedEntries)
     setFilteredEntries(sortedEntries)
     
-    // Optionally save to localStorage for persistence
     localStorage.setItem("anprEntries", JSON.stringify(sortedEntries))
-  }, []) // Empty dependency array ensures this runs once on mount
+  }, [])
 
   // Apply filters
   useEffect(() => {
@@ -425,6 +618,14 @@ export default function JcpTollPlazaEntryPage() {
     
     if (selectedStatus !== 'all') {
       filtered = filtered.filter(e => e.status === selectedStatus)
+    }
+
+    if (selectedOversizeFilter !== 'all') {
+      if (selectedOversizeFilter === 'oversize') {
+        filtered = filtered.filter(e => e.isOversize === true)
+      } else if (selectedOversizeFilter === 'normal') {
+        filtered = filtered.filter(e => !e.isOversize)
+      }
     }
     
     if (searchTerm) {
@@ -448,11 +649,18 @@ export default function JcpTollPlazaEntryPage() {
       weekAgo.setDate(weekAgo.getDate() - 7)
       filtered = filtered.filter(e => new Date(e.date) >= weekAgo)
     }
+
+    // Apply tab filter
+    if (activeTab === "oversize") {
+      filtered = filtered.filter(e => e.isOversize === true)
+    } else if (activeTab === "customs") {
+      filtered = filtered.filter(e => e.isOversize === true && e.oversizeDetails?.examinationRequired === true)
+    }
     
     setFilteredEntries(filtered)
-  }, [entries, selectedLocation, selectedStatus, searchTerm, dateRange])
+  }, [entries, selectedLocation, selectedStatus, selectedOversizeFilter, searchTerm, dateRange, activeTab])
 
-  // Save to localStorage whenever entries change (for added entries)
+  // Save to localStorage whenever entries change
   useEffect(() => {
     if (entries.length > 0) {
       localStorage.setItem("anprEntries", JSON.stringify(entries))
@@ -460,8 +668,13 @@ export default function JcpTollPlazaEntryPage() {
   }, [entries])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value, type } = e.target as HTMLInputElement
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }))
     
     // Update toll plaza options when location changes
     if (name === 'location') {
@@ -475,7 +688,9 @@ export default function JcpTollPlazaEntryPage() {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    const randomImage = VEHICLE_IMAGES[Math.floor(Math.random() * VEHICLE_IMAGES.length)]
+    const randomImage = formData.isOversize 
+      ? OVERSIZE_VEHICLES[Math.floor(Math.random() * OVERSIZE_VEHICLES.length)].url
+      : VEHICLE_IMAGES[Math.floor(Math.random() * VEHICLE_IMAGES.length)].url
     
     const newEntry: ANPREntry = {
       id: `entry-${Date.now()}`,
@@ -491,14 +706,30 @@ export default function JcpTollPlazaEntryPage() {
       vehicleType: formData.vehicleType as any,
       vehicleColor: formData.vehicleColor,
       speed: parseInt(formData.speed),
-      imageUrl: randomImage.url,
+      imageUrl: randomImage,
       imageMetadata: {
         timestamp: new Date().toLocaleString(),
         cameraId: `CAM-${Math.floor(Math.random() * 100) + 1}`.padStart(6, '0'),
         cameraAngle: 'Front View',
         weather: 'Clear'
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(formData.isOversize && {
+        isOversize: true,
+        oversizeFlag: "Combination",
+        oversizeDetails: {
+          height: parseFloat(formData.oversizeHeight) || 4.0,
+          width: parseFloat(formData.oversizeWidth) || 2.8,
+          length: parseFloat(formData.oversizeLength) || 16.0,
+          weight: parseFloat(formData.oversizeWeight) || 35,
+          dimensions: `${formData.oversizeLength || 16.0}m x ${formData.oversizeWidth || 2.8}m x ${formData.oversizeHeight || 4.0}m`,
+          permitRequired: true,
+          permitPresent: false,
+          customsRouting: formData.customsRouting as any,
+          examinationRequired: true,
+          cargoType: formData.cargoType as any
+        }
+      })
     }
     
     setEntries([newEntry, ...entries])
@@ -511,9 +742,43 @@ export default function JcpTollPlazaEntryPage() {
       status: "OK",
       vehicleType: "Car",
       vehicleColor: "",
-      speed: "60"
+      speed: "60",
+      isOversize: false,
+      oversizeHeight: "",
+      oversizeWidth: "",
+      oversizeLength: "",
+      oversizeWeight: "",
+      customsRouting: "Inspection",
+      cargoType: "General"
     })
     setShowModal(false)
+  }
+
+  const handleCustomsRouting = (entry: ANPREntry) => {
+    setSelectedOversizeEntry(entry)
+    setCustomsRoutingDialog(true)
+  }
+
+  const submitCustomsRouting = () => {
+    if (selectedOversizeEntry && customsAction) {
+      const updatedEntries = entries.map(entry => {
+        if (entry.id === selectedOversizeEntry.id && entry.oversizeDetails) {
+          return {
+            ...entry,
+            oversizeDetails: {
+              ...entry.oversizeDetails,
+              customsRouting: customsAction as any,
+              examinationRequired: customsAction !== 'Direct'
+            }
+          }
+        }
+        return entry
+      })
+      setEntries(updatedEntries)
+      setCustomsRoutingDialog(false)
+      setSelectedOversizeEntry(null)
+      setCustomsAction("")
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -533,14 +798,38 @@ export default function JcpTollPlazaEntryPage() {
     }
   }
 
+  const getOversizeBadge = (oversizeDetails: any) => {
+    const routingColors = {
+      'Inspection': 'bg-orange-100 text-orange-800 border-orange-200',
+      'Weighbridge': 'bg-blue-100 text-blue-800 border-blue-200',
+      'Direct': 'bg-green-100 text-green-800 border-green-200',
+      'Quarantine': 'bg-red-100 text-red-800 border-red-200'
+    }
+    
+    return (
+      <div className="space-y-1">
+        <Badge className="bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1">
+          <Truck className="w-3 h-3" /> Oversize
+        </Badge>
+        <Badge className={routingColors[oversizeDetails.customsRouting as keyof typeof routingColors]}>
+          {oversizeDetails.customsRouting}
+        </Badge>
+      </div>
+    )
+  }
+
   const getStats = () => {
     const today = new Date().toISOString().split('T')[0]
     const todayEntries = entries.filter(e => e.date === today)
     const flaggedEntries = entries.filter(e => ['Flagged', 'Watchlist', 'Blacklist'].includes(e.status))
+    const oversizeEntries = entries.filter(e => e.isOversize === true)
+    const customsEntries = entries.filter(e => e.isOversize === true && e.oversizeDetails?.examinationRequired === true)
     
     return {
       today: todayEntries.length,
       flagged: flaggedEntries.length,
+      oversize: oversizeEntries.length,
+      customs: customsEntries.length,
       locations: new Set(entries.map(e => e.location)).size,
       avgConfidence: Math.round(entries.reduce((acc, e) => acc + e.confidence, 0) / entries.length)
     }
@@ -548,12 +837,11 @@ export default function JcpTollPlazaEntryPage() {
 
   const stats = getStats()
 
-  // Show loading state if no entries (should never happen with initial data)
   if (entries.length === 0) {
     return (
       <ModulePageLayout
         title="JCP/Toll Plaza Entry (ANPR)"
-        description="AI-powered Automatic Number Plate Recognition system"
+        description="AI-powered Automatic Number Plate Recognition system with customs examination routing"
         breadcrumbs={[{ label: "AI Analytics" }, { label: "JCP/Toll Plaza Entry" }]}
       >
         <div className="flex items-center justify-center h-64">
@@ -569,12 +857,12 @@ export default function JcpTollPlazaEntryPage() {
   return (
     <ModulePageLayout
       title="JCP/Toll Plaza Entry (ANPR)"
-      description="AI-powered Automatic Number Plate Recognition system with real-time camera capture"
+      description="AI-powered Automatic Number Plate Recognition system with customs examination routing for oversize vehicles"
       breadcrumbs={[{ label: "AI Analytics" }, { label: "JCP/Toll Plaza Entry" }]}
     >
       <div className="space-y-6">
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        {/* Stats Cards - Added Oversize Stats */}
+        <div className="grid gap-4 md:grid-cols-5">
           <Card className="border-l-4 border-l-blue-500">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Entries Today</CardTitle>
@@ -586,7 +874,7 @@ export default function JcpTollPlazaEntryPage() {
             </CardContent>
           </Card>
           
-          <Card className="border-l-4 border-l-orange-500">
+          <Card className="border-l-4 border-l-green-500">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Active Cameras</CardTitle>
               <Camera className="h-4 w-4 text-green-600" />
@@ -610,12 +898,23 @@ export default function JcpTollPlazaEntryPage() {
           
           <Card className="border-l-4 border-l-purple-500">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Confidence</CardTitle>
-              <Gauge className="h-4 w-4 text-purple-500" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Oversize Vehicles</CardTitle>
+              <Truck className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.avgConfidence}%</div>
-              <p className="text-xs text-muted-foreground mt-1">Detection accuracy</p>
+              <div className="text-2xl font-bold text-purple-600">{stats.oversize}</div>
+              <p className="text-xs text-muted-foreground mt-1">Customs routing</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-amber-500">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Customs Exam</CardTitle>
+              <ClipboardCheck className="h-4 w-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">{stats.customs}</div>
+              <p className="text-xs text-muted-foreground mt-1">Pending inspection</p>
             </CardContent>
           </Card>
         </div>
@@ -625,6 +924,7 @@ export default function JcpTollPlazaEntryPage() {
           {LOCATIONS.map(loc => {
             const count = entries.filter(e => e.location === loc.name).length
             const flagged = entries.filter(e => e.location === loc.name && ['Flagged', 'Watchlist', 'Blacklist'].includes(e.status)).length
+            const oversize = entries.filter(e => e.location === loc.name && e.isOversize).length
             
             return (
               <button
@@ -641,16 +941,37 @@ export default function JcpTollPlazaEntryPage() {
                 {flagged > 0 && (
                   <div className="text-xs text-red-600 mt-1">{flagged} flagged</div>
                 )}
+                {oversize > 0 && (
+                  <div className="text-xs text-purple-600">{oversize} oversize</div>
+                )}
               </button>
             )
           })}
         </div>
 
+        {/* Tabs for different views */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="all" className="flex items-center gap-2">
+              <Camera className="h-4 w-4" />
+              All Entries
+            </TabsTrigger>
+            <TabsTrigger value="oversize" className="flex items-center gap-2">
+              <Truck className="h-4 w-4" />
+              Oversize Vehicles
+            </TabsTrigger>
+            <TabsTrigger value="customs" className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Customs Routing
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* Filters */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>ANPR Monitoring</CardTitle>
-            <CardDescription>Real-time vehicle detection and plate recognition from camera feeds</CardDescription>
+            <CardTitle>ANPR Monitoring with Customs Integration</CardTitle>
+            <CardDescription>Real-time vehicle detection, oversize detection, and customs examination routing</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
@@ -692,6 +1013,16 @@ export default function JcpTollPlazaEntryPage() {
 
               <select 
                 className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
+                value={selectedOversizeFilter}
+                onChange={(e) => setSelectedOversizeFilter(e.target.value)}
+              >
+                <option value="all">All Vehicles</option>
+                <option value="oversize">Oversize Only</option>
+                <option value="normal">Normal Vehicles</option>
+              </select>
+
+              <select 
+                className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
@@ -725,7 +1056,7 @@ export default function JcpTollPlazaEntryPage() {
           </CardContent>
         </Card>
 
-        {/* Entries Display - Shows immediately on page load */}
+        {/* Entries Display */}
         {viewMode === 'table' ? (
           <Card>
             <CardContent className="p-0">
@@ -736,7 +1067,7 @@ export default function JcpTollPlazaEntryPage() {
                     <TableHead>Plate Detection</TableHead>
                     <TableHead>Time & Location</TableHead>
                     <TableHead>Vehicle Details</TableHead>
-                    <TableHead>Camera Info</TableHead>
+                    <TableHead>Oversize/Customs</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -783,9 +1114,21 @@ export default function JcpTollPlazaEntryPage() {
                         {entry.company && <div className="text-xs text-gray-500">{entry.company}</div>}
                       </TableCell>
                       <TableCell>
-                        <div className="text-xs font-medium">{entry.imageMetadata.cameraId}</div>
-                        <div className="text-xs text-gray-500">{entry.imageMetadata.cameraAngle}</div>
-                        <div className="text-xs text-gray-500">{entry.imageMetadata.weather}</div>
+                        {entry.isOversize && entry.oversizeDetails ? (
+                          <div className="space-y-1">
+                            {getOversizeBadge(entry.oversizeDetails)}
+                            <div className="text-xs text-gray-500 mt-1">
+                              {entry.oversizeDetails.dimensions}
+                            </div>
+                            {entry.oversizeDetails.examinationRequired && (
+                              <Badge variant="outline" className="text-xs border-amber-200 bg-amber-50">
+                                Exam Required
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className="text-gray-500">Standard</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(entry.status)}
@@ -796,9 +1139,24 @@ export default function JcpTollPlazaEntryPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" className="text-blue-600">
-                          <Eye className="w-4 h-4 mr-1" /> View
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" className="text-blue-600">
+                            <Eye className="w-4 h-4 mr-1" /> View
+                          </Button>
+                          {entry.isOversize && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-purple-600"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleCustomsRouting(entry)
+                              }}
+                            >
+                              <ClipboardCheck className="w-4 h-4 mr-1" /> Route
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -815,11 +1173,18 @@ export default function JcpTollPlazaEntryPage() {
                   <div className="absolute top-2 right-2">
                     {getStatusBadge(entry.status)}
                   </div>
+                  {entry.isOversize && (
+                    <div className="absolute top-2 left-2">
+                      <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+                        <Truck className="w-3 h-3 mr-1" /> Oversize
+                      </Badge>
+                    </div>
+                  )}
                   <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm font-mono">
                     {entry.plate}
                   </div>
                   <button 
-                    className="absolute top-2 left-2 bg-blue-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 left-12 bg-blue-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => {
                       e.stopPropagation()
                       setSelectedImage(entry.imageUrl)
@@ -844,17 +1209,15 @@ export default function JcpTollPlazaEntryPage() {
                         <MapPin className="w-3 h-3" />
                         {entry.location}
                       </div>
-                      <div className="text-xs text-gray-500 flex items-center gap-1">
-                        <Camera className="w-3 h-3" />
-                        {entry.imageMetadata.cameraId}
-                      </div>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center text-xs text-gray-500">
-                    <span>{entry.tollPlaza}</span>
-                    <span>{entry.lane}</span>
-                    <span>{entry.speed} km/h</span>
-                  </div>
+                  {entry.isOversize && entry.oversizeDetails && (
+                    <div className="mt-2 p-2 bg-purple-50 rounded-lg">
+                      <div className="text-xs font-medium text-purple-700 mb-1">Customs Routing:</div>
+                      <div className="text-xs text-purple-600">{entry.oversizeDetails.customsRouting}</div>
+                      <div className="text-xs text-gray-500 mt-1">{entry.oversizeDetails.dimensions}</div>
+                    </div>
+                  )}
                   {entry.violation && (
                     <div className="mt-2 text-xs text-red-600 bg-red-50 p-1 rounded">
                       ⚠ {entry.violation}
@@ -869,10 +1232,10 @@ export default function JcpTollPlazaEntryPage() {
         {/* Summary Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Today's ANPR Summary</CardTitle>
+            <CardTitle>Today's ANPR Summary with Customs Overview</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="bg-blue-50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 text-blue-700 mb-1">
                   <TrendingUp className="w-4 h-4" />
@@ -891,26 +1254,34 @@ export default function JcpTollPlazaEntryPage() {
               </div>
               <div className="bg-purple-50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 text-purple-700 mb-1">
-                  <Camera className="w-4 h-4" />
-                  <span className="font-medium">Best Camera</span>
+                  <Truck className="w-4 h-4" />
+                  <span className="font-medium">Oversize Today</span>
                 </div>
-                <p className="text-lg font-bold">CAM-0042</p>
-                <p className="text-sm text-purple-600">98.7% accuracy</p>
+                <p className="text-lg font-bold">{stats.oversize}</p>
+                <p className="text-sm text-purple-600">Requires customs</p>
               </div>
               <div className="bg-orange-50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 text-orange-700 mb-1">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span className="font-medium">Flagged Today</span>
+                  <ClipboardCheck className="w-4 h-4" />
+                  <span className="font-medium">Customs Queue</span>
                 </div>
-                <p className="text-lg font-bold">{stats.flagged}</p>
-                <p className="text-sm text-orange-600">Requires review</p>
+                <p className="text-lg font-bold">{stats.customs}</p>
+                <p className="text-sm text-orange-600">Pending examination</p>
+              </div>
+              <div className="bg-amber-50 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-amber-700 mb-1">
+                  <Scale className="w-4 h-4" />
+                  <span className="font-medium">Avg Oversize Wt</span>
+                </div>
+                <p className="text-lg font-bold">38.3 tons</p>
+                <p className="text-sm text-amber-600">Heavy vehicles</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Add Entry Modal */}
+      {/* Add Entry Modal with Oversize Fields */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
@@ -1015,6 +1386,9 @@ export default function JcpTollPlazaEntryPage() {
                   <option>Van</option>
                   <option>Pickup</option>
                   <option>Motorcycle</option>
+                  <option>Heavy Truck</option>
+                  <option>Container</option>
+                  <option>Dump Truck</option>
                 </select>
 
                 <Input
@@ -1026,13 +1400,211 @@ export default function JcpTollPlazaEntryPage() {
                 />
               </div>
 
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white w-full">
+              <Separator className="my-4" />
+              
+              {/* Oversize Vehicle Section */}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="isOversize"
+                  name="isOversize"
+                  checked={formData.isOversize}
+                  onCheckedChange={(checked) => 
+                    setFormData(prev => ({ ...prev, isOversize: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="isOversize" className="text-sm font-medium flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-purple-600" />
+                  Oversize Vehicle (Requires Customs Examination)
+                </Label>
+              </div>
+
+              {formData.isOversize && (
+                <div className="space-y-4 pl-6 border-l-2 border-purple-200">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-gray-500">Height (m)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        name="oversizeHeight"
+                        value={formData.oversizeHeight}
+                        onChange={handleInputChange}
+                        placeholder="4.1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Width (m)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        name="oversizeWidth"
+                        value={formData.oversizeWidth}
+                        onChange={handleInputChange}
+                        placeholder="3.2"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Length (m)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        name="oversizeLength"
+                        value={formData.oversizeLength}
+                        onChange={handleInputChange}
+                        placeholder="18.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-500">Weight (tons)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        name="oversizeWeight"
+                        value={formData.oversizeWeight}
+                        onChange={handleInputChange}
+                        placeholder="42"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-gray-500">Customs Routing</Label>
+                    <select
+                      name="customsRouting"
+                      value={formData.customsRouting}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1"
+                    >
+                      <option value="Inspection">Physical Inspection</option>
+                      <option value="Weighbridge">Weighbridge</option>
+                      <option value="Quarantine">Quarantine</option>
+                      <option value="Direct">Direct (with permit)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-gray-500">Cargo Type</Label>
+                    <select
+                      name="cargoType"
+                      value={formData.cargoType}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1"
+                    >
+                      <option value="General">General</option>
+                      <option value="Hazardous">Hazardous</option>
+                      <option value="Perishable">Perishable</option>
+                      <option value="High Value">High Value</option>
+                      <option value="Restricted">Restricted</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white w-full mt-4">
                 Save Entry
               </Button>
             </form>
           </div>
         </div>
       )}
+
+      {/* Customs Routing Dialog */}
+      <Dialog open={customsRoutingDialog} onOpenChange={setCustomsRoutingDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-purple-600" />
+              Customs Examination Routing
+            </DialogTitle>
+            <DialogDescription>
+              Assign routing for oversize vehicle {selectedOversizeEntry?.plate}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedOversizeEntry && selectedOversizeEntry.oversizeDetails && (
+            <div className="space-y-4">
+              <div className="bg-purple-50 p-3 rounded-lg">
+                <div className="text-sm font-medium text-purple-700 mb-2">Vehicle Details</div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-gray-600">Type:</div>
+                  <div className="font-medium">{selectedOversizeEntry.vehicleType}</div>
+                  <div className="text-gray-600">Dimensions:</div>
+                  <div className="font-medium">{selectedOversizeEntry.oversizeDetails.dimensions}</div>
+                  <div className="text-gray-600">Weight:</div>
+                  <div className="font-medium">{selectedOversizeEntry.oversizeDetails.weight} tons</div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Select Customs Action</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant={customsAction === 'Inspection' ? 'default' : 'outline'}
+                    className={customsAction === 'Inspection' ? 'bg-orange-600' : ''}
+                    onClick={() => setCustomsAction('Inspection')}
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Physical Inspection
+                  </Button>
+                  <Button
+                    variant={customsAction === 'Weighbridge' ? 'default' : 'outline'}
+                    className={customsAction === 'Weighbridge' ? 'bg-blue-600' : ''}
+                    onClick={() => setCustomsAction('Weighbridge')}
+                  >
+                    <Scale className="h-4 w-4 mr-2" />
+                    Weighbridge
+                  </Button>
+                  <Button
+                    variant={customsAction === 'Quarantine' ? 'default' : 'outline'}
+                    className={customsAction === 'Quarantine' ? 'bg-red-600' : ''}
+                    onClick={() => setCustomsAction('Quarantine')}
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    Quarantine
+                  </Button>
+                  <Button
+                    variant={customsAction === 'Direct' ? 'default' : 'outline'}
+                    className={customsAction === 'Direct' ? 'bg-green-600' : ''}
+                    onClick={() => setCustomsAction('Direct')}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Direct (Permit)
+                  </Button>
+                </div>
+              </div>
+
+              {customsAction && (
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="text-sm text-blue-700">
+                    {customsAction === 'Inspection' && 'Vehicle will be directed to physical inspection bay for detailed customs examination.'}
+                    {customsAction === 'Weighbridge' && 'Vehicle will be routed to weighbridge for weight verification and documentation.'}
+                    {customsAction === 'Quarantine' && 'Vehicle will be held in quarantine area for agricultural/biological inspection.'}
+                    {customsAction === 'Direct' && 'Vehicle cleared for direct passage (permit verified).'}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-start">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setCustomsRoutingDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-purple-600 hover:bg-purple-700"
+              onClick={submitCustomsRouting}
+              disabled={!customsAction}
+            >
+              Confirm Routing
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* View Entry Modal */}
       {selectedEntry && (
@@ -1151,6 +1723,60 @@ export default function JcpTollPlazaEntryPage() {
                     </div>
                   </div>
                 </div>
+
+                {selectedEntry.isOversize && selectedEntry.oversizeDetails && (
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <h3 className="font-medium text-sm text-purple-700 mb-3 flex items-center gap-2">
+                      <Truck className="w-4 h-4" />
+                      Customs Examination Details
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Dimensions</span>
+                        <span className="text-sm font-medium">{selectedEntry.oversizeDetails.dimensions}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Weight</span>
+                        <span className="text-sm font-medium">{selectedEntry.oversizeDetails.weight} tons</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Permit Required</span>
+                        <Badge className={selectedEntry.oversizeDetails.permitPresent ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          {selectedEntry.oversizeDetails.permitPresent ? 'Present' : 'Missing'}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Customs Routing</span>
+                        <Badge className={
+                          selectedEntry.oversizeDetails.customsRouting === 'Inspection' ? 'bg-orange-100 text-orange-800' :
+                          selectedEntry.oversizeDetails.customsRouting === 'Weighbridge' ? 'bg-blue-100 text-blue-800' :
+                          selectedEntry.oversizeDetails.customsRouting === 'Quarantine' ? 'bg-red-100 text-red-800' :
+                          'bg-green-100 text-green-800'
+                        }>
+                          {selectedEntry.oversizeDetails.customsRouting}
+                        </Badge>
+                      </div>
+                      {selectedEntry.oversizeDetails.customsDeclaration && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Declaration #</span>
+                          <span className="text-sm font-mono">{selectedEntry.oversizeDetails.customsDeclaration}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Examination</span>
+                        <Badge variant="outline" className={selectedEntry.oversizeDetails.examinationRequired ? 'border-amber-200 bg-amber-50' : ''}>
+                          {selectedEntry.oversizeDetails.examinationRequired ? 'Required' : 'Not Required'}
+                        </Badge>
+                      </div>
+                      {selectedEntry.oversizeDetails.examinationType && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Exam Type</span>
+                          <span className="text-sm">{selectedEntry.oversizeDetails.examinationType}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1167,6 +1793,17 @@ export default function JcpTollPlazaEntryPage() {
               <Button variant="outline" onClick={() => setSelectedEntry(null)}>
                 Close
               </Button>
+              {selectedEntry.isOversize && (
+                <Button 
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={() => {
+                    setSelectedEntry(null)
+                    handleCustomsRouting(selectedEntry)
+                  }}
+                >
+                  <ClipboardCheck className="w-4 h-4 mr-2" /> Customs Routing
+                </Button>
+              )}
               <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                 <Download className="w-4 h-4 mr-2" /> Export Data
               </Button>
