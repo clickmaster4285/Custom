@@ -73,47 +73,110 @@ export default function AlertsNotificationsPage() {
                 <CardContent className="pt-0 space-y-4">
                   <h4 className="font-medium text-sm">Active alerts — filters</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Alert severity filter - multi‑select via dropdown (simulated) */}
                     <div>
                       <Label className="text-sm">Alert severity filter</Label>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {SEVERITIES.map((s) => (
-                          <label key={s} className="flex items-center gap-1.5 text-sm">
-                            <Checkbox value={s} /> {s}
-                          </label>
-                        ))}
-                      </div>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select severities" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SEVERITIES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              <div className="flex items-center gap-2">
+                                <Checkbox className="pointer-events-none" /> {s}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* Alert type filter - multi‑select via dropdown */}
                     <div>
                       <Label className="text-sm">Alert type filter</Label>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {ALERT_TYPES.slice(0, 4).map((t) => (
-                          <label key={t} className="flex items-center gap-1.5 text-sm">
-                            <Checkbox value={t} /> {t}
-                          </label>
-                        ))}
-                      </div>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ALERT_TYPES.slice(0, 4).map((t) => (
+                            <SelectItem key={t} value={t}>
+                              <div className="flex items-center gap-2">
+                                <Checkbox className="pointer-events-none" /> {t}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* Camera filter - multi‑select dropdown */}
                     <div>
                       <Label className="text-sm">Camera filter</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Multi-select cameras" /></SelectTrigger><SelectContent>{MOCK_CAMERAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Multi-select cameras" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MOCK_CAMERAS.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              <div className="flex items-center gap-2">
+                                <Checkbox className="pointer-events-none" /> {c}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* Location filter - single‑select dropdown */}
                     <div>
                       <Label className="text-sm">Location filter</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Filter by location" /></SelectTrigger><SelectContent>{MOCK_LOCATIONS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Filter by location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MOCK_LOCATIONS.map((l) => (
+                            <SelectItem key={l} value={l}>{l}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* Status filter - multi‑select via dropdown */}
                     <div>
                       <Label className="text-sm">Status filter</Label>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {ALERT_STATUSES.map((s) => (
-                          <label key={s} className="flex items-center gap-1.5 text-sm">
-                            <Checkbox value={s} /> {s}
-                          </label>
-                        ))}
-                      </div>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ALERT_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              <div className="flex items-center gap-2">
+                                <Checkbox className="pointer-events-none" /> {s}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* Sort by - single‑select dropdown */}
                     <div>
                       <Label className="text-sm">Sort by</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Order alerts" /></SelectTrigger><SelectContent>{SORT_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Order alerts" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SORT_OPTIONS.map((o) => (
+                            <SelectItem key={o} value={o}>{o}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="rounded border border-border bg-muted/20 p-4">
@@ -151,11 +214,29 @@ export default function AlertsNotificationsPage() {
                     </div>
                     <div>
                       <Label className="text-sm">Severity *</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{SEVERITIES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select severity" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SEVERITIES.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-sm">Status (auto)</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{RESOLUTION_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RESOLUTION_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-sm">Camera name (read-only)</Label>
@@ -179,11 +260,28 @@ export default function AlertsNotificationsPage() {
                     </div>
                     <div>
                       <Label className="text-sm">Assigned to</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Assign responsibility" /></SelectTrigger><SelectContent>{MOCK_USERS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Assign responsibility" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MOCK_USERS.map((u) => (
+                            <SelectItem key={u} value={u}>{u}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-sm">Link to incident</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Existing incidents" /></SelectTrigger><SelectContent><SelectItem value="inc1">INC-2026-00142</SelectItem><SelectItem value="inc2">INC-2026-00141</SelectItem></SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Existing incidents" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="inc1">INC-2026-00142</SelectItem>
+                          <SelectItem value="inc2">INC-2026-00141</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-sm">Tags</Label>
@@ -215,7 +313,16 @@ export default function AlertsNotificationsPage() {
                     </div>
                     <div>
                       <Label className="text-sm">Root cause</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Why event occurred" /></SelectTrigger><SelectContent>{ROOT_CAUSES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Why event occurred" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROOT_CAUSES.map((r) => (
+                            <SelectItem key={r} value={r}>{r}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Input placeholder="Custom root cause" className="mt-1" />
@@ -228,7 +335,16 @@ export default function AlertsNotificationsPage() {
                       <>
                         <div>
                           <Label className="text-sm">False positive reason</Label>
-                          <Select><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{FALSE_POSITIVE_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select>
+                          <Select>
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select reason" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {FALSE_POSITIVE_REASONS.map((r) => (
+                                <SelectItem key={r} value={r}>{r}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
                           <Input placeholder="Custom reason" className="mt-1" />
@@ -261,7 +377,16 @@ export default function AlertsNotificationsPage() {
                     </div>
                     <div>
                       <Label className="text-sm">Alert type trigger *</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Event type that triggers" /></SelectTrigger><SelectContent>{ALERT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Event type that triggers" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ALERT_TYPES.map((t) => (
+                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="md:col-span-2">
                       <Label className="text-sm">Rule description</Label>
@@ -269,15 +394,42 @@ export default function AlertsNotificationsPage() {
                     </div>
                     <div>
                       <Label className="text-sm">Cameras in scope *</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Multi-select cameras" /></SelectTrigger><SelectContent>{MOCK_CAMERAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Multi-select cameras" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MOCK_CAMERAS.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-sm">Zones in scope</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Detection zones" /></SelectTrigger><SelectContent>{MOCK_ZONES.map((z) => <SelectItem key={z} value={z}>{z}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Detection zones" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MOCK_ZONES.map((z) => (
+                            <SelectItem key={z} value={z}>{z}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-sm">Severity assignment *</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Default severity" /></SelectTrigger><SelectContent>{SEVERITIES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Default severity" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SEVERITIES.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-sm">Time schedule (days/hours active)</Label>
@@ -289,17 +441,33 @@ export default function AlertsNotificationsPage() {
                     </div>
                     <div>
                       <Label className="text-sm">Actions on trigger *</Label>
-                      <div className="flex flex-wrap gap-3 mt-1">
-                        {ACTIONS_ON_TRIGGER.map((a) => (
-                          <label key={a} className="flex items-center gap-1.5 text-sm">
-                            <Checkbox value={a} /> {a}
-                          </label>
-                        ))}
-                      </div>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select actions" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ACTIONS_ON_TRIGGER.map((a) => (
+                            <SelectItem key={a} value={a}>
+                              <div className="flex items-center gap-2">
+                                <Checkbox className="pointer-events-none" /> {a}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-sm">Auto-assign to</Label>
-                      <Select><SelectTrigger className="mt-1"><SelectValue placeholder="User" /></SelectTrigger><SelectContent>{MOCK_USERS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select>
+                      <Select>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="User" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MOCK_USERS.map((u) => (
+                            <SelectItem key={u} value={u}>{u}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-sm">Auto-escalate after (min)</Label>
@@ -365,13 +533,20 @@ export default function AlertsNotificationsPage() {
                       </div>
                       <div>
                         <Label className="text-sm">Target user groups</Label>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {MOCK_GROUPS.map((g) => (
-                            <label key={g} className="flex items-center gap-1.5 text-sm">
-                              <Checkbox value={g} /> {g}
-                            </label>
-                          ))}
-                        </div>
+                        <Select>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select groups" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MOCK_GROUPS.map((g) => (
+                              <SelectItem key={g} value={g}>
+                                <div className="flex items-center gap-2">
+                                  <Checkbox className="pointer-events-none" /> {g}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
@@ -438,7 +613,16 @@ export default function AlertsNotificationsPage() {
                       </div>
                       <div>
                         <Label className="text-sm">Escalation condition</Label>
-                        <Select><SelectTrigger className="mt-1"><SelectValue placeholder="When to escalate" /></SelectTrigger><SelectContent>{ESCALATION_CONDITIONS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                        <Select>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="When to escalate" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ESCALATION_CONDITIONS.map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
@@ -447,15 +631,51 @@ export default function AlertsNotificationsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label className="text-sm">Level 1</Label>
-                        <Select><SelectTrigger className="mt-1"><SelectValue placeholder="User or group" /></SelectTrigger><SelectContent>{MOCK_USERS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}{MOCK_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
+                        <Select>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="User or group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MOCK_USERS.map((u) => (
+                              <SelectItem key={u} value={u}>{u}</SelectItem>
+                            ))}
+                            {MOCK_GROUPS.map((g) => (
+                              <SelectItem key={g} value={g}>{g}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <Label className="text-sm">Level 2</Label>
-                        <Select><SelectTrigger className="mt-1"><SelectValue placeholder="User or group" /></SelectTrigger><SelectContent>{MOCK_USERS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}{MOCK_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
+                        <Select>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="User or group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MOCK_USERS.map((u) => (
+                              <SelectItem key={u} value={u}>{u}</SelectItem>
+                            ))}
+                            {MOCK_GROUPS.map((g) => (
+                              <SelectItem key={g} value={g}>{g}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <Label className="text-sm">Level 3 (final — senior command)</Label>
-                        <Select><SelectTrigger className="mt-1"><SelectValue placeholder="User or group" /></SelectTrigger><SelectContent>{MOCK_USERS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}{MOCK_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
+                        <Select>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="User or group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MOCK_USERS.map((u) => (
+                              <SelectItem key={u} value={u}>{u}</SelectItem>
+                            ))}
+                            {MOCK_GROUPS.map((g) => (
+                              <SelectItem key={g} value={g}>{g}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
