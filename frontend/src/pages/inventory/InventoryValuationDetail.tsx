@@ -100,7 +100,7 @@ export default function InventoryValuationDetailPage() {
             <Badge variant={row.status === "Approved" ? "default" : "secondary"}>{row.status}</Badge>
           </CardHeader>
           <CardContent className="grid gap-1">
-            <DetailRow label="QR Code No" value={row.qrCodeNumber ?? ""} />
+            <DetailRow label=" QR Code" value={row.qrCodeNumber ?? ""} />
             <DetailRow label="Seizure/Case Ref" value={row.seizureCaseRef} />
             <DetailRow label="PCT Code" value={row.pctCode} />
             <DetailRow label="Description" value={row.descriptionOfGoods} />

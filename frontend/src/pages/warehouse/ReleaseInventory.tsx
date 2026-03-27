@@ -267,7 +267,7 @@ export default function ReleaseInventoryPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>QR Code No</TableHead>
+                    <TableHead> QR Code</TableHead>
                     <TableHead>Warehouse</TableHead>
                     <TableHead>FIR No</TableHead>
                     <TableHead>Stacks</TableHead>

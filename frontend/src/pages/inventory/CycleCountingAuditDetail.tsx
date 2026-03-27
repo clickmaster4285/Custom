@@ -104,7 +104,7 @@ export default function CycleCountingAuditDetailPage() {
             <Badge variant={row.status === "Completed" ? "default" : row.status === "Variance Reported" ? "destructive" : "secondary"}>{row.status}</Badge>
           </CardHeader>
           <CardContent className="grid gap-1">
-            <DetailRow label="QR Code No" value={row.qrCodeNumber ?? ""} />
+            <DetailRow label=" QR Code" value={row.qrCodeNumber ?? ""} />
             <DetailRow label="Audit Ref" value={row.auditRef} />
             <DetailRow label="Customs Station" value={row.customsStation} />
             <DetailRow label="Godown/Location" value={row.godownLocation} />

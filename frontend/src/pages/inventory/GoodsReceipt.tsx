@@ -177,7 +177,7 @@ export default function GoodsReceiptPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>QR Code No</TableHead>
+                  <TableHead> QR Code</TableHead>
                   <TableHead>GR No</TableHead>
                   <TableHead>GD No</TableHead>
                   <TableHead>Customs Station</TableHead>

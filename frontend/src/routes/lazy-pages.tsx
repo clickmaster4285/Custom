@@ -116,6 +116,7 @@ export const PAGES = {
   Notifications: lazy(() => import("@/pages/settings/Notifications").then((m) => ({ default: m.default }))),
   SecurityAccess: lazy(() => import("@/pages/settings/SecurityAccess").then((m) => ({ default: m.default }))),
   ActivityLogs: lazy(() => import("@/pages/settings/ActivityLogs").then((m) => ({ default: m.default }))),
+  ActivityLogDetail: lazy(() => import("@/pages/settings/ActivityLogDetail").then((m) => ({ default: m.default }))),
   TableOfContents: lazy(() => import("@/pages/TableOfContents").then((m) => ({ default: m.default }))),
   PlaybackSearch: lazy(() => import("@/pages/operations/PlaybackSearch").then((m) => ({ default: m.default }))),
   ThermalImaging: lazy(() => import("@/pages/operations/ThermalImaging").then((m) => ({ default: m.default }))),
