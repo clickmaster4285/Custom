@@ -167,7 +167,7 @@ export default function CycleCountingAuditPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>QR Code No</TableHead>
+                  <TableHead> QR Code</TableHead>
                   <TableHead>Audit Ref</TableHead>
                   <TableHead>Customs Station</TableHead>
                   <TableHead>Godown/Location</TableHead>

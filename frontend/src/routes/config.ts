@@ -204,6 +204,9 @@ export function getDetentionMemoDetailPath(id: string): string {
 export function getSeizedInventoryDetailPath(id: string): string {
   return `${ROUTES.SEIZED_INVENTORY}/${encodeURIComponent(id)}`
 }
+export function getActivityLogDetailPath(id: number | string): string {
+  return `${ROUTES.LOGS}/${encodeURIComponent(String(id))}`
+}
 
 /** Returns true if pathname is the login route */
 export function isLoginRoute(pathname: string): boolean {

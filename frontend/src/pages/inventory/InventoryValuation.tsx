@@ -202,7 +202,7 @@ export default function InventoryValuationPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>QR Code No</TableHead>
+                  <TableHead> QR Code</TableHead>
                   <TableHead>Seizure/Case Ref</TableHead>
                   <TableHead>PCT Code</TableHead>
                   <TableHead>Description</TableHead>

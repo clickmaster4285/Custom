@@ -23,10 +23,12 @@ export type ActivityLogsResponse = {
 export async function fetchActivityLogs(params?: {
   page?: number
   page_size?: number
+  username?: string
 }): Promise<ActivityLogsResponse> {
   const sp = new URLSearchParams()
   if (params?.page != null) sp.set("page", String(params.page))
   if (params?.page_size != null) sp.set("page_size", String(params.page_size))
+  if (params?.username) sp.set("username", params.username)
   const qs = sp.toString()
   const base = `${API_BASE_URL}/api/activity-logs/`
   const url = qs ? `${base}?${qs}` : base

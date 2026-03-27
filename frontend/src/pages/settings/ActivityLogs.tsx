@@ -1,10 +1,12 @@
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { FileText, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -21,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { fetchActivityLogs, type ActivityLogRecord } from "@/lib/logs-api"
+import { getActivityLogDetailPath } from "@/routes/config"
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100] as const
 const DEFAULT_PAGE_SIZE = 20
@@ -39,9 +42,22 @@ function cell(value: string | null | undefined) {
 }
 
 export default function ActivityLogsPage() {
+  const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [filters, setFilters] = useState({
+    username: "",
+    ipAddress: "",
+    country: "",
+    city: "",
+    device: "",
+    os: "",
+    browser: "",
+    action: "",
+    dateFrom: "",
+    dateTo: "",
+  })
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => {
@@ -59,16 +75,53 @@ export default function ActivityLogsPage() {
   }
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["activity-logs", page, pageSize],
-    queryFn: () => fetchActivityLogs({ page, page_size: pageSize }),
+    queryKey: ["activity-logs", "all"],
+    queryFn: () => fetchActivityLogs({ page: 1, page_size: 1000 }),
   })
 
-  const logs = data?.results ?? []
-  const count = data?.count ?? 0
-  const hasNext = !!data?.next
+  const logs = useMemo(() => {
+    const allLogs = data?.results ?? []
+    const contains = (value: string | null | undefined, query: string) =>
+      (value ?? "").toLowerCase().includes(query.toLowerCase())
+    return allLogs.filter((log) => {
+      if (!contains(log.username, filters.username)) return false
+      if (!contains(log.ip_address, filters.ipAddress)) return false
+      if (!contains(log.country, filters.country)) return false
+      if (!contains(log.city, filters.city)) return false
+      if (!contains(log.device, filters.device)) return false
+      if (!contains(log.os, filters.os)) return false
+      if (!contains(log.browser, filters.browser)) return false
+      if (!contains(log.action, filters.action)) return false
+      const logDate = new Date(log.time)
+      if (filters.dateFrom) {
+        const fromDate = new Date(`${filters.dateFrom}T00:00:00`)
+        if (!Number.isNaN(logDate.getTime()) && logDate < fromDate) return false
+      }
+      if (filters.dateTo) {
+        const toDate = new Date(`${filters.dateTo}T23:59:59`)
+        if (!Number.isNaN(logDate.getTime()) && logDate > toDate) return false
+      }
+      return true
+    })
+  }, [data?.results, filters])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters])
+
+  const count = logs.length
+  const pagedLogs = logs.slice((page - 1) * pageSize, page * pageSize)
+  const hasNext = page * pageSize < count
   const hasPrev = page > 1
   const from = count === 0 ? 0 : (page - 1) * pageSize + 1
   const to = Math.min(page * pageSize, count)
+
+  const openLogDetail = (log: ActivityLogRecord) => {
+    const sp = new URLSearchParams()
+    if (log.username) sp.set("username", log.username)
+    const qs = sp.toString()
+    navigate(qs ? `${getActivityLogDetailPath(log.id)}?${qs}` : getActivityLogDetailPath(log.id))
+  }
 
   return (
     <ModulePageLayout
@@ -87,6 +140,85 @@ export default function ActivityLogsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {!isLoading && !isError && (
+            <div className="mb-4 rounded-md border p-3">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+                <Input
+                  placeholder="Filter user"
+                  value={filters.username}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, username: e.target.value }))}
+                />
+                <Input
+                  placeholder="Filter IP address"
+                  value={filters.ipAddress}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, ipAddress: e.target.value }))}
+                />
+                <Input
+                  placeholder="Filter country"
+                  value={filters.country}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, country: e.target.value }))}
+                />
+                <Input
+                  placeholder="Filter city"
+                  value={filters.city}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, city: e.target.value }))}
+                />
+                <Input
+                  placeholder="Filter device"
+                  value={filters.device}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, device: e.target.value }))}
+                />
+                <Input
+                  placeholder="Filter OS"
+                  value={filters.os}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, os: e.target.value }))}
+                />
+                <Input
+                  placeholder="Filter browser"
+                  value={filters.browser}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, browser: e.target.value }))}
+                />
+                <Input
+                  placeholder="Filter action"
+                  value={filters.action}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, action: e.target.value }))}
+                />
+                <Input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+                />
+                <Input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+                />
+              </div>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setFilters({
+                      username: "",
+                      ipAddress: "",
+                      country: "",
+                      city: "",
+                      device: "",
+                      os: "",
+                      browser: "",
+                      action: "",
+                      dateFrom: "",
+                      dateTo: "",
+                    })
+                  }
+                >
+                  Clear filters
+                </Button>
+              </div>
+            </div>
+          )}
           {isLoading && (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-[#3b82f6]" />
@@ -118,19 +250,33 @@ export default function ActivityLogsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {logs.length === 0 ? (
+                    {pagedLogs.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                          No logs yet. Activity is recorded when authenticated users browse the app.
+                          No logs match the selected filters.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      (logs as ActivityLogRecord[]).map((log) => (
-                        <TableRow key={log.id}>
+                      (pagedLogs as ActivityLogRecord[]).map((log) => (
+                        <TableRow
+                          key={log.id}
+                          className="cursor-pointer"
+                          onClick={() => openLogDetail(log)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              openLogDetail(log)
+                            }
+                          }}
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`Open details for log ${log.id}`}
+                        >
                           <TableCell className="w-[50px]">
                             <Checkbox
                               checked={selectedIds.has(log.id)}
                               onCheckedChange={() => toggleSelect(log.id)}
+                              onClick={(e) => e.stopPropagation()}
                               aria-label={`Select log ${log.id}`}
                             />
                           </TableCell>

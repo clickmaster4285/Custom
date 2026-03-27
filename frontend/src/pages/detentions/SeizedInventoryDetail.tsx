@@ -206,7 +206,7 @@ export default function SeizedInventoryDetailPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>QR Code No</TableHead>
+                      <TableHead> QR Code</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>PCT</TableHead>
                       <TableHead>Qty</TableHead>
