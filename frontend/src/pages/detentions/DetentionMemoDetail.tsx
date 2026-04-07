@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
 import { ArrowLeft, FileText, Package } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
@@ -12,7 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ROUTES } from "@/routes/config"
+import { QRCodeCanvas } from "qrcode.react"
+import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
 
 const STORAGE_KEY = "wms_detention_memo"
 
@@ -33,6 +35,7 @@ type GoodsLineItem = {
 type DetentionMemoRow = {
   id: string
   caseNo: string
+  qrCodeNumber?: string
   firNumber?: string
   referenceNumber: string
   dateTimeOccurrence: string
@@ -83,6 +86,10 @@ function DetailRow({ label, value }: { label: string; value: string | undefined 
 export default function DetentionMemoDetailPage() {
   const { id } = useParams<{ id: string }>()
   const row = id ? loadById(id) : null
+  const qrPayload = useMemo(() => {
+    if (!row) return ""
+    return `${window.location.origin}${getDetentionMemoDetailPath(row.id)}`
+  }, [row])
 
   if (!id || !row) {
     return (
@@ -133,6 +140,18 @@ export default function DetentionMemoDetailPage() {
           </Badge>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="rounded-lg border p-4">
+            <div className="grid grid-cols-[160px_1fr] gap-2 py-2 border-b border-border/50">
+              <span className="text-sm text-muted-foreground">Memo QR Code</span>
+              <div className="space-y-2">
+                <div className="w-[180px] rounded border border-border p-2 bg-white inline-flex items-center justify-center">
+                  <QRCodeCanvas value={qrPayload} size={160} includeMargin={false} />
+                </div>
+                <div className="font-mono text-xs text-muted-foreground break-words">{row.qrCodeNumber || qrPayload}</div>
+              </div>
+            </div>
+          </div>
+
           <div>
             <h4 className="text-sm font-medium mb-2">Basic Information</h4>
             <div className="rounded-lg border p-4">

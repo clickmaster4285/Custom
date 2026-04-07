@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
+import { toDataURL } from "qrcode"
 
 const STORAGE_KEY = "wms_detention_memo"
 const SEIZED_STORAGE_KEY = "wms_seized_inventory"
@@ -34,6 +35,7 @@ const CASE_COUNTER_KEY = "wms_detention_case_counter"
 type DetentionMemoRow = {
   id: string
   caseNo: string
+  qrCodeNumber?: string
   firNumber?: string
   referenceNumber: string
   dateTimeOccurrence: string
@@ -56,6 +58,7 @@ const defaultRows: DetentionMemoRow[] = [
   {
     id: "1",
     caseNo: "1/2026",
+    qrCodeNumber: "QR-DM-2026-0001",
     firNumber: "FIR-2024-001",
     referenceNumber: "REF-001",
     dateTimeOccurrence: "2024-02-01 09:00",
@@ -122,7 +125,7 @@ function loadRows(): DetentionMemoRow[] {
         })
       }
     }
-  } catch {}
+  } catch { }
   return defaultRows
 }
 
@@ -193,12 +196,61 @@ function isDetentionOverTwoMonths(dateTimeDetention: string): boolean {
   }
 }
 
-function printMemo(id: string) {
+async function printMemo(id: string) {
   const memo = getFullMemoById(id) as Record<string, unknown> | null
   if (!memo) return alert("Memo not found.")
   const caseNo = String(memo.caseNo ?? "—")
   const firNumber = String(memo.firNumber ?? "—")
-  const html = `<html><body><h1>Detention Memo - ${caseNo}</h1><p>FIR: ${firNumber}</p></body></html>`
+  const detentionDate = String(memo.dateTimeDetention ?? "—")
+  const placeOfDetention = String(memo.placeOfDetention ?? "—")
+  const reasonForDetention = String(memo.reasonForDetention ?? "—")
+  const whereDeposited = String(memo.whereDeposited ?? "—")
+  const verificationStatus = String(memo.verificationStatus ?? "—")
+  const qrCodeNumber = String(memo.qrCodeNumber ?? "")
+  const detailUrl = `${window.location.origin}${getDetentionMemoDetailPath(String(memo.id ?? ""))}`
+  const qrImage = await toDataURL(detailUrl, { width: 240, margin: 2 })
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Detention Memo ${caseNo}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #111; margin: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #f3f4f6; }
+    .qr-block { width: 240px; margin: 0 auto 24px; text-align: center; }
+    .qr-block img { width: 240px; height: 240px; }
+    .metadata { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="qr-block">
+    <img src="${qrImage}" alt="Detention Memo QR Code" />
+    <div style="margin-top: 8px; font-size: 12px; word-break: break-all;">${qrCodeNumber || detailUrl}</div>
+  </div>
+  <h1>Detention Memo ${caseNo}</h1>
+  <div class="metadata">
+    <strong>FIR Number:</strong> ${firNumber}<br/>
+    <strong>Detention Date/Time:</strong> ${detentionDate}<br/>
+    <strong>Place of Detention:</strong> ${placeOfDetention}<br/>
+    <strong>Reason for Detention:</strong> ${reasonForDetention}<br/>
+    <strong>Where Deposited:</strong> ${whereDeposited}<br/>
+    <strong>Verification Status:</strong> ${verificationStatus}
+  </div>
+  <table>
+    <tr><th>Case Number</th><td>${caseNo}</td></tr>
+    <tr><th>FIR Number</th><td>${firNumber}</td></tr>
+    <tr><th>Detention Date/Time</th><td>${detentionDate}</td></tr>
+    <tr><th>Place of Detention</th><td>${placeOfDetention}</td></tr>
+    <tr><th>Reason for Detention</th><td>${reasonForDetention}</td></tr>
+    <tr><th>Where Deposited</th><td>${whereDeposited}</td></tr>
+    <tr><th>Verification Status</th><td>${verificationStatus}</td></tr>
+    <tr><th>QR Code Number</th><td>${qrCodeNumber || "—"}</td></tr>
+    <tr><th>Detail URL</th><td>${detailUrl}</td></tr>
+  </table>
+</body>
+</html>`
   const win = window.open("", "_blank")
   if (!win) return alert("Please allow pop-ups to print.")
   win.document.write(html)
@@ -259,7 +311,7 @@ export default function DetentionMemoPage() {
           <CardContent className="pt-6">
             <div className="flex flex-row items-center justify-between gap-4 flex-wrap mb-6">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <Link to={ROUTES.DETENTION_MEMO_CREATE}><Plus className="h-4 w-4 mr-2"/>Add New Detention Memo</Link>
+                <Link to={ROUTES.DETENTION_MEMO_CREATE}><Plus className="h-4 w-4 mr-2" />Add New Detention Memo</Link>
               </Button>
             </div>
 
@@ -284,6 +336,7 @@ export default function DetentionMemoPage() {
                     <TableRow>
                       <TableHead>Sr.No</TableHead>
                       <TableHead>Case Number</TableHead>
+                      <TableHead>Qrcode</TableHead>
                       <TableHead>FIR Number</TableHead>
                       <TableHead>Detention Date/Time</TableHead>
                       <TableHead>Status</TableHead>
@@ -296,7 +349,7 @@ export default function DetentionMemoPage() {
                   <TableBody>
                     {pageRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">No data found</TableCell>
+                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">No data found</TableCell>
                       </TableRow>
                     ) : pageRows.map((row, index) => {
                       const serialInfo = extractSerialInfo(row.caseNo)
@@ -304,6 +357,7 @@ export default function DetentionMemoPage() {
                         <TableRow key={row.id}>
                           <TableCell>{serialInfo ? `${serialInfo.serialNo}/${serialInfo.year}` : row.serialNo ?? index + 1}</TableCell>
                           <TableCell>{row.caseNo}</TableCell>
+                          <TableCell className="font-mono text-xs">{row.qrCodeNumber || "—"}</TableCell>
                           <TableCell>{row.firNumber || "—"}</TableCell>
                           <TableCell>{row.dateTimeDetention || "—"}</TableCell>
                           <TableCell><Badge variant={row.verificationStatus === "Verified" ? "default" : "secondary"}>{row.verificationStatus}</Badge></TableCell>
@@ -313,15 +367,15 @@ export default function DetentionMemoPage() {
                             {isDetentionOverTwoMonths(row.dateTimeDetention) ? (
                               <span className="inline-flex items-center gap-1 text-amber-700 text-xs font-medium bg-amber-100 px-2 py-1 rounded" title="This detention has exceeded 2 months. Transfer to Seizure Register if applicable.">
                                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                               not transferred yet
+                                not transferred yet
                               </span>
                             ) : "—"}
                           </TableCell>
                           <TableCell className="text-right flex gap-1 flex-wrap">
-                            <Button variant="ghost" size="sm" asChild><Link to={getDetentionMemoDetailPath(row.id)}><Eye className="h-4 w-4 mr-1"/>View</Link></Button>
-                            <Button variant="outline" size="sm" onClick={() => printMemo(row.id)} title="Print (A4)"><Printer className="h-4 w-4 mr-1"/>Print</Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDeposit(row)} title="Add to Deposit Account"><BookOpen className="h-4 w-4 mr-1"/>Deposit</Button>
-                            <Button variant="outline" size="sm" onClick={() => handleSeize(row)} title="Add to Seizure Register"><Package className="h-4 w-4 mr-1"/>Seize</Button>
+                            <Button variant="ghost" size="sm" asChild><Link to={getDetentionMemoDetailPath(row.id)}><Eye className="h-4 w-4 mr-1" />View</Link></Button>
+                            <Button variant="outline" size="sm" onClick={() => void printMemo(row.id)} title="Print (A4)"><Printer className="h-4 w-4 mr-1" />Print</Button>
+                            <Button variant="outline" size="sm" onClick={() => handleDeposit(row)} title="Add to Deposit Account"><BookOpen className="h-4 w-4 mr-1" />Deposit</Button>
+                            <Button variant="outline" size="sm" onClick={() => handleSeize(row)} title="Add to Seizure Register"><Package className="h-4 w-4 mr-1" />Seize</Button>
                           </TableCell>
                         </TableRow>
                       )

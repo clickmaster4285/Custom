@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, ChevronDown, Plus, Trash2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
@@ -25,7 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ROUTES } from "@/routes/config"
+import { QRCodeCanvas } from "qrcode.react"
+import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
 import { CUSTOMS_STATIONS } from "@/lib/case-fir-spec"
 
 const STORAGE_KEY = "wms_detention_memo"
@@ -86,6 +87,12 @@ const emptyGoodsItem = (): GoodsLineItem => ({
 
 export default function DetentionMemoCreatePage() {
   const navigate = useNavigate()
+  const [memoId] = useState(() => `dm-${Date.now()}`)
+  const [memoQrCodeNumber] = useState(() => generateUniqueQrCodeNumber())
+  const memoQrPayload = useMemo(() => {
+    if (typeof window === "undefined") return memoQrCodeNumber
+    return `${window.location.origin}${getDetentionMemoDetailPath(memoId)}`
+  }, [memoId, memoQrCodeNumber])
   const [caseNo, setCaseNo] = useState("")
   const [dateTimeOccurrence, setDateTimeOccurrence] = useState(() => {
     const d = new Date()
@@ -128,7 +135,8 @@ export default function DetentionMemoCreatePage() {
 
   const handleSave = () => {
     const row = {
-      id: `dm-${Date.now()}`,
+      id: memoId,
+      qrCodeNumber: memoQrCodeNumber,
       caseNo: caseNo || `DM-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
       referenceNumber,
       firNumber,
@@ -194,6 +202,18 @@ export default function DetentionMemoCreatePage() {
         <p className="mb-4 text-sm text-muted-foreground rounded-md bg-muted/60 px-3 py-2 border border-border/50">
           This detention memo is prepared <strong>after</strong> the detention. Record all details of the detention event and goods for customs record.
         </p>
+
+        <Card className="mb-4">
+          <CardContent className="grid gap-4 md:grid-cols-[180px_1fr] items-center">
+            <div className="space-y-2">
+              <div className="text-sm font-semibold">Memo QR Code</div>
+              <div className="font-mono text-xs text-muted-foreground">{memoQrCodeNumber}</div>
+            </div>
+            <div className="rounded-lg border border-border p-3 bg-white inline-flex items-center justify-center">
+              <QRCodeCanvas value={memoQrPayload} size={160} includeMargin={false} />
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="space-y-4 w-full">
           {/* Basic Information */}
