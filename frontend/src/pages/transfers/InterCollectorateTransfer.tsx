@@ -45,7 +45,7 @@ function saveRows(rows: TransferRow[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
 }
 
-const LOCATIONS = ["Yarik", "Peshawar", "RawaMardan", "Peshawar", "Yarik", "DI KHAN"]
+const LOCATIONS = ["Yarik", "Peshawar", "Mardan", "DI KHAN"]
 const STATUSES = ["Pending", "In Transit", "Completed"]
 
 export default function InterCollectorateTransferPage() {

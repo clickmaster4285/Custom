@@ -148,7 +148,6 @@ const LOCATIONS = [
   "Sust Dry Port - Customs Station",
   "Sialkot International Airport - Cargo",
   "Yarik Dry Port",
-  "Lahore Dry Port",
   "DI KHAN Dry Port",
   "Quetta Dry Port",
   "Peshawar Dry Port",
@@ -157,7 +156,6 @@ const LOCATIONS = [
   "KPT - West Wharf",
   "Export Processing Zone - Karachi",
   "Container Scanning Facility - Karachi",
-  "Container Scanning Facility - Lahore",
   "Container Scanning Facility - Torkham"
 ]
 
