@@ -37,7 +37,7 @@ function loadRows(): TransferRow[] {
       const parsed = JSON.parse(raw) as TransferRow[]
       if (Array.isArray(parsed) && parsed.length > 0) return parsed
     }
-  } catch {}
+  } catch { }
   return defaultRows
 }
 
@@ -45,7 +45,7 @@ function saveRows(rows: TransferRow[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
 }
 
-const LOCATIONS = ["Yarik", "Peshawar", "Peshawar", "Rawalpindi","Peshawar", "Faisalabad", "Multan"]
+const LOCATIONS = ["Yarik", "Peshawar", "RawaMardan", "Peshawar", "Yarik", "DI KHAN"]
 const STATUSES = ["Pending", "In Transit", "Completed"]
 
 export default function InterCollectorateTransferPage() {
