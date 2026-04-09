@@ -331,16 +331,9 @@ export default function IncidentCreationPage() {
                     <SelectValue placeholder="Select customs station" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="karachi">Karachi Port</SelectItem>
-                    <SelectItem value="lahore">Lahore Dry Port</SelectItem>
-                    <SelectItem value="islamabad">Islamabad Airport</SelectItem>
                     <SelectItem value="peshawar">Peshawar Dry Port</SelectItem>
-                    <SelectItem value="quetta">Quetta Dry Port</SelectItem>
-                    <SelectItem value="multan">Multan Dry Port</SelectItem>
-                    <SelectItem value="faisalabad">Faisalabad Dry Port</SelectItem>
-                    <SelectItem value="sialkot">Sialkot Airport</SelectItem>
-                    <SelectItem value="gwadar">Gwadar Port</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="DI KHAN">DI KHAN Dry Port</SelectItem>
+                    <SelectItem value="Yarik">Yarik Dry Port</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

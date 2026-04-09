@@ -45,7 +45,7 @@ function saveRows(rows: HandoverRow[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
 }
 
-const REQUESTERS = ["Yarik Collectorate", "Peshawar Collectorate", "Peshawar Collectorate", "Rawalpindi Collectorate"]
+const REQUESTERS = ["Yarik Collectorate", "Peshawar Collectorate", "Peshawar Collectorate", "Mardan Collectorate"]
 const STATUSES = ["Pending", "Completed"]
 
 export default function HandoverRequestsPage() {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { 
+import {
   AlertTriangle,
   Camera,
   FileText,
@@ -147,9 +147,8 @@ const LOCATIONS = [
   "Wahga Customs Station",
   "Sust Dry Port - Customs Station",
   "Sialkot International Airport - Cargo",
-  "Faisalabad Dry Port",
-  "Lahore Dry Port",
-  "Multan Dry Port",
+  "Yarik Dry Port",
+  "DI KHAN Dry Port",
   "Quetta Dry Port",
   "Peshawar Dry Port",
   "Gwadar Port - Container Terminal",
@@ -157,7 +156,6 @@ const LOCATIONS = [
   "KPT - West Wharf",
   "Export Processing Zone - Karachi",
   "Container Scanning Facility - Karachi",
-  "Container Scanning Facility - Lahore",
   "Container Scanning Facility - Torkham"
 ]
 
@@ -343,7 +341,7 @@ interface CustomsIncident {
   resolution?: string
   resolvedAt?: string
   createdAt: number
-  
+
   // Customs-specific fields
   containerNumber?: string
   vehiclePlate?: string
@@ -363,7 +361,7 @@ interface CustomsIncident {
   driverName?: string
   licenseNumber?: string
   companyName?: string
-  
+
   // AI detection metadata
   aiMetadata?: {
     detectionModel: string
@@ -394,10 +392,10 @@ interface CustomsIncident {
     narcoticsType?: string
     confidenceScore?: number
   }
-  
+
   // Witness statements
   witnessStatements?: string[]
-  
+
   // Action taken
   actionsTaken?: string[]
 }
@@ -412,7 +410,7 @@ export default function CustomsIncidentManagementPage() {
   const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null)
   const [showEvidenceModal, setShowEvidenceModal] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [selectedIncidentType, setSelectedIncidentType] = useState<string>("all")
@@ -422,7 +420,7 @@ export default function CustomsIncidentManagementPage() {
   const [selectedPort, setSelectedPort] = useState<string>("all")
   const [dateRange, setDateRange] = useState<string>("today")
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
-  
+
   // Form state for new incident
   const [formData, setFormData] = useState({
     incidentType: "smuggling-attempt",
@@ -447,7 +445,7 @@ export default function CustomsIncidentManagementPage() {
     const generateDummyIncidents = (): CustomsIncident[] => {
       const now = new Date()
       const dummyIncidents: CustomsIncident[] = []
-      
+
       // Generate 20 realistic customs incidents
       for (let i = 0; i < 20; i++) {
         const incidentType = INCIDENT_TYPES[Math.floor(Math.random() * INCIDENT_TYPES.length)]
@@ -461,30 +459,30 @@ export default function CustomsIncidentManagementPage() {
         const containerNumber = CONTAINER_NUMBERS[Math.floor(Math.random() * CONTAINER_NUMBERS.length)]
         const vehiclePlate = VEHICLE_PLATES[Math.floor(Math.random() * VEHICLE_PLATES.length)]
         const officer = CUSTOMS_OFFICERS[Math.floor(Math.random() * CUSTOMS_OFFICERS.length)]
-        
+
         const imageIndex = i % INCIDENT_IMAGES.length
         const imageData = INCIDENT_IMAGES[imageIndex]
-        
+
         const hour = Math.floor(Math.random() * 24)
         const minute = Math.floor(Math.random() * 60)
         const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-        
+
         const date = new Date(now)
         date.setHours(date.getHours() - Math.floor(Math.random() * 72))
-        
+
         // Generate declared vs estimated values
         const declaredValue = Math.floor(Math.random() * 100000) + 10000
-        const estimatedValue = incidentType.id.includes("undervalued") || incidentType.id.includes("under-invoicing") 
+        const estimatedValue = incidentType.id.includes("undervalued") || incidentType.id.includes("under-invoicing")
           ? Math.floor(declaredValue * (1.5 + Math.random()))
           : declaredValue
-        
+
         // Generate evidence based on incident type
         const evidenceCount = Math.floor(Math.random() * 6) + 3
         const evidence: Evidence[] = []
-        
+
         for (let j = 0; j < evidenceCount; j++) {
           const evidenceType = EVIDENCE_TYPES[Math.floor(Math.random() * EVIDENCE_TYPES.length)]
-          
+
           let metadata = {}
           if (evidenceType.id === 'xray-scan') {
             metadata = {
@@ -525,7 +523,7 @@ export default function CustomsIncidentManagementPage() {
               riskLevel: Math.random() > 0.7 ? 'High' : 'Medium'
             }
           }
-          
+
           evidence.push({
             id: `ev-${i}-${j}-${Date.now()}`,
             type: evidenceType.id,
@@ -538,14 +536,14 @@ export default function CustomsIncidentManagementPage() {
             metadata
           })
         }
-        
+
         // Add witness statements for some incidents
         const witnessStatements = Math.random() > 0.5 ? [
           `Officer ${officer} observed suspicious activity during inspection`,
           "Scanner operator noted anomaly in container scan",
           "Detector dog indicated alert on specific package"
         ].slice(0, Math.floor(Math.random() * 3) + 1) : undefined
-        
+
         // Actions taken
         const actionsTaken = [
           "Container flagged for detailed inspection",
@@ -555,7 +553,7 @@ export default function CustomsIncidentManagementPage() {
           "Intelligence report filed",
           "Refer to Anti-Smuggling Organization"
         ].slice(0, Math.floor(Math.random() * 3) + 1)
-        
+
         // Create AI metadata based on incident type
         const aiMetadata = {
           detectionModel: 'Pakistan Customs AI System v1.5',
@@ -568,14 +566,14 @@ export default function CustomsIncidentManagementPage() {
           scannerType: incidentType.id.includes('scanner') || incidentType.id.includes('x-ray') ? 'Rapiscan 628XR' : undefined,
           anomalyType: Math.random() > 0.6 ? 'Density mismatch' : 'Shape anomaly',
           objectDetected: incidentType.id === 'narcotics-detection' ? ['organic material', 'concealed package'] :
-                         incidentType.id === 'weapons-detection' ? ['metallic object', 'weapon shape'] :
-                         incidentType.id === 'currency-smuggling' ? ['currency notes', 'concealed compartment'] :
-                         ['suspicious object'],
+            incidentType.id === 'weapons-detection' ? ['metallic object', 'weapon shape'] :
+              incidentType.id === 'currency-smuggling' ? ['currency notes', 'concealed compartment'] :
+                ['suspicious object'],
           organicMaterial: Math.random() > 0.7,
           metallicDensity: Math.random() > 0.6 ? 'High' : 'Normal',
           confidenceScore: 85 + Math.floor(Math.random() * 14)
         }
-        
+
         // Add thermal data for certain incidents
         if (incidentType.id === 'scanner-alert' || Math.random() > 0.7) {
           aiMetadata.thermalData = {
@@ -584,7 +582,7 @@ export default function CustomsIncidentManagementPage() {
             hotspotLocation: Math.random() > 0.5 ? 'Rear of container' : 'Hidden compartment'
           }
         }
-        
+
         // Add currency detection for smuggling incidents
         if (incidentType.id === 'currency-smuggling') {
           aiMetadata.currencyDetected = {
@@ -593,18 +591,18 @@ export default function CustomsIncidentManagementPage() {
             hiddenLocation: ['Suitcase lining', 'Vehicle panel', 'False bottom'][Math.floor(Math.random() * 3)]
           }
         }
-        
+
         // Add narcotics detection
         if (incidentType.id === 'narcotics-detection') {
           aiMetadata.narcoticsDetected = true
           aiMetadata.narcoticsType = ['Heroin', 'Hashish', 'Cocaine', 'Methamphetamine'][Math.floor(Math.random() * 4)]
         }
-        
+
         // Incident titles based on customs type
         let title = ""
         let description = ""
-        
-        switch(incidentType.id) {
+
+        switch (incidentType.id) {
           case 'smuggling-attempt':
             title = `Smuggling Attempt - ${commodity}`
             description = `Attempt to smuggle ${commodity} valued at PKR ${estimatedValue.toLocaleString()} detected`
@@ -673,7 +671,7 @@ export default function CustomsIncidentManagementPage() {
             title = `Customs Alert - ${location}`
             description = `Suspicious activity detected by AI system`
         }
-        
+
         dummyIncidents.push({
           id: `customs-incident-${i}-${Date.now()}`,
           incidentType: incidentType.id,
@@ -694,11 +692,11 @@ export default function CustomsIncidentManagementPage() {
           reportedBy: status.id !== 'active' ? officer : undefined,
           assignedTo: status.id === 'investigating' || status.id === 'inspection' ? 'Investigation Unit' : undefined,
           assignedOfficer: status.id === 'investigating' ? officer : undefined,
-          resolution: status.id === 'released' ? 'Goods cleared after inspection' : 
-                     status.id === 'seized' ? 'Goods seized under Customs Act Section 156' : undefined,
+          resolution: status.id === 'released' ? 'Goods cleared after inspection' :
+            status.id === 'seized' ? 'Goods seized under Customs Act Section 156' : undefined,
           resolvedAt: status.id === 'released' || status.id === 'seized' ? date.toISOString() : undefined,
           createdAt: date.getTime(),
-          
+
           // Customs-specific fields
           containerNumber: Math.random() > 0.3 ? containerNumber : undefined,
           vehiclePlate: Math.random() > 0.5 ? vehiclePlate : undefined,
@@ -718,13 +716,13 @@ export default function CustomsIncidentManagementPage() {
           driverName: Math.random() > 0.6 ? 'Mohammed Ali' : undefined,
           licenseNumber: Math.random() > 0.6 ? `DL-${Math.floor(Math.random() * 100000)}` : undefined,
           companyName: Math.random() > 0.5 ? ['ABC Trading', 'XYZ Imports', 'Global Exports'][Math.floor(Math.random() * 3)] : undefined,
-          
+
           aiMetadata,
           witnessStatements,
           actionsTaken
         })
       }
-      
+
       return dummyIncidents.sort((a, b) => b.createdAt - a.createdAt)
     }
 
@@ -742,10 +740,10 @@ export default function CustomsIncidentManagementPage() {
   // Apply filters
   useEffect(() => {
     let filtered = [...incidents]
-    
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase()
-      filtered = filtered.filter(i => 
+      filtered = filtered.filter(i =>
         i.title.toLowerCase().includes(term) ||
         i.description.toLowerCase().includes(term) ||
         i.location.toLowerCase().includes(term) ||
@@ -756,27 +754,27 @@ export default function CustomsIncidentManagementPage() {
         i.cameraId?.toLowerCase().includes(term)
       )
     }
-    
+
     if (selectedIncidentType !== 'all') {
       filtered = filtered.filter(i => i.incidentType === selectedIncidentType)
     }
-    
+
     if (selectedSeverity !== 'all') {
       filtered = filtered.filter(i => i.severity === selectedSeverity)
     }
-    
+
     if (selectedStatus !== 'all') {
       filtered = filtered.filter(i => i.status === selectedStatus)
     }
-    
+
     if (selectedLocation !== 'all') {
       filtered = filtered.filter(i => i.location === selectedLocation)
     }
-    
+
     if (selectedPort !== 'all') {
       filtered = filtered.filter(i => i.portOfEntry === selectedPort)
     }
-    
+
     if (activeTab !== 'all') {
       if (activeTab === 'detained') {
         filtered = filtered.filter(i => i.status === 'detained' || i.status === 'seized')
@@ -788,7 +786,7 @@ export default function CustomsIncidentManagementPage() {
         filtered = filtered.filter(i => i.incidentType.includes('smuggling') || i.incidentType.includes('currency'))
       }
     }
-    
+
     if (dateRange === 'today') {
       const today = new Date().toISOString().split('T')[0]
       filtered = filtered.filter(i => i.date === today)
@@ -801,7 +799,7 @@ export default function CustomsIncidentManagementPage() {
       monthAgo.setMonth(monthAgo.getMonth() - 1)
       filtered = filtered.filter(i => new Date(i.date) >= monthAgo)
     }
-    
+
     setFilteredIncidents(filtered)
   }, [incidents, searchTerm, selectedIncidentType, selectedSeverity, selectedStatus, selectedLocation, selectedPort, dateRange, activeTab])
 
@@ -819,9 +817,9 @@ export default function CustomsIncidentManagementPage() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const randomImage = INCIDENT_IMAGES[Math.floor(Math.random() * INCIDENT_IMAGES.length)]
-    
+
     const newIncident: CustomsIncident = {
       id: `customs-incident-${Date.now()}`,
       incidentType: formData.incidentType,
@@ -855,7 +853,7 @@ export default function CustomsIncidentManagementPage() {
       },
       createdAt: Date.now()
     }
-    
+
     setIncidents([newIncident, ...incidents])
     setFormData({
       incidentType: "smuggling-attempt",
@@ -878,13 +876,13 @@ export default function CustomsIncidentManagementPage() {
   }
 
   const updateIncidentStatus = (id: string, status: string) => {
-    setIncidents(incidents.map(incident => 
-      incident.id === id ? { 
-        ...incident, 
+    setIncidents(incidents.map(incident =>
+      incident.id === id ? {
+        ...incident,
         status: status as any,
         resolvedAt: status === 'released' || status === 'seized' ? new Date().toISOString() : incident.resolvedAt,
-        resolution: status === 'released' ? 'Goods cleared after inspection' : 
-                   status === 'seized' ? 'Goods seized under Customs Act Section 156' : incident.resolution
+        resolution: status === 'released' ? 'Goods cleared after inspection' :
+          status === 'seized' ? 'Goods seized under Customs Act Section 156' : incident.resolution
       } : incident
     ))
   }
@@ -892,7 +890,7 @@ export default function CustomsIncidentManagementPage() {
   const getIncidentTypeIcon = (typeId: string) => {
     const type = INCIDENT_TYPES.find(t => t.id === typeId)
     if (!type) return <AlertTriangle className="w-4 h-4" />
-    
+
     const Icon = type.icon
     return <Icon className="w-4 h-4" />
   }
@@ -903,7 +901,7 @@ export default function CustomsIncidentManagementPage() {
   }
 
   const getSeverityBadge = (severity: string) => {
-    switch(severity) {
+    switch (severity) {
       case 'critical':
         return <Badge className="bg-red-100 text-red-800 border-red-200">Critical</Badge>
       case 'high':
@@ -920,7 +918,7 @@ export default function CustomsIncidentManagementPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'active':
         return <Badge className="bg-red-100 text-red-800 border-red-200">Active</Badge>
       case 'investigating':
@@ -945,7 +943,7 @@ export default function CustomsIncidentManagementPage() {
   const getEvidenceTypeIcon = (typeId: string) => {
     const type = EVIDENCE_TYPES.find(t => t.id === typeId)
     if (!type) return <FileText className="w-4 h-4" />
-    
+
     const Icon = type.icon
     return <Icon className="w-4 h-4" />
   }
@@ -964,18 +962,18 @@ export default function CustomsIncidentManagementPage() {
     const high = incidents.filter(i => i.severity === 'high').length
     const smuggling = incidents.filter(i => i.incidentType.includes('smuggling')).length
     const undervalued = incidents.filter(i => i.incidentType.includes('undervalued') || i.incidentType.includes('under')).length
-    
+
     const totalValue = incidents.reduce((acc, i) => acc + (i.estimatedValue || 0), 0)
     const seizedValue = incidents.filter(i => i.status === 'seized').reduce((acc, i) => acc + (i.estimatedValue || 0), 0)
-    
+
     const byPort = PORTS_OF_ENTRY.map(port => ({
       port,
       count: incidents.filter(i => i.portOfEntry === port).length
     })).sort((a, b) => b.count - a.count).slice(0, 5)
-    
-    return { 
-      active, investigating, detained, released, critical, high, 
-      smuggling, undervalued, totalValue, seizedValue, byPort 
+
+    return {
+      active, investigating, detained, released, critical, high,
+      smuggling, undervalued, totalValue, seizedValue, byPort
     }
   }
 
@@ -1016,7 +1014,7 @@ export default function CustomsIncidentManagementPage() {
               <p className="text-xs text-muted-foreground mt-1">Requires attention</p>
             </CardContent>
           </Card>
-          
+
           <Card className="border-l-4 border-l-orange-500">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Under Investigation</CardTitle>
@@ -1027,7 +1025,7 @@ export default function CustomsIncidentManagementPage() {
               <p className="text-xs text-muted-foreground mt-1">In progress</p>
             </CardContent>
           </Card>
-          
+
           <Card className="border-l-4 border-l-orange-700">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Detained/Seized</CardTitle>
@@ -1038,7 +1036,7 @@ export default function CustomsIncidentManagementPage() {
               <p className="text-xs text-muted-foreground mt-1">Goods detained</p>
             </CardContent>
           </Card>
-          
+
           <Card className="border-l-4 border-l-green-500">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Released</CardTitle>
@@ -1049,7 +1047,7 @@ export default function CustomsIncidentManagementPage() {
               <p className="text-xs text-muted-foreground mt-1">Cleared shipments</p>
             </CardContent>
           </Card>
-          
+
           <Card className="border-l-4 border-l-red-700">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Seized Value</CardTitle>
@@ -1060,7 +1058,7 @@ export default function CustomsIncidentManagementPage() {
               <p className="text-xs text-muted-foreground mt-1">Estimated value</p>
             </CardContent>
           </Card>
-          
+
           <Card className="border-l-4 border-l-blue-500">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Smuggling Cases</CardTitle>
@@ -1117,7 +1115,7 @@ export default function CustomsIncidentManagementPage() {
                 </div>
               </div>
 
-              <select 
+              <select
                 className="px-3 py-2 border border-gray-300 rounded-lg min-w-[180px] bg-white"
                 value={selectedIncidentType}
                 onChange={(e) => setSelectedIncidentType(e.target.value)}
@@ -1128,7 +1126,7 @@ export default function CustomsIncidentManagementPage() {
                 ))}
               </select>
 
-              <select 
+              <select
                 className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
                 value={selectedSeverity}
                 onChange={(e) => setSelectedSeverity(e.target.value)}
@@ -1139,7 +1137,7 @@ export default function CustomsIncidentManagementPage() {
                 ))}
               </select>
 
-              <select 
+              <select
                 className="px-3 py-2 border border-gray-300 rounded-lg min-w-[170px] bg-white"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
@@ -1150,7 +1148,7 @@ export default function CustomsIncidentManagementPage() {
                 ))}
               </select>
 
-              <select 
+              <select
                 className="px-3 py-2 border border-gray-300 rounded-lg min-w-[180px] bg-white"
                 value={selectedPort}
                 onChange={(e) => setSelectedPort(e.target.value)}
@@ -1161,7 +1159,7 @@ export default function CustomsIncidentManagementPage() {
                 ))}
               </select>
 
-              <select 
+              <select
                 className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
@@ -1216,8 +1214,8 @@ export default function CustomsIncidentManagementPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredIncidents.map((incident) => (
-                    <TableRow 
-                      key={incident.id} 
+                    <TableRow
+                      key={incident.id}
                       className="cursor-pointer hover:bg-gray-50"
                       onClick={() => setSelectedIncident(incident)}
                     >
@@ -1283,8 +1281,8 @@ export default function CustomsIncidentManagementPage() {
                       <TableCell>
                         <div className="flex -space-x-1">
                           {incident.evidence.slice(0, 3).map((ev, idx) => (
-                            <div 
-                              key={ev.id} 
+                            <div
+                              key={ev.id}
                               className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center"
                               title={`${getEvidenceTypeName(ev.type)} - ${ev.name}`}
                             >
@@ -1310,7 +1308,7 @@ export default function CustomsIncidentManagementPage() {
                           <Button variant="ghost" size="sm" className="text-blue-600">
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <select 
+                          <select
                             className="text-xs border rounded p-1"
                             value={incident.status}
                             onChange={(e) => {
@@ -1334,15 +1332,15 @@ export default function CustomsIncidentManagementPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredIncidents.map((incident) => (
-              <Card 
-                key={incident.id} 
+              <Card
+                key={incident.id}
                 className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border-l-4"
                 style={{
-                  borderLeftColor: 
+                  borderLeftColor:
                     incident.severity === 'critical' ? '#dc2626' :
-                    incident.severity === 'high' ? '#f97316' :
-                    incident.severity === 'medium' ? '#eab308' :
-                    incident.severity === 'low' ? '#3b82f6' : '#10b981'
+                      incident.severity === 'high' ? '#f97316' :
+                        incident.severity === 'medium' ? '#eab308' :
+                          incident.severity === 'low' ? '#3b82f6' : '#10b981'
                 }}
                 onClick={() => setSelectedIncident(incident)}
               >
@@ -1354,7 +1352,7 @@ export default function CustomsIncidentManagementPage() {
                   <div className="absolute top-2 left-2">
                     {getStatusBadge(incident.status)}
                   </div>
-                  <button 
+                  <button
                     className="absolute bottom-2 right-2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => {
                       e.stopPropagation()
@@ -1368,37 +1366,37 @@ export default function CustomsIncidentManagementPage() {
                     {incident.confidence}% AI confidence
                   </div>
                 </div>
-                
+
                 <CardContent className="p-3">
                   <h3 className="font-semibold text-sm mb-1">{incident.title}</h3>
                   <p className="text-xs text-gray-500 mb-2 line-clamp-2">{incident.description}</p>
-                  
+
                   <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
                     {getIncidentTypeIcon(incident.incidentType)}
                     <span className="mr-2">{getIncidentTypeName(incident.incidentType)}</span>
                     <MapPin className="w-3 h-3 ml-1" />
                     <span className="truncate">{incident.location}</span>
                   </div>
-                  
+
                   {incident.containerNumber && (
                     <div className="flex items-center gap-1 text-xs font-mono bg-gray-100 p-1 rounded mb-1">
                       <Package className="w-3 h-3" />
                       <span>{incident.containerNumber}</span>
                     </div>
                   )}
-                  
+
                   {incident.estimatedValue && (
                     <div className="flex items-center gap-1 text-xs text-green-700 mb-2">
                       <DollarSign className="w-3 h-3" />
                       <span className="font-medium">PKR {incident.estimatedValue.toLocaleString()}</span>
                     </div>
                   )}
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex -space-x-1">
                       {incident.evidence.slice(0, 4).map((ev, idx) => (
-                        <div 
-                          key={ev.id} 
+                        <div
+                          key={ev.id}
                           className="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center"
                           title={getEvidenceTypeName(ev.type)}
                         >
@@ -1408,7 +1406,7 @@ export default function CustomsIncidentManagementPage() {
                     </div>
                     <span className="text-xs text-gray-500">{incident.evidence.length} evidence</span>
                   </div>
-                  
+
                   {incident.aiMetadata?.narcoticsDetected && (
                     <div className="mt-2 text-xs bg-red-50 text-red-700 p-1 rounded flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
@@ -1429,7 +1427,7 @@ export default function CustomsIncidentManagementPage() {
           <CardContent>
             <div className="grid grid-cols-4 md:grid-cols-8 gap-4">
               {EVIDENCE_TYPES.slice(0, 8).map(type => {
-                const count = incidents.reduce((acc, inc) => 
+                const count = incidents.reduce((acc, inc) =>
                   acc + inc.evidence.filter(e => e.type === type.id).length, 0
                 )
                 const Icon = type.icon
@@ -1688,12 +1686,12 @@ export default function CustomsIncidentManagementPage() {
             </button>
 
             <h2 className="text-lg font-semibold mb-4">Customs Incident Details</h2>
-            
+
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <div className="relative group">
                   <img src={selectedIncident.imageUrl} alt="Incident" className="w-full h-48 object-cover rounded-lg" />
-                  <button 
+                  <button
                     className="absolute top-2 right-2 bg-blue-600 text-white p-2 rounded-full"
                     onClick={() => {
                       setSelectedImage(selectedIncident.imageUrl)
@@ -1703,16 +1701,16 @@ export default function CustomsIncidentManagementPage() {
                     <Maximize2 className="w-4 h-4" />
                   </button>
                 </div>
-                
+
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">Status</h3>
-                    <select 
+                    <select
                       className="text-sm border rounded p-1"
                       value={selectedIncident.status}
                       onChange={(e) => {
                         updateIncidentStatus(selectedIncident.id, e.target.value)
-                        setSelectedIncident({...selectedIncident, status: e.target.value as any})
+                        setSelectedIncident({ ...selectedIncident, status: e.target.value as any })
                       }}
                     >
                       {STATUS_TYPES.map(s => (
@@ -1720,7 +1718,7 @@ export default function CustomsIncidentManagementPage() {
                       ))}
                     </select>
                   </div>
-                  
+
                   <div className="bg-gray-50 p-3 rounded-lg">
                     <h3 className="font-medium text-sm mb-2">AI Detection Info</h3>
                     <div className="space-y-1 text-sm">
@@ -1752,7 +1750,7 @@ export default function CustomsIncidentManagementPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   {selectedIncident.aiMetadata?.thermalData && (
                     <div className="bg-orange-50 p-3 rounded-lg">
                       <h3 className="font-medium text-sm mb-2 flex items-center gap-1">
@@ -1776,7 +1774,7 @@ export default function CustomsIncidentManagementPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {selectedIncident.aiMetadata?.currencyDetected && (
                     <div className="bg-green-50 p-3 rounded-lg">
                       <h3 className="font-medium text-sm mb-2 flex items-center gap-1">
@@ -1796,13 +1794,13 @@ export default function CustomsIncidentManagementPage() {
                   )}
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <h3 className="font-medium text-lg">{selectedIncident.title}</h3>
                   <p className="text-sm text-gray-600 mt-1">{selectedIncident.description}</p>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-lg">
                   <div>
                     <span className="text-xs text-gray-500">Incident Type</span>
@@ -1824,7 +1822,7 @@ export default function CustomsIncidentManagementPage() {
                     <div className="text-sm mt-1">{selectedIncident.portOfEntry}</div>
                   </div>
                 </div>
-                
+
                 {/* Customs-specific details */}
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <h3 className="font-medium text-sm mb-2">Shipment Details</h3>
@@ -1881,13 +1879,13 @@ export default function CustomsIncidentManagementPage() {
                     )}
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-medium mb-2">Evidence ({selectedIncident.evidence.length})</h3>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {selectedIncident.evidence.map(ev => (
-                      <div 
-                        key={ev.id} 
+                      <div
+                        key={ev.id}
                         className="flex items-center justify-between p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
                         onClick={() => {
                           setSelectedEvidence(ev)
@@ -1910,7 +1908,7 @@ export default function CustomsIncidentManagementPage() {
                     ))}
                   </div>
                 </div>
-                
+
                 {selectedIncident.actionsTaken && (
                   <div>
                     <h3 className="font-medium mb-2">Actions Taken</h3>
@@ -1921,7 +1919,7 @@ export default function CustomsIncidentManagementPage() {
                     </ul>
                   </div>
                 )}
-                
+
                 {selectedIncident.resolution && (
                   <div className="bg-green-50 p-3 rounded-lg">
                     <h3 className="font-medium text-sm mb-1">Resolution</h3>
@@ -1929,7 +1927,7 @@ export default function CustomsIncidentManagementPage() {
                     <p className="text-xs text-gray-500 mt-1">Resolved: {selectedIncident.resolvedAt}</p>
                   </div>
                 )}
-                
+
                 {selectedIncident.assignedOfficer && (
                   <div className="bg-purple-50 p-3 rounded-lg">
                     <h3 className="font-medium text-sm mb-1">Assigned Officer</h3>
@@ -1954,7 +1952,7 @@ export default function CustomsIncidentManagementPage() {
             </button>
 
             <h2 className="text-lg font-semibold mb-4">Customs Evidence Details</h2>
-            
+
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded bg-blue-100 flex items-center justify-center">
@@ -1965,7 +1963,7 @@ export default function CustomsIncidentManagementPage() {
                   <p className="text-sm text-gray-500">{getEvidenceTypeName(selectedEvidence.type)}</p>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-3 rounded-lg space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">Type:</span>
@@ -1996,7 +1994,7 @@ export default function CustomsIncidentManagementPage() {
                   </div>
                 )}
               </div>
-              
+
               {selectedEvidence.metadata && Object.keys(selectedEvidence.metadata).length > 0 && (
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <h3 className="font-medium text-sm mb-2">Evidence Metadata</h3>
@@ -2012,7 +2010,7 @@ export default function CustomsIncidentManagementPage() {
                   </div>
                 </div>
               )}
-              
+
               <div className="flex justify-end gap-2 mt-4">
                 <Button variant="outline" onClick={() => setShowEvidenceModal(false)}>
                   Close

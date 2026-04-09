@@ -11,12 +11,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Search, 
-  Upload, 
-  Camera, 
-  Phone, 
-  Mail, 
+import {
+  Search,
+  Upload,
+  Camera,
+  Phone,
+  Mail,
   IdCard,
   User,
   Calendar,
@@ -162,9 +162,9 @@ interface Vehicle {
   fitnessCertificate: string
   status: "active" | "blacklisted" | "pending" | "expired" | "watchlist"
   riskLevel: "low" | "medium" | "high" | "critical"
-  
+
   owners: VehicleOwner[]
-  
+
   images: {
     front?: string
     back?: string
@@ -172,19 +172,19 @@ interface Vehicle {
     right?: string
     lpr?: string[]
   }
-  
+
   entries: VehicleEntry[]
-  
+
   totalVisits: number
   firstVisit: string
   lastVisit: string
   averageStayDuration: number
   mostVisitedZone: string
   mostVisitedGate: string
-  
+
   alerts: VehicleAlert[]
   documents: VehicleDocument[]
-  
+
   additionalDetails?: {
     registrationCity?: string
     registrationAuthority?: string
@@ -204,7 +204,7 @@ const dummyImages = {
   motorcycle: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcREr50YLuEgNaPh2bYOxgM7rR11H9pLIWQVaA&s",
   suv: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRV2EmTviiWkhhw8oDHvlFA_KhszHSJZ_PqDw&s",
   van: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgmJMhTFIouAOuPdEcA26uVKPPkw5BFGYPhw&s",
-  bus:"https://cpimg.tistatic.com/5770042/b/4/roadways-bus-body.jpg"
+  bus: "https://cpimg.tistatic.com/5770042/b/4/roadways-bus-body.jpg"
 }
 
 // Sample vehicle data
@@ -629,7 +629,7 @@ const generateSampleVehicles = (): Vehicle[] => {
         }
       ],
       additionalDetails: {
-        registrationCity: "Faisalabad"
+        registrationCity: "Yarik"
       }
     }
   ];
@@ -637,7 +637,7 @@ const generateSampleVehicles = (): Vehicle[] => {
 
 // Helper Components
 const VehicleTypeIcon = ({ type }: { type: string }) => {
-  switch(type) {
+  switch (type) {
     case "car": return <Car className="h-4 w-4" />
     case "suv": return <Car className="h-4 w-4" />
     case "truck": return <Truck className="h-4 w-4" />
@@ -655,7 +655,7 @@ const RiskLevelBadge = ({ level }: { level: string }) => {
     critical: { color: "bg-red-100 text-red-800 border-red-200", icon: Shield }
   }
   const { color, icon: Icon } = config[level as keyof typeof config] || config.low
-  
+
   return (
     <Badge variant="outline" className={`${color} flex items-center gap-1`}>
       <Icon className="h-3 w-3" />
@@ -673,7 +673,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     watchlist: { color: "bg-red-100 text-red-800 border-red-200", icon: AlertTriangle }
   }
   const { color, icon: Icon } = config[status as keyof typeof config] || config.pending
-  
+
   return (
     <Badge variant="outline" className={`${color} flex items-center gap-1`}>
       <Icon className="h-3 w-3" />
@@ -696,7 +696,7 @@ const VehicleImagePlaceholder = ({ type }: { type: string }) => (
 export default function VehicleDatabasePage() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  
+
   const [searchFilters, setSearchFilters] = useState({
     registrationNumber: "",
     province: "",
@@ -711,7 +711,7 @@ export default function VehicleDatabasePage() {
     status: "",
     riskLevel: ""
   })
-  
+
   const [activeTab, setActiveTab] = useState("all")
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([])
@@ -747,10 +747,10 @@ export default function VehicleDatabasePage() {
     const filtered = vehicles.filter(vehicle => {
       // Filter by status tab
       if (activeTab !== "all" && vehicle.status !== activeTab) return false
-      
+
       // Filter by search criteria
       const matchesRegNumber = vehicle.registrationNumber.toLowerCase().includes(searchFilters.registrationNumber.toLowerCase()) ||
-                               vehicle.registrationNumberFormatted.toLowerCase().includes(searchFilters.registrationNumber.toLowerCase())
+        vehicle.registrationNumberFormatted.toLowerCase().includes(searchFilters.registrationNumber.toLowerCase())
       const matchesProvince = !searchFilters.province || vehicle.province.toLowerCase().includes(searchFilters.province.toLowerCase())
       const matchesMake = !searchFilters.make || vehicle.make.toLowerCase().includes(searchFilters.make.toLowerCase())
       const matchesModel = !searchFilters.model || vehicle.model.toLowerCase().includes(searchFilters.model.toLowerCase())
@@ -762,7 +762,7 @@ export default function VehicleDatabasePage() {
       const matchesOwnerPhone = vehicle.owners.some(o => o.phone.includes(searchFilters.ownerPhone))
       const matchesStatus = !searchFilters.status || vehicle.status === searchFilters.status
       const matchesRiskLevel = !searchFilters.riskLevel || vehicle.riskLevel === searchFilters.riskLevel
-      
+
       if (searchFilters.registrationNumber && !matchesRegNumber) return false
       if (searchFilters.province && !matchesProvince) return false
       if (searchFilters.make && !matchesMake) return false
@@ -775,10 +775,10 @@ export default function VehicleDatabasePage() {
       if (searchFilters.ownerPhone && !matchesOwnerPhone) return false
       if (searchFilters.status && !matchesStatus) return false
       if (searchFilters.riskLevel && !matchesRiskLevel) return false
-      
+
       return true
     })
-    
+
     setFilteredVehicles(filtered)
     setCurrentPage(1)
   }, [vehicles, searchFilters, activeTab])
@@ -956,7 +956,7 @@ export default function VehicleDatabasePage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-gradient-to-br from-green-50 to-white border-green-200">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -970,7 +970,7 @@ export default function VehicleDatabasePage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-200">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -984,7 +984,7 @@ export default function VehicleDatabasePage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-gradient-to-br from-red-50 to-white border-red-200">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -998,7 +998,7 @@ export default function VehicleDatabasePage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-200">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -1415,8 +1415,8 @@ export default function VehicleDatabasePage() {
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="relative h-12 w-20 rounded-md overflow-hidden border">
                           {vehicle.images.front ? (
-                            <img 
-                              src={vehicle.images.front} 
+                            <img
+                              src={vehicle.images.front}
                               alt={vehicle.registrationNumber}
                               className="h-full w-full object-cover"
                             />
@@ -1520,7 +1520,7 @@ export default function VehicleDatabasePage() {
                               Duplicate
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleDelete(vehicle)}
                               className="text-red-600"
                             >
@@ -1583,8 +1583,8 @@ export default function VehicleDatabasePage() {
               <div className="flex gap-4">
                 <div className="w-32 h-32 rounded-lg overflow-hidden border">
                   {quickViewVehicle.images.front ? (
-                    <img 
-                      src={quickViewVehicle.images.front} 
+                    <img
+                      src={quickViewVehicle.images.front}
                       alt={quickViewVehicle.registrationNumber}
                       className="h-full w-full object-cover"
                     />
@@ -1602,7 +1602,7 @@ export default function VehicleDatabasePage() {
                   <p className="text-sm mt-2">Owner: {quickViewVehicle.owners[0]?.name}</p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-3">
                 <Card>
                   <CardContent className="p-3 text-center">
@@ -1623,7 +1623,7 @@ export default function VehicleDatabasePage() {
                   </CardContent>
                 </Card>
               </div>
-              
+
               <div className="border rounded-lg p-3">
                 <h4 className="font-medium mb-2">Recent Activity</h4>
                 {quickViewVehicle.entries.slice(0, 3).map(entry => (
@@ -1634,7 +1634,7 @@ export default function VehicleDatabasePage() {
                   </div>
                 ))}
               </div>
-              
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setQuickViewOpen(false)}>
                   Close
@@ -1662,8 +1662,8 @@ export default function VehicleDatabasePage() {
           </DialogHeader>
           <div className="flex items-center gap-3 py-3">
             {selectedVehicle?.images.front && (
-              <img 
-                src={selectedVehicle.images.front} 
+              <img
+                src={selectedVehicle.images.front}
                 alt={selectedVehicle.registrationNumber}
                 className="w-16 h-16 object-cover rounded-lg border"
               />
@@ -1795,7 +1795,7 @@ export default function VehicleDatabasePage() {
       </Dialog>
 
       {/* Currently Inside Vehicles Widget */}
-  <div className="fixed bottom-4 right-4 w-80">
+      <div className="fixed bottom-4 right-4 w-80">
         <Card className="shadow-lg border-blue-200">
           <CardHeader className="bg-blue-50 py-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -1834,7 +1834,7 @@ export default function VehicleDatabasePage() {
 
       {/* Quick LPR Button */}
       <div className="fixed bottom-4 left-4 z-50">
-        <Button 
+        <Button
           className="rounded-full h-12 w-12 shadow-lg bg-blue-600 hover:bg-blue-700"
           onClick={() => setLprSearchMode(true)}
         >

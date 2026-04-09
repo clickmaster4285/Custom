@@ -189,7 +189,7 @@ function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
 
 // sample data used when there are no staff records in localStorage
 const DEFAULT_STAFF: StaffRecord[] = [
-   {
+  {
     id: 1,
     user: "499948",
     personal_number: "499948",
@@ -319,7 +319,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     emergency_contact_name: "Sadia Rao",
     emergency_contact_relationship: "Wife",
     emergency_contact_phone: "0304-7788990",
-    emergency_contact_address: "House 10, Multan",
+    emergency_contact_address: "House 10, DI KHAN",
     transferred_from: "ASD, Hazara",
     transferred_to: "ASD, D.I. Khan",
     created_at: new Date().toISOString()
@@ -370,7 +370,8 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
     if (!needsMerge) return it;
 
     updated = true;
-    const mergedPayload = { ...(it.payload ?? {}),
+    const mergedPayload = {
+      ...(it.payload ?? {}),
       phone: def.phone,
       transferred_from: def.transferred_from,
       transferred_to: def.transferred_to,
@@ -433,7 +434,7 @@ export type CreateStaffPayload = {
   gender?: string;
   marital_status?: string;
   blood_group?: string;
-  
+
   // Employment
   employee_id?: string;
   personal_number?: string;
@@ -449,7 +450,7 @@ export type CreateStaffPayload = {
   qualification?: string;
   current_posting?: string;
   collector_name?: string;
-  
+
   // Account/Auth
   username?: string;
   login_username?: string;
