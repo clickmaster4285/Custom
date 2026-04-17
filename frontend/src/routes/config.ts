@@ -321,28 +321,13 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       },
 
       {
-        label: "Detentions",
+        label: "Seizer",
         children: [
-          { label: "Detention Account Register", href: ROUTES.DETENTION_MEMO },
-          // { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
-        ],
-      },
-      {
-        label: "Deposit Account",
-        children: [
-          { label: "Deposit Account Register", href: ROUTES.DEPOSIT_ACCOUNT_REGISTER },
-        ],
-      },
-
-
-      {
-        label: "Seizure & Receipt",
-        children: [
-          { label: "New Seizure Entry", href: ROUTES.NEW_SEIZURE_ENTRY },
-          { label: "Goods Receipt & Handover", href: ROUTES.GOODS_RECEIPT_HANDOVER },
-          { label: "AI Item Cataloging", href: ROUTES.AI_ITEM_CATALOGING },
-          { label: "QR Code Generation", href: ROUTES.QR_CODE_GENERATION },
-          { label: "Seizure Register", href: ROUTES.SEIZURE_REGISTER },
+          { label: "Detention", href: ROUTES.DETENTION_MEMO },
+          { label: "Recovery", href: ROUTES.DEPOSIT_ACCOUNT_REGISTER },
+          { label: "Seizer Report", href: ROUTES.SEIZURE_REGISTER },
+          { label: "Goods Receipt $ Handover", href: ROUTES.GOODS_RECEIPT_HANDOVER },
+          { label: "Qrcode Generation", href: ROUTES.QR_CODE_GENERATION },
         ],
       },
       {
@@ -431,6 +416,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
         label: "Dashboard",
         href: ROUTES.ANALYTICS_DASHBOARD
       },
+      { label: "AI Item Cataloging", href: ROUTES.AI_ITEM_CATALOGING },
       {
         label: "AI Models",
         href: ROUTES.AI_MODELS

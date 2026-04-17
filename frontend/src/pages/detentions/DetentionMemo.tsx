@@ -1,18 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { AlertTriangle, BookOpen, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, Package, Plus, Printer } from "lucide-react"
+import { AlertTriangle, BookOpen, Eye, Package, Plus, Printer } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -27,8 +20,6 @@ import { toDataURL } from "qrcode"
 
 const STORAGE_KEY = "wms_detention_memo"
 const SEIZED_STORAGE_KEY = "wms_seized_inventory"
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
-const DEFAULT_PAGE_SIZE = 10
 const DETENTION_ALERT_DAYS = 60 // Alert when in detention over 2 months
 const CASE_COUNTER_KEY = "wms_detention_case_counter"
 
@@ -62,13 +53,13 @@ const defaultRows: DetentionMemoRow[] = [
     firNumber: "FIR-2024-001",
     referenceNumber: "REF-001",
     dateTimeOccurrence: "2024-02-01 09:00",
-    placeOfOccurrence: "Port Qasim",
+    placeOfOccurrence: "Yarik Checkpoint",
     dateTimeDetention: "2024-02-01 10:30",
-    placeOfDetention: "D.I.Khan",
+    placeOfDetention: "DI Khan",
     detentionType: "Un-Claimed",
-    directorate: "MCC D.I Khan AFU Import",
-    reasonForDetention: "Pending Examination",
-    whereDeposited: "State Warehouse, D.I Khan",
+    directorate: "MCC DI Khan",
+    reasonForDetention: "Pending examination of goods",
+    whereDeposited: "State Warehouse, DI Khan",
     settlementStatus: "Partial Settled",
     verificationStatus: "Verified",
     createdAt: "2024-02-01",
@@ -76,27 +67,49 @@ const defaultRows: DetentionMemoRow[] = [
     serialNo: 1,
     year: 2026,
   },
+  {
+    id: "2",
+    caseNo: "2/2026",
+    qrCodeNumber: "QR-DM-2026-0002",
+    firNumber: "FIR-2024-002",
+    referenceNumber: "REF-002",
+    dateTimeOccurrence: "2024-03-05 11:15",
+    placeOfOccurrence: "Peshawar Ring Road",
+    dateTimeDetention: "2024-03-05 12:00",
+    placeOfDetention: "Peshawar",
+    detentionType: "Mis-declared",
+    directorate: "MCC Peshawar",
+    reasonForDetention: "Mis-declaration of quantity",
+    whereDeposited: "State Warehouse, Peshawar",
+    settlementStatus: "Not Settled",
+    verificationStatus: "Pending",
+    createdAt: "2024-03-05",
+    updatedAt: "2024-03-05",
+    serialNo: 2,
+    year: 2026,
+  },
+  {
+    id: "3",
+    caseNo: "3/2026",
+    qrCodeNumber: "QR-DM-2026-0003",
+    firNumber: "FIR-2024-003",
+    referenceNumber: "REF-003",
+    dateTimeOccurrence: "2024-04-10 16:45",
+    placeOfOccurrence: "Mardan Bypass",
+    dateTimeDetention: "2024-04-10 17:30",
+    placeOfDetention: "Mardan",
+    detentionType: "Un-claimed",
+    directorate: "MCC Mardan",
+    reasonForDetention: "Un-claimed goods found in transit",
+    whereDeposited: "State Warehouse, Mardan",
+    settlementStatus: "Registered",
+    verificationStatus: "Verified",
+    createdAt: "2024-04-10",
+    updatedAt: "2024-04-10",
+    serialNo: 3,
+    year: 2026,
+  },
 ]
-
-// Generate next case number in "1/2026" format
-function getNextCaseNumber(): string {
-  try {
-    const currentYear = new Date().getFullYear()
-    const counterData = localStorage.getItem(CASE_COUNTER_KEY)
-    let counter = counterData ? JSON.parse(counterData) : { year: currentYear, lastNumber: 0 }
-
-    if (counter.year !== currentYear) {
-      counter = { year: currentYear, lastNumber: 0 }
-    }
-
-    counter.lastNumber += 1
-    localStorage.setItem(CASE_COUNTER_KEY, JSON.stringify(counter))
-
-    return `${counter.lastNumber}/${currentYear}`
-  } catch {
-    return `1/${new Date().getFullYear()}`
-  }
-}
 
 // Extract serialNo and year from caseNo (e.g., "1/2026")
 function extractSerialInfo(caseNo: string): { serialNo: number; year: number } | null {
@@ -126,6 +139,12 @@ function loadRows(): DetentionMemoRow[] {
       }
     }
   } catch { }
+  // If nothing in storage, seed with defaults so detail views work
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultRows))
+  } catch {
+    // ignore write errors and still return defaults
+  }
   return defaultRows
 }
 
@@ -161,6 +180,7 @@ function addToDepositAccount(row: DetentionMemoRow): boolean {
   // build a deposit row with defaults
   const deposit = {
     id: `dep-${Date.now()}`,
+    qrCodeNumber: row.qrCodeNumber ?? "",
     treasuryChallanNo: "",
     depositType: "Detention",
     caseSeizureRef: row.caseNo,
@@ -261,8 +281,6 @@ async function printMemo(id: string) {
 export default function DetentionMemoPage() {
   const [rows, setRows] = useState<DetentionMemoRow[]>([])
   const [caseNumberSearch, setCaseNumberSearch] = useState("")
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
-  const [page, setPage] = useState(1)
 
   useEffect(() => {
     setRows(loadRows())
@@ -287,11 +305,8 @@ export default function DetentionMemoPage() {
     return rows.filter((r) => r.caseNo.toLowerCase().includes(q))
   }, [rows, caseNumberSearch])
 
-  const totalPages = Math.max(0, Math.ceil(filteredRows.length / pageSize))
-  const pageRows = useMemo(() => filteredRows.slice((page - 1) * pageSize, page * pageSize), [filteredRows, page, pageSize])
-
-  const handleSearch = () => setPage(1)
-  const handleClear = () => { setCaseNumberSearch(""); setPage(1) }
+  const handleSearch = () => {}
+  const handleClear = () => { setCaseNumberSearch("") }
   const handleSeize = (row: DetentionMemoRow) => {
     if (addToSeizedInventory(row)) {
       window.alert("Added to Seizure Register. View it under Seizure & Receipt → Seizure Register.")
@@ -305,7 +320,11 @@ export default function DetentionMemoPage() {
   }
 
   return (
-    <ModulePageLayout title="Detention Memo" breadcrumbs={[{ label: "WMS" }, { label: "Detentions" }, { label: "Detention Memo" }]}>
+    <ModulePageLayout
+      title="Detention Memo"
+      description="Pakistan Customs detention memo register. Create detention records, then deposit and seize downstream. Data stored in localStorage."
+      breadcrumbs={[{ label: "WMS" }, { label: "Detentions" }, { label: "Detention Memo" }]}
+    >
       <div className="grid gap-6">
         <Card>
           <CardContent className="pt-6">
@@ -347,11 +366,11 @@ export default function DetentionMemoPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pageRows.length === 0 ? (
+                    {filteredRows.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={10} className="text-center text-muted-foreground py-8">No data found</TableCell>
                       </TableRow>
-                    ) : pageRows.map((row, index) => {
+                    ) : filteredRows.map((row, index) => {
                       const serialInfo = extractSerialInfo(row.caseNo)
                       return (
                         <TableRow key={row.id}>

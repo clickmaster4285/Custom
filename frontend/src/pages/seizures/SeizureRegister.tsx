@@ -16,11 +16,90 @@ type SeizedRow = {
   sourceDetentionId: string
   seizedAt: string
   caseNo: string
+  qrCodeNumber?: string
   firNumber?: string
   placeOfDetention?: string
   settlementStatus?: string
   [key: string]: unknown
 }
+
+const defaultRows: SeizedRow[] = [
+  {
+    id: "seized-1",
+    sourceDetentionId: "1",
+    seizedAt: "2026-01-20T10:15:00Z",
+    caseNo: "1/2026",
+    qrCodeNumber: "QR-DM-2026-0001",
+    firNumber: "FIR-2024-001",
+    referenceNumber: "REF-001",
+    dateTimeOccurrence: "2024-02-01 09:00",
+    placeOfOccurrence: "Yarik Checkpoint",
+    dateTimeDetention: "2024-02-01 10:30",
+    placeOfDetention: "DI Khan",
+    detentionType: "Un-Claimed",
+    directorate: "MCC DI Khan",
+    reasonForDetention: "Pending examination of goods",
+    whereDeposited: "State Warehouse, DI Khan",
+    settlementStatus: "Registered",
+    verificationStatus: "Verified",
+    briefFacts: "Goods detained at Yarik Checkpoint and later seized after verification.",
+    accusedName: "Muhammad Ali",
+    accusedCnic: "12345-6789012-3",
+    accusedAddress: "DI Khan",
+    createdAt: "2024-02-01",
+    updatedAt: "2024-02-01",
+  },
+  {
+    id: "seized-2",
+    sourceDetentionId: "2",
+    seizedAt: "2026-02-18T14:30:00Z",
+    caseNo: "2/2026",
+    qrCodeNumber: "QR-DM-2026-0002",
+    firNumber: "FIR-2024-002",
+    referenceNumber: "REF-002",
+    dateTimeOccurrence: "2024-03-05 11:15",
+    placeOfOccurrence: "Peshawar Ring Road",
+    dateTimeDetention: "2024-03-05 12:00",
+    placeOfDetention: "Peshawar",
+    detentionType: "Mis-declared",
+    directorate: "MCC Peshawar",
+    reasonForDetention: "Mis-declaration of quantity in goods declaration.",
+    whereDeposited: "State Warehouse, Peshawar",
+    settlementStatus: "Registered",
+    verificationStatus: "Pending",
+    briefFacts: "Mis-declared consignment intercepted at Peshawar Ring Road and seized.",
+    accusedName: "Khan Traders",
+    accusedCnic: "",
+    accusedAddress: "Peshawar",
+    createdAt: "2024-03-05",
+    updatedAt: "2024-03-05",
+  },
+  {
+    id: "seized-3",
+    sourceDetentionId: "3",
+    seizedAt: "2026-03-10T09:45:00Z",
+    caseNo: "3/2026",
+    qrCodeNumber: "QR-DM-2026-0003",
+    firNumber: "FIR-2024-003",
+    referenceNumber: "REF-003",
+    dateTimeOccurrence: "2024-04-10 16:45",
+    placeOfOccurrence: "Mardan Bypass",
+    dateTimeDetention: "2024-04-10 17:30",
+    placeOfDetention: "Mardan",
+    detentionType: "Un-claimed",
+    directorate: "MCC Mardan",
+    reasonForDetention: "Un-claimed goods found in transit at Mardan Bypass.",
+    whereDeposited: "State Warehouse, Mardan",
+    settlementStatus: "Pending Disposal",
+    verificationStatus: "Verified",
+    briefFacts: "Un-claimed consignment taken into custody and seized pending disposal orders.",
+    accusedName: "Unknown",
+    accusedCnic: "",
+    accusedAddress: "Mardan",
+    createdAt: "2024-04-10",
+    updatedAt: "2024-04-10",
+  },
+]
 
 function loadRows(): SeizedRow[] {
   try {
@@ -30,7 +109,13 @@ function loadRows(): SeizedRow[] {
       if (Array.isArray(parsed)) return parsed
     }
   } catch {}
-  return []
+  // If nothing stored yet, seed with dummy seizure records for the report
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultRows))
+  } catch {
+    // ignore write errors
+  }
+  return defaultRows
 }
 
 function formatDate(d: string) {
@@ -57,6 +142,7 @@ export default function SeizureRegisterPage() {
     return rows.filter(
       (r) =>
         (r.caseNo && r.caseNo.toLowerCase().includes(q)) ||
+        (r.qrCodeNumber && r.qrCodeNumber.toLowerCase().includes(q)) ||
         (r.firNumber && r.firNumber.toLowerCase().includes(q)) ||
         (r.placeOfDetention && r.placeOfDetention.toLowerCase().includes(q))
     )
@@ -138,6 +224,7 @@ export default function SeizureRegisterPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Reference</TableHead>
+                    <TableHead>QR Code</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Status</TableHead>
@@ -147,7 +234,7 @@ export default function SeizureRegisterPage() {
                 <TableBody>
                   {filteredRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         No seizure records. Use &quot;Seize&quot; on a Detention Memo to add items here.
                       </TableCell>
                     </TableRow>
@@ -155,6 +242,7 @@ export default function SeizureRegisterPage() {
                     filteredRows.map((row) => (
                       <TableRow key={row.id}>
                         <TableCell className="font-medium">{row.caseNo || "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{row.qrCodeNumber || "—"}</TableCell>
                         <TableCell>{formatDate(row.seizedAt)}</TableCell>
                         <TableCell>{row.placeOfDetention || "—"}</TableCell>
                         <TableCell>

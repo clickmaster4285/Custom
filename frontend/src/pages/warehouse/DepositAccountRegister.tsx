@@ -36,6 +36,7 @@ const STATUSES = ["Pending", "Posted", "Reversed"] as const
 
 type DepositRow = {
   id: string
+  qrCodeNumber?: string
   treasuryChallanNo: string
   depositType: string
   caseSeizureRef: string
@@ -49,10 +50,16 @@ type DepositRow = {
 }
 
 const defaultRows: DepositRow[] = [
-  { id: "1", treasuryChallanNo: "TCH-2024-001", depositType: "Bail", caseSeizureRef: "SZ-2024-001", firNo: "FIR-2024-0841", customsStation: "DI Khan", amount: "125,000", depositDate: "2024-02-01", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Bail against release of consignment" },
-  { id: "2", treasuryChallanNo: "TCH-2024-002", depositType: "Security", caseSeizureRef: "SZ-2024-002", firNo: "FIR-2024-0842", customsStation: "Customs Peshawar", amount: "50,000", depositDate: "2024-02-03", bankTreasuryName: "National Treasury", status: "Pending", remarks: "" },
-  { id: "3", treasuryChallanNo: "TCH-2024-003", depositType: "Duty", caseSeizureRef: "GD-2024-0156", firNo: "", customsStation: "Yarik", amount: "275,000", depositDate: "2024-02-05", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Provisional duty deposit" },
-  { id: "4", treasuryChallanNo: "TCH-2024-004", depositType: "Detention", caseSeizureRef: "SZ-2024-003", firNo: "FIR-2024-0845", customsStation: "Mardan", amount: "75,000", depositDate: "2024-02-07", bankTreasuryName: "Customs House Peshawar", status: "Pending", remarks: "Detention charges" },
+  { id: "1", qrCodeNumber: "QR-DM-2026-0001", treasuryChallanNo: "TCH-2024-001", depositType: "Bail", caseSeizureRef: "SZ-2024-001", firNo: "FIR-2024-0841", customsStation: "DI Khan", amount: "125,000", depositDate: "2024-02-01", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Bail against release of consignment" },
+  { id: "2", qrCodeNumber: "", treasuryChallanNo: "TCH-2024-002", depositType: "Security", caseSeizureRef: "SZ-2024-002", firNo: "FIR-2024-0842", customsStation: "Customs Peshawar", amount: "50,000", depositDate: "2024-02-03", bankTreasuryName: "National Treasury", status: "Pending", remarks: "" },
+  { id: "3", qrCodeNumber: "", treasuryChallanNo: "TCH-2024-003", depositType: "Duty", caseSeizureRef: "GD-2024-0156", firNo: "", customsStation: "Yarik", amount: "275,000", depositDate: "2024-02-05", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Provisional duty deposit" },
+  { id: "4", qrCodeNumber: "", treasuryChallanNo: "TCH-2024-004", depositType: "Detention", caseSeizureRef: "SZ-2024-003", firNo: "FIR-2024-0845", customsStation: "Mardan", amount: "75,000", depositDate: "2024-02-07", bankTreasuryName: "Customs House Peshawar", status: "Pending", remarks: "Detention charges" },
+  // Linked to default Detention Memo 1 (DI Khan)
+  { id: "5", qrCodeNumber: "QR-DM-2026-0001", treasuryChallanNo: "TCH-2026-001", depositType: "Detention", caseSeizureRef: "1/2026", firNo: "FIR-2024-001", customsStation: "DI Khan", amount: "150,000", depositDate: "2026-01-15", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Deposit against detention memo 1/2026" },
+  // Linked to default Detention Memo 2 (Peshawar)
+  { id: "6", qrCodeNumber: "QR-DM-2026-0002", treasuryChallanNo: "TCH-2026-002", depositType: "Detention", caseSeizureRef: "2/2026", firNo: "FIR-2024-002", customsStation: "Peshawar", amount: "95,000", depositDate: "2026-02-10", bankTreasuryName: "Customs House Peshawar", status: "Pending", remarks: "Deposit against detention memo 2/2026" },
+  // Linked to default Detention Memo 3 (Mardan)
+  { id: "7", qrCodeNumber: "QR-DM-2026-0003", treasuryChallanNo: "TCH-2026-003", depositType: "Detention", caseSeizureRef: "3/2026", firNo: "FIR-2024-003", customsStation: "Mardan", amount: "80,000", depositDate: "2026-03-20", bankTreasuryName: "Customs House Mardan", status: "Pending", remarks: "Deposit against detention memo 3/2026" },
 ]
 
 function loadRows(): DepositRow[] {
@@ -74,6 +81,7 @@ export default function DepositAccountRegisterPage() {
   const [rows, setRows] = useState<DepositRow[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
+    qrCodeNumber: "",
     treasuryChallanNo: "",
     depositType: "Bail",
     caseSeizureRef: "",
@@ -96,6 +104,7 @@ export default function DepositAccountRegisterPage() {
 
   const openAdd = () => {
     setForm({
+      qrCodeNumber: "",
       treasuryChallanNo: "",
       depositType: "Bail",
       caseSeizureRef: "",
@@ -114,6 +123,7 @@ export default function DepositAccountRegisterPage() {
     if (!form.treasuryChallanNo.trim() || !form.amount.trim() || !form.depositDate.trim()) return
     const newRow: DepositRow = {
       id: `dep-${Date.now()}`,
+      qrCodeNumber: form.qrCodeNumber.trim(),
       treasuryChallanNo: form.treasuryChallanNo.trim(),
       depositType: form.depositType,
       caseSeizureRef: form.caseSeizureRef.trim(),
@@ -154,6 +164,7 @@ export default function DepositAccountRegisterPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>QR Code</TableHead>
                   <TableHead>Treasury Challan No</TableHead>
                   <TableHead>Deposit Type</TableHead>
                   <TableHead>Case/Seizure Ref</TableHead>
@@ -168,6 +179,7 @@ export default function DepositAccountRegisterPage() {
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
+                    <TableCell className="font-mono text-xs">{row.qrCodeNumber || "—"}</TableCell>
                     <TableCell className="font-medium">{row.treasuryChallanNo}</TableCell>
                     <TableCell>{row.depositType}</TableCell>
                     <TableCell>{row.caseSeizureRef || "—"}</TableCell>
@@ -196,6 +208,10 @@ export default function DepositAccountRegisterPage() {
             <p className="text-sm text-muted-foreground">Pakistan Customs deposit account (treasury challan). Stored in localStorage.</p>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>QR Code Number</Label>
+              <Input value={form.qrCodeNumber} onChange={(e) => setForm((f) => ({ ...f, qrCodeNumber: e.target.value }))} placeholder="e.g. QR-DM-2026-0001" />
+            </div>
             <div className="grid gap-2">
               <Label>Treasury Challan No *</Label>
               <Input value={form.treasuryChallanNo} onChange={(e) => setForm((f) => ({ ...f, treasuryChallanNo: e.target.value }))} placeholder="e.g. TCH-2024-003" />
