@@ -323,7 +323,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
       {
         label: "Detentions",
         children: [
-          { label: "Detention Account Register", href: ROUTES.DETENTION_MEMO },
+          { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
           // { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
         ],
       },

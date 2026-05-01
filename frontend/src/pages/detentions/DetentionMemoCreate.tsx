@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, ChevronDown, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, ChevronDown, Plus, Trash2, Copy, Eye } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,8 +25,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ROUTES } from "@/routes/config"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
 import { CUSTOMS_STATIONS } from "@/lib/case-fir-spec"
+import { toast } from "@/components/ui/use-toast"
+import { getStoredUser } from "@/lib/auth"
 
 const STORAGE_KEY = "wms_detention_memo"
 
@@ -45,15 +54,22 @@ const WAREHOUSES = [
   "State Warehouse, Salt House, Kohat",
   "State Warehouse, D.I Khan",
 ] as const
-/** Radix Select does not allow value=""; use this for placeholder and treat as empty when saving */
 const SELECT_WAREHOUSE_PLACEHOLDER = "__select_warehouse__"
 const DIRECTORATES = ["MCC D.I Khan AFU Import", "MCC Peshawar", "MCC YARIK", "MCC DI Khan"] as const
 const GOODS_CONDITIONS = ["Seized", "Detained", "Under Examination", "Pending Clearance", "Unclaimed"] as const
 const GOODS_UNITS = ["PCS", "KGS", "LTR", "MTR", "CTN", "BOX", "BAG", "DOZ", "SET", "Other"] as const
 
-/** Unique QR code format: QR-DM-{timestamp}-{random} */
 function generateUniqueQrCodeNumber(): string {
   return `QR-DM-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+}
+
+// Helper to get QR code image URL (public API)
+const getQrCodeUrl = (data: string, size = 120) => {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
+}
+
+function generateMemoQrCodeNumber(): string {
+  return `DM-MEMO-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
 }
 
 export type GoodsLineItem = {
@@ -112,13 +128,25 @@ export default function DetentionMemoCreatePage() {
   const [verificationStatus, setVerificationStatus] = useState("")
   const [briefFacts, setBriefFacts] = useState("")
   const [forwardingOfficerRemarks, setForwardingOfficerRemarks] = useState("")
-  const [accusedName, setAccusedName] = useState("")
-  const [accusedCnic, setAccusedCnic] = useState("")
-  const [accusedAddress, setAccusedAddress] = useState("")
+  // Owner fields
+  const [ownerName, setOwnerName] = useState("")
+  const [ownerCnic, setOwnerCnic] = useState("")
+  const [ownerContact, setOwnerContact] = useState("")
+  const [ownerPicture, setOwnerPicture] = useState<string | null>(null)
+  // Driver fields
+  const [driverName, setDriverName] = useState("")
+  const [driverCnic, setDriverCnic] = useState("")
+  const [driverContact, setDriverContact] = useState("")
+  const [driverPicture, setDriverPicture] = useState<string | null>(null)
+  // Purpose of Detention (rich text)
+  const [purposeOfDetention, setPurposeOfDetention] = useState("")
+  // Goods items
   const [goodsItems, setGoodsItems] = useState<GoodsLineItem[]>([])
   const [seizingOfficerNotes, setSeizingOfficerNotes] = useState("")
   const [examiningOfficerNotes, setExaminingOfficerNotes] = useState("")
   const [detentionNotes, setDetentionNotes] = useState("")
+  // QR preview dialog
+  const [previewQrData, setPreviewQrData] = useState<string | null>(null)
 
   const addGoodsLine = () => setGoodsItems((prev) => [...prev, emptyGoodsItem()])
   const removeGoodsLine = (id: string) => setGoodsItems((prev) => prev.filter((i) => i.id !== id))
@@ -126,9 +154,36 @@ export default function DetentionMemoCreatePage() {
     setGoodsItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)))
   }
 
+  // Picture handlers
+  const handleOwnerPictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setOwnerPicture(reader.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+  const handleDriverPictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setDriverPicture(reader.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    toast({ title: "Copied!", description: "QR code number copied to clipboard." })
+  }
+
   const handleSave = () => {
+    const currentUser = getStoredUser()
+    const memoId = `dm-${Date.now()}`
+    const memoQrCodeNumber = generateMemoQrCodeNumber()
+    const memoReportUrl = `${window.location.origin}${getDetentionMemoDetailPath(memoId)}?print=full`
     const row = {
-      id: `dm-${Date.now()}`,
+      id: memoId,
       caseNo: caseNo || `DM-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
       referenceNumber,
       firNumber,
@@ -144,13 +199,16 @@ export default function DetentionMemoCreatePage() {
       verificationStatus,
       briefFacts,
       forwardingOfficerRemarks,
-      accusedName,
-      accusedCnic,
-      accusedAddress,
+      owner: { name: ownerName, cnic: ownerCnic, contact: ownerContact, picture: ownerPicture },
+      driver: { name: driverName, cnic: driverCnic, contact: driverContact, picture: driverPicture },
+      purposeOfDetention,
       goodsItems,
       seizingOfficerNotes,
       examiningOfficerNotes,
       detentionNotes,
+      createdBy: currentUser?.username?.trim() || "ASO Portal",
+      memoQrCodeNumber,
+      memoQrCodePayload: memoReportUrl,
       createdAt: new Date().toISOString().slice(0, 10),
       updatedAt: new Date().toISOString().slice(0, 10),
     }
@@ -181,7 +239,6 @@ export default function DetentionMemoCreatePage() {
         { label: "Create" },
       ]}
     >
-      {/* Full-screen form container: uses full layout width and scrollable height */}
       <div className="w-full min-h-[calc(100vh-12rem)] overflow-y-auto">
         <div className="mb-4 flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
@@ -217,7 +274,7 @@ export default function DetentionMemoCreatePage() {
                   </div>
                   <div className="grid gap-2">
                     <Label>FIR Number</Label>
-                    <Input value={firNumber} onChange={(e) => setFirNumber(e.target.value)} placeholder="e.g. FIR-2024-001 (user may enter)" />
+                    <Input value={firNumber} onChange={(e) => setFirNumber(e.target.value)} placeholder="e.g. FIR-2024-001" />
                   </div>
                   <div className="grid gap-2">
                     <Label>Date/Time of occurrence</Label>
@@ -263,28 +320,72 @@ export default function DetentionMemoCreatePage() {
             </Card>
           </Collapsible>
 
-          {/* Accused Person Details */}
+          {/* Owner & Driver Details */}
           <Collapsible>
             <Card>
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer flex flex-row items-center justify-between hover:bg-muted/50 rounded-t-lg">
-                  <CardTitle className="text-base">Accused Person Details</CardTitle>
+                  <CardTitle className="text-base">Owner & Driver Details</CardTitle>
                   <ChevronDown className="h-4 w-4 shrink-0" />
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent className="pt-0 grid gap-4 md:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label>Accused Name</Label>
-                    <Input value={accusedName} onChange={(e) => setAccusedName(e.target.value)} placeholder="Name" />
+                <CardContent className="pt-0 space-y-6">
+                  {/* Owner Section */}
+                  <div>
+                    <h4 className="font-medium text-sm mb-3">Owner</h4>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-2">
+                        <Label>Owner Name</Label>
+                        <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="Full name" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>CNIC</Label>
+                        <Input value={ownerCnic} onChange={(e) => setOwnerCnic(e.target.value)} placeholder="12345-1234567-1" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Contact</Label>
+                        <Input value={ownerContact} onChange={(e) => setOwnerContact(e.target.value)} placeholder="Phone number" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Picture</Label>
+                        <Input type="file" accept="image/*" onChange={handleOwnerPictureChange} />
+                        {ownerPicture && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <img src={ownerPicture} alt="Owner" className="h-12 w-12 rounded object-cover border" />
+                            <Button variant="ghost" size="sm" onClick={() => setOwnerPicture(null)}>Remove</Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid gap-2">
-                    <Label>CNIC</Label>
-                    <Input value={accusedCnic} onChange={(e) => setAccusedCnic(e.target.value)} placeholder="CNIC" />
-                  </div>
-                  <div className="grid gap-2 md:col-span-2">
-                    <Label>Address</Label>
-                    <Input value={accusedAddress} onChange={(e) => setAccusedAddress(e.target.value)} placeholder="Address" />
+                  {/* Driver Section */}
+                  <div>
+                    <h4 className="font-medium text-sm mb-3">Driver</h4>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="grid gap-2">
+                        <Label>Driver Name</Label>
+                        <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} placeholder="Full name" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>CNIC</Label>
+                        <Input value={driverCnic} onChange={(e) => setDriverCnic(e.target.value)} placeholder="12345-1234567-1" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Contact</Label>
+                        <Input value={driverContact} onChange={(e) => setDriverContact(e.target.value)} placeholder="Phone number" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Picture</Label>
+                        <Input type="file" accept="image/*" onChange={handleDriverPictureChange} />
+                        {driverPicture && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <img src={driverPicture} alt="Driver" className="h-12 w-12 rounded object-cover border" />
+                            <Button variant="ghost" size="sm" onClick={() => setDriverPicture(null)}>Remove</Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </CollapsibleContent>
@@ -399,7 +500,36 @@ export default function DetentionMemoCreatePage() {
             </Card>
           </Collapsible>
 
-          {/* Goods Information — seized/detained inventory */}
+          {/* Purpose of Detention */}
+          <Collapsible defaultOpen>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer flex flex-row items-center justify-between hover:bg-muted/50 rounded-t-lg">
+                  <CardTitle className="text-base">Purpose of Detention (Rich Text)</CardTitle>
+                  <ChevronDown className="h-4 w-4 shrink-0" />
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="pt-0">
+                  <div className="grid gap-2">
+                    <Label>Detailed purpose of detention</Label>
+                    <Textarea
+                      value={purposeOfDetention}
+                      onChange={(e) => setPurposeOfDetention(e.target.value)}
+                      placeholder="Describe the legal basis, suspected violations, or reasons for detention. Use **bold**, *italic*, - for lists (markdown accepted)."
+                      rows={6}
+                      className="font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Supports markdown: **bold**, *italic*, • lists, etc.
+                    </p>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+
+          {/* Goods Information with QR Code */}
           <Collapsible defaultOpen>
             <Card>
               <CollapsibleTrigger asChild>
@@ -411,14 +541,13 @@ export default function DetentionMemoCreatePage() {
               <CollapsibleContent>
                 <CardContent className="pt-0">
                   <p className="text-sm text-muted-foreground mb-4">
-                    List of seized/detained goods where customs status is unclear. Add line items with description, PCT, quantity and officer notes.
+                    List of seized/detained goods. <strong>Each item gets a unique QR code</strong> for scanning. Click the eye button to preview a larger QR code.
                   </p>
                   <div className="overflow-auto max-w-full">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          {/* <TableHead className="w-[140px]">QR Code</TableHead> */}
-                          {/* <TableHead className="w-[140px]">QR Code</TableHead> */}
+                          <TableHead className="w-[200px]">QR Code</TableHead>
                           <TableHead className="min-w-[160px]">Description of Goods *</TableHead>
                           <TableHead className="w-[90px]">PCT Code</TableHead>
                           <TableHead className="w-[80px]">Qty</TableHead>
@@ -434,16 +563,50 @@ export default function DetentionMemoCreatePage() {
                       <TableBody>
                         {goodsItems.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="text-muted-foreground text-center py-6">
-                              No goods added. Click &quot;Add line&quot; to add seized/detained items.
+                            <TableCell colSpan={11} className="text-muted-foreground text-center py-6">
+                              No goods added. Click "Add line" to add seized/detained items.
                             </TableCell>
                           </TableRow>
                         ) : (
                           goodsItems.map((item, idx) => (
                             <TableRow key={item.id} className={idx % 2 === 1 ? "bg-muted/10" : ""}>
-                              {/* <TableCell className="font-mono text-xs align-middle whitespace-nowrap" title={item.qrCodeNumber}>
-                                {item.qrCodeNumber}
-                              </TableCell> */}
+                              <TableCell className="align-middle">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded truncate max-w-[130px]">
+                                    {item.qrCodeNumber}
+                                  </span>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-1 text-xs"
+                                      onClick={() => copyToClipboard(item.qrCodeNumber)}
+                                    >
+                                      <Copy className="h-3 w-3 mr-1" />
+                                      Copy
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-1 text-xs"
+                                      onClick={() => setPreviewQrData(item.qrCodeNumber)}
+                                    >
+                                      <Eye className="h-3 w-3 mr-1" />
+                                      Preview
+                                    </Button>
+                                  </div>
+                                  <img
+                                    src={getQrCodeUrl(item.qrCodeNumber, 100)}
+                                    alt="QR Code"
+                                    width={100}
+                                    height={100}
+                                    className="mt-1 border border-gray-200 rounded-sm bg-white p-1"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='10'%3EQR Error%3C/text%3E%3C/svg%3E"
+                                    }}
+                                  />
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Input
                                   value={item.description}
@@ -526,18 +689,6 @@ export default function DetentionMemoCreatePage() {
                       </TableBody>
                     </Table>
                   </div>
-                  {/* {goodsItems.some((i) => i.perishable) && (
-                    <div className="mt-4 p-3 border rounded bg-yellow-50">
-                      <h5 className="text-sm font-medium mb-1">Perishable items</h5>
-                      <ul className="list-disc pl-5 text-sm">
-                        {goodsItems
-                          .filter((i) => i.perishable)
-                          .map((i) => (
-                            <li key={i.id}>{i.description || "(no description)"}</li>
-                          ))}
-                      </ul>
-                    </div>
-                  )} */}
                   <Button type="button" variant="outline" size="sm" className="mt-3" onClick={addGoodsLine}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add line
@@ -581,7 +732,7 @@ export default function DetentionMemoCreatePage() {
             </Card>
           </Collapsible>
 
-          {/* Officer Details */}
+          {/* Officer Details directly Assisting in Detention */}
           <Collapsible>
             <Card>
               <CollapsibleTrigger asChild>
@@ -599,7 +750,7 @@ export default function DetentionMemoCreatePage() {
             </Card>
           </Collapsible>
 
-          {/* Remarks & notes for customs officers */}
+          {/* Remarks & Notes */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Remarks & Notes</CardTitle>
@@ -657,6 +808,46 @@ export default function DetentionMemoCreatePage() {
           </div>
         </div>
       </div>
+
+      {/* QR Code Preview Dialog */}
+      <Dialog open={!!previewQrData} onOpenChange={() => setPreviewQrData(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR Code Preview</DialogTitle>
+            <DialogDescription>
+              Scan this QR code to identify the detained goods item.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            {previewQrData && (
+              <>
+                <img
+                  src={getQrCodeUrl(previewQrData, 250)}
+                  alt="Large QR Code"
+                  width={250}
+                  height={250}
+                  className="border rounded-md p-2 bg-white"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250' viewBox='0 0 250 250'%3E%3Crect width='250' height='250' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='16'%3EQR Error%3C/text%3E%3C/svg%3E"
+                  }}
+                />
+                <div className="text-center">
+                  <p className="font-mono text-sm bg-muted px-2 py-1 rounded break-all">{previewQrData}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => copyToClipboard(previewQrData)}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Number
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </ModulePageLayout>
   )
 }
