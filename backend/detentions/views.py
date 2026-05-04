@@ -42,6 +42,8 @@ from .serializers import (
 
 )
 
+from .image_utils import compress_image
+
 
 
 
@@ -97,14 +99,18 @@ def _save_memo_uploaded_media(request, memo: DetentionMemo) -> None:
     update_fields = []
 
     if request.FILES.get("owner_photo"):
-
-        memo.owner_photo_upload = request.FILES["owner_photo"]
+        owner_photo = request.FILES["owner_photo"]
+        # Compress image before saving
+        owner_photo = compress_image(owner_photo, max_width=1920, max_height=1080, quality=85)
+        memo.owner_photo_upload = owner_photo
 
         update_fields.append("owner_photo_upload")
 
     if request.FILES.get("driver_photo"):
-
-        memo.driver_photo_upload = request.FILES["driver_photo"]
+        driver_photo = request.FILES["driver_photo"]
+        # Compress image before saving
+        driver_photo = compress_image(driver_photo, max_width=1920, max_height=1080, quality=85)
+        memo.driver_photo_upload = driver_photo
 
         update_fields.append("driver_photo_upload")
 
