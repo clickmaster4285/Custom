@@ -23,11 +23,24 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ROUTES } from "@/routes/config"
 import { CUSTOMS_STATIONS } from "@/lib/case-fir-spec"
+import { Checkbox } from "@/components/ui/checkbox"
+import { fetchDetentionMemoById, updateDetentionMemo } from "@/lib/detention-memo-api"
+import {
+  fetchDepositAccounts,
+  updateDepositAccountEntry,
+  type DepositAccountRow,
+} from "@/lib/deposit-account-api"
 
-const DEPOSIT_STORAGE_KEY = "wms_deposit_account_register"
 const SEIZED_STORAGE_KEY = "wms_seized_inventory"
 const RELEASE_STORAGE_KEY = "wms_release_inventory"
 const RELEASE_ALERT_DAYS = 60
+const DEPOSIT_STATUS_RELEASED = "Released"
+const DEPOSIT_STATUS_FORWARDED_SEIZURE = "Forwarded to seizure"
+
+function isDepositTerminal(row: DepositRow): boolean {
+  const s = (row.status || "").trim()
+  return s === DEPOSIT_STATUS_RELEASED || s === DEPOSIT_STATUS_FORWARDED_SEIZURE
+}
 
 const WAREHOUSE_OPTIONS = [
   "State Warehouse, Kohat Tunnel",
@@ -41,19 +54,7 @@ const WAREHOUSE_OPTIONS = [
   "Customs House Yarik",
 ]
 
-type DepositRow = {
-  id: string
-  treasuryChallanNo: string
-  depositType: string
-  caseSeizureRef: string
-  firNo: string
-  customsStation: string
-  amount: string
-  depositDate: string
-  bankTreasuryName: string
-  status: string
-  remarks: string
-}
+type DepositRow = DepositAccountRow
 
 type ReleaseRecord = {
   id: string
@@ -70,17 +71,6 @@ type ReleaseRecord = {
   sourceDepositId: string
   releasedAt: string
   remarks: string
-}
-
-function loadDepositRows(): DepositRow[] {
-  try {
-    const raw = window.localStorage.getItem(DEPOSIT_STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {}
-  return []
 }
 
 function loadReleaseRecords(): ReleaseRecord[] {
@@ -110,9 +100,10 @@ function daysInDeposit(depositDate: string): number | null {
 }
 
 function addToSeizedFromDeposit(row: DepositRow): boolean {
+  const memoId = row.detentionMemoId?.trim()
   const seized = {
     id: `seized-${Date.now()}`,
-    sourceDetentionId: `deposit-${row.id}`,
+    sourceDetentionId: memoId || `deposit-${row.id}`,
     seizedAt: new Date().toISOString(),
     caseNo: row.caseSeizureRef || row.treasuryChallanNo,
     firNumber: row.firNo || "",
@@ -120,9 +111,10 @@ function addToSeizedFromDeposit(row: DepositRow): boolean {
     dateTimeDetention: row.depositDate,
     placeOfDetention: row.customsStation,
     directorate: "",
-    reasonForDetention: "Transferred from deposit account (exceeded 2 months)",
+    reasonForDetention:
+      "Documents not furnished — goods transferred from Deposit Account Register to seizure.",
     whereDeposited: row.bankTreasuryName,
-    settlementStatus: row.status,
+    settlementStatus: DEPOSIT_STATUS_FORWARDED_SEIZURE,
     verificationStatus: "Registered",
     createdAt: row.depositDate,
     updatedAt: new Date().toISOString().slice(0, 10),
@@ -158,10 +150,23 @@ export default function ReleaseInventoryPage() {
     remarks: "",
   })
   const [releaseSourceDeposit, setReleaseSourceDeposit] = useState<DepositRow | null>(null)
+  const [closeLinkedMemoOnRelease, setCloseLinkedMemoOnRelease] = useState(true)
+  const [releaseSaving, setReleaseSaving] = useState(false)
 
   useEffect(() => {
-    setDepositRows(loadDepositRows())
+    let cancelled = false
+    void (async () => {
+      try {
+        const d = await fetchDepositAccounts()
+        if (!cancelled) setDepositRows(d)
+      } catch {
+        if (!cancelled) setDepositRows([])
+      }
+    })()
     setReleaseRecords(loadReleaseRecords())
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const detentionDeposits = useMemo(
@@ -169,16 +174,31 @@ export default function ReleaseInventoryPage() {
     [depositRows]
   )
 
-  const handleTransferToSeizure = (row: DepositRow) => {
-    if (addToSeizedFromDeposit(row)) {
-      window.alert("Transferred to Seizure Register. View under Seizure & Receipt → Seizure Register.")
-      setDepositRows(loadDepositRows())
+  const handleTransferToSeizure = async (row: DepositRow) => {
+    const stamp = new Date().toISOString().slice(0, 10)
+    const line = `[${stamp}] Forwarded to seizure register: documents not furnished.`
+    const mergedRemarks = [row.remarks?.trim(), line].filter(Boolean).join("\n")
+    try {
+      await updateDepositAccountEntry(row.id, {
+        status: DEPOSIT_STATUS_FORWARDED_SEIZURE,
+        remarks: mergedRemarks,
+      })
+    } catch (e) {
+      window.alert(
+        `Could not update deposit on server: ${e instanceof Error ? e.message : "unknown error"}. Transfer was not recorded.`
+      )
+      return
+    }
+    if (addToSeizedFromDeposit({ ...row, status: DEPOSIT_STATUS_FORWARDED_SEIZURE, remarks: mergedRemarks })) {
+      window.alert("Deposit marked as forwarded and added to Seizure Register.\n\nView under Seizure & Receipt → Seizure Register.")
+      void fetchDepositAccounts().then(setDepositRows).catch(() => setDepositRows([]))
     } else {
-      window.alert("Could not transfer. Please try again.")
+      window.alert("Server updated but local seizure register failed. Refresh and retry if needed.")
     }
   }
 
   const openReleaseDialog = (row: DepositRow) => {
+    setCloseLinkedMemoOnRelease(true)
     setReleaseSourceDeposit(row)
     setReleaseForm({
       qrCodeNumber: "",
@@ -196,7 +216,7 @@ export default function ReleaseInventoryPage() {
     setReleaseOpen(true)
   }
 
-  const handleReleaseSubmit = () => {
+  const handleReleaseSubmit = async () => {
     if (!releaseForm.qrCodeNumber.trim()) {
       window.alert("QR Code number is required.")
       return
@@ -206,6 +226,7 @@ export default function ReleaseInventoryPage() {
       return
     }
     if (!releaseSourceDeposit) return
+    const releasedAt = new Date().toISOString().slice(0, 19).replace("T", " ")
     const record: ReleaseRecord = {
       id: `rel-${Date.now()}`,
       qrCodeNumber: releaseForm.qrCodeNumber.trim(),
@@ -219,21 +240,66 @@ export default function ReleaseInventoryPage() {
       amount: releaseForm.amount.trim(),
       bankTreasuryName: releaseForm.bankTreasuryName.trim(),
       sourceDepositId: releaseSourceDeposit.id,
-      releasedAt: new Date().toISOString().slice(0, 19).replace("T", " "),
+      releasedAt,
       remarks: releaseForm.remarks.trim(),
+    }
+    const depositRemarkParts = [
+      releaseSourceDeposit.remarks?.trim(),
+      releaseForm.remarks.trim(),
+      `Released to party ${releasedAt}; QR ${releaseForm.qrCodeNumber.trim()}; warehouse ${releaseForm.warehouse.trim()}.`,
+    ].filter(Boolean)
+    setReleaseSaving(true)
+    try {
+      await updateDepositAccountEntry(releaseSourceDeposit.id, {
+        status: DEPOSIT_STATUS_RELEASED,
+        treasuryChallanNo: releaseForm.treasuryChallanNo.trim(),
+        caseSeizureRef: releaseForm.caseSeizureRef.trim(),
+        firNo: releaseForm.firNumber.trim(),
+        customsStation: releaseForm.customsStation.trim(),
+        depositDate: releaseForm.depositDate,
+        amount: releaseForm.amount.trim(),
+        bankTreasuryName: releaseForm.bankTreasuryName.trim(),
+        remarks: depositRemarkParts.join("\n"),
+      })
+      const memoId = releaseSourceDeposit.detentionMemoId?.trim()
+      if (closeLinkedMemoOnRelease && memoId) {
+        try {
+          const memo = await fetchDetentionMemoById(memoId)
+          await updateDetentionMemo(memo, { settlementStatus: "Fully Settled" })
+        } catch (e) {
+          window.alert(
+            `Deposit was marked Released but the linked detention memo could not be updated: ${e instanceof Error ? e.message : "unknown error"}. You can settle the memo manually.`
+          )
+        }
+      }
+    } catch (e) {
+      window.alert(
+        `Could not save deposit release on server: ${e instanceof Error ? e.message : "unknown error"}. Local release record was not added.`
+      )
+      return
+    } finally {
+      setReleaseSaving(false)
     }
     const next = [record, ...releaseRecords]
     setReleaseRecords(next)
     saveReleaseRecords(next)
     setReleaseOpen(false)
     setReleaseSourceDeposit(null)
-    window.alert("Release record saved. QR Code and full details recorded.")
+    void fetchDepositAccounts().then(setDepositRows).catch(() => setDepositRows([]))
+    const hadMemo = !!releaseSourceDeposit.detentionMemoId?.trim()
+    let doneMsg = "Release saved. Deposit line closed as Released."
+    if (hadMemo && closeLinkedMemoOnRelease) {
+      doneMsg += " Linked detention memo settlement set to Fully Settled."
+    } else if (hadMemo && !closeLinkedMemoOnRelease) {
+      doneMsg += " Linked memo was left unchanged (option unchecked)."
+    }
+    window.alert(doneMsg)
   }
 
   return (
     <ModulePageLayout
       title="Release Inventory"
-      description="Record release of inventory from warehouse: QR Code, Warehouse, FIR, stacks. Detention deposits &gt;2 months can be transferred to seizure."
+      description="When documents are furnished, release inventory and close the deposit (and optionally settle the linked detention memo). When documents are not furnished, transfer the detention deposit line to the Seizure Register."
       breadcrumbs={[{ label: "WMS" }, { label: "Warehouse" }, { label: "Release Inventory" }]}
     >
       <div className="grid gap-6">
@@ -244,9 +310,10 @@ export default function ReleaseInventoryPage() {
               Warehouse flow
             </CardTitle>
             <CardDescription>
-              Detention info is added (Detention Memo), then deposited in a specific warehouse via Deposit Account Register.
-              If the detention account inventory exceeds <strong>2 months</strong> in deposit, it is transferred to Seizure Register.
-              Use <strong>Release Inventory</strong> to record release of specific items (QR Code, Warehouse, FIR, stacks).
+              Detention memos linked to <strong>Deposit Account Register</strong> cover goods held pending documents.
+              If the accused produces the required documents, use <strong>Release Inventory</strong> to release goods from warehouse and close the deposit; the linked memo can be settled in the same step.
+              If documents are <strong>not</strong> furnished, use <strong>Transfer to Seizure</strong> so the goods are recorded under Seizure &amp; Receipt.
+              Rows in deposit longer than <strong>2 months</strong> are highlighted as a reminder; transfer is allowed whenever documentary compliance fails.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -311,7 +378,7 @@ export default function ReleaseInventoryPage() {
           <CardHeader>
             <CardTitle>Detention deposit accounts</CardTitle>
             <CardDescription>
-              Deposit account entries with type &quot;Detention&quot;. Release specific items with QR Code and full details, or transfer to seizure if &gt;2 months.
+              Detention-type deposit lines from the register. Released or forwarded rows stay visible for audit; actions are disabled once finished.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -341,8 +408,9 @@ export default function ReleaseInventoryPage() {
                     detentionDeposits.map((row) => {
                       const days = daysInDeposit(row.depositDate)
                       const overTwoMonths = days !== null && days > RELEASE_ALERT_DAYS
+                      const terminal = isDepositTerminal(row)
                       return (
-                        <TableRow key={row.id}>
+                        <TableRow key={row.id} className={terminal ? "opacity-70" : undefined}>
                           <TableCell className="font-medium">{row.treasuryChallanNo}</TableCell>
                           <TableCell>{row.caseSeizureRef || "—"}</TableCell>
                           <TableCell className="font-mono">{row.firNo || "—"}</TableCell>
@@ -350,16 +418,18 @@ export default function ReleaseInventoryPage() {
                           <TableCell>{row.depositDate}</TableCell>
                           <TableCell>{days !== null ? days : "—"}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{row.status}</Badge>
+                            <Badge variant={terminal ? "secondary" : "outline"}>{row.status}</Badge>
                           </TableCell>
                           <TableCell>
-                            {overTwoMonths ? (
+                            {terminal ? (
+                              <span className="text-muted-foreground text-xs">No further action</span>
+                            ) : overTwoMonths ? (
                               <span
                                 className="inline-flex items-center gap-1 text-amber-700 text-xs font-medium bg-amber-100 px-2 py-1 rounded"
-                                title="Exceeded 2 months in deposit account. Transfer to Seizure Register."
+                                title="Exceeded 2 months in deposit — consider documentary follow-up or transfer to seizure."
                               >
                                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                                In deposit &gt;2 mo – transfer to seizure
+                                In deposit &gt;2 mo
                               </span>
                             ) : (
                               "—"
@@ -370,23 +440,31 @@ export default function ReleaseInventoryPage() {
                               <Button
                                 variant="default"
                                 size="sm"
+                                disabled={terminal}
                                 onClick={() => openReleaseDialog(row)}
-                                title="Release this item (record QR Code, Warehouse, FIR, Stacks)"
+                                title={
+                                  terminal
+                                    ? "This deposit is already Released or forwarded to seizure"
+                                    : "Documents furnished — release goods and close deposit"
+                                }
                               >
                                 <LogOut className="h-4 w-4 mr-1" />
                                 Release Inventory
                               </Button>
-                              {overTwoMonths && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleTransferToSeizure(row)}
-                                  title="Transfer to Seizure Register"
-                                >
-                                  <Package className="h-4 w-4 mr-1" />
-                                  Transfer to Seizure
-                                </Button>
-                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={terminal}
+                                onClick={() => void handleTransferToSeizure(row)}
+                                title={
+                                  terminal
+                                    ? "This deposit is already Released or forwarded to seizure"
+                                    : "Documents not furnished — send goods to seizure register"
+                                }
+                              >
+                                <Package className="h-4 w-4 mr-1" />
+                                Transfer to Seizure
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -517,10 +595,28 @@ export default function ReleaseInventoryPage() {
                 placeholder="Optional remarks"
               />
             </div>
+            {releaseSourceDeposit?.detentionMemoId?.trim() ? (
+              <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-3">
+                <Checkbox
+                  id="close-linked-memo"
+                  checked={closeLinkedMemoOnRelease}
+                  onCheckedChange={(v) => setCloseLinkedMemoOnRelease(v === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="close-linked-memo" className="text-sm leading-snug cursor-pointer">
+                  Documents received — when saving, set the linked detention memo settlement to{" "}
+                  <strong>Fully Settled</strong> (closes the case on the memo).
+                </label>
+              </div>
+            ) : null}
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setReleaseOpen(false)}>Cancel</Button>
-            <Button onClick={handleReleaseSubmit}>Save release record</Button>
+            <Button variant="outline" onClick={() => setReleaseOpen(false)} disabled={releaseSaving}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleReleaseSubmit()} disabled={releaseSaving}>
+              {releaseSaving ? "Saving…" : "Save release record"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -78,6 +78,8 @@ export const ROUTES = {
 
   // Detentions
   DEPOSIT_ACCOUNT_REGISTER: "/deposit-account-register",
+  /** Detail view path; use getDepositAccountRegisterDetailPath(id). */
+  DEPOSIT_ACCOUNT_REGISTER_DETAIL: "/deposit-account-register/:id",
   DETENTION_MEMO: "/detention-memo",
   DETENTION_MEMO_CREATE: "/detention-memo/create",
   SEIZED_INVENTORY: "/seized-inventory",
@@ -200,6 +202,9 @@ export function getInventoryValuationDetailPath(id: string): string {
 }
 export function getDetentionMemoDetailPath(id: string): string {
   return `${ROUTES.DETENTION_MEMO}/${encodeURIComponent(id)}`
+}
+export function getDepositAccountRegisterDetailPath(id: string): string {
+  return `${ROUTES.DEPOSIT_ACCOUNT_REGISTER}/${encodeURIComponent(id)}`
 }
 export function getSeizedInventoryDetailPath(id: string): string {
   return `${ROUTES.SEIZED_INVENTORY}/${encodeURIComponent(id)}`

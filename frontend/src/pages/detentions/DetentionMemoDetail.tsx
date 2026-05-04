@@ -1,6 +1,6 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useParams, Link, useSearchParams } from "react-router-dom"
-import { ArrowLeft, FileText, Package, QrCode, Printer, FileOutput } from "lucide-react"
+import { ArrowLeft, FileText, Package, QrCode, Printer, FileOutput, Users, Paperclip } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,12 +14,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ROUTES } from "@/routes/config"
-import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import DetentionMemoReport from "@/components/detention/DetentionMemoReport"
 import DetentionMemoQRPrint from "@/components/detention/DetentionMemoQRPrint"
-
-const STORAGE_KEY = "wms_detention_memo"
+import { fetchDetentionMemoById, type DetentionMemoApiRecord } from "@/lib/detention-memo-api"
 
 type GoodsLineItem = {
   id: string
@@ -67,19 +65,6 @@ type DetentionMemoRow = {
   memoQrCodePayload?: string
 }
 
-function loadById(id: string): DetentionMemoRow | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return null
-    const row = parsed.find((r: { id?: string }) => r.id === id)
-    return row ?? null
-  } catch {
-    return null
-  }
-}
-
 function DetailRow({ label, value }: { label: string; value: string | undefined }) {
   return (
     <div className="grid grid-cols-[180px_1fr] gap-2 py-2 border-b border-border/50 last:border-0">
@@ -116,10 +101,29 @@ function stringifyValue(value: unknown): string {
 export default function DetentionMemoDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
-  const row = id ? loadById(id) : null
+  const [row, setRow] = useState<DetentionMemoApiRecord | null | undefined>(undefined)
   const printMode = searchParams.get("print")
   const autoPrint = searchParams.get("autoprint") === "1"
   const isPrintMode = printMode === "qr" || printMode === "full"
+
+  useEffect(() => {
+    if (!id) {
+      setRow(null)
+      return
+    }
+    let cancelled = false
+    setRow(undefined)
+    fetchDetentionMemoById(id)
+      .then((data) => {
+        if (!cancelled) setRow(data)
+      })
+      .catch(() => {
+        if (!cancelled) setRow(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
 
   useEffect(() => {
     if (isPrintMode && autoPrint && row) {
@@ -128,7 +132,55 @@ export default function DetentionMemoDetailPage() {
     }
   }, [isPrintMode, autoPrint, row])
 
-  if (!id || !row) {
+  if (!id) {
+    return (
+      <ModulePageLayout
+        title="Detention Memo Not Found"
+        description="The requested record could not be found."
+        breadcrumbs={[
+          { label: "WMS" },
+          { label: "Detentions" },
+          { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
+          { label: "Detail" },
+        ]}
+      >
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground mb-4">Record not found or has been removed.</p>
+            <Button asChild variant="outline">
+              <Link to={ROUTES.DETENTION_MEMO}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Detention Memo
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </ModulePageLayout>
+    )
+  }
+
+  if (row === undefined) {
+    return (
+      <ModulePageLayout
+        title="Detention Memo"
+        description="Loading record…"
+        breadcrumbs={[
+          { label: "WMS" },
+          { label: "Detentions" },
+          { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
+          { label: "Detail" },
+        ]}
+      >
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground">Loading detention memo…</p>
+          </CardContent>
+        </Card>
+      </ModulePageLayout>
+    )
+  }
+
+  if (!row) {
     return (
       <ModulePageLayout
         title="Detention Memo Not Found"
@@ -165,10 +217,14 @@ export default function DetentionMemoDetailPage() {
     "driver",
     "memoQrCodePayload",
     "memoQrCodeNumber",
+    "mediaAttachments",
+    "purposeOfDetention",
   ])
-  const additionalEntries = Object.entries(row)
+  const additionalEntries = Object.entries(row as Record<string, unknown>)
     .filter(([key]) => !excludedKeys.has(key))
     .map(([key, value]) => ({ label: formatLabel(key), value: stringifyValue(value) }))
+
+  const reportRow = row as unknown as DetentionMemoRow
 
   if (printMode === "qr") {
     return (
@@ -186,7 +242,7 @@ export default function DetentionMemoDetailPage() {
   if (printMode === "full") {
     return (
       <DetentionMemoReport
-        row={row}
+        row={reportRow}
         qrPayload={qrPayload}
         qrNumber={qrNumber}
       />
@@ -197,7 +253,7 @@ export default function DetentionMemoDetailPage() {
   return (
     <ModulePageLayout
       title={`Detention Memo: ${row.caseNo}`}
-      description="Pakistan Customs detention memo details. Data from localStorage."
+      description="Pakistan Customs detention memo details. Data from the database."
       breadcrumbs={[
         { label: "WMS" },
         { label: "Detentions" },
@@ -289,6 +345,105 @@ export default function DetentionMemoDetailPage() {
                 <DetailRow label="Created By" value={row.createdBy || "ASO Portal"} />
               </CardContent>
             </Card>
+
+            {(row.owner?.name || row.owner?.cnic || row.owner?.contact || row.owner?.picture) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Owner
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
+                    <DetailRow label="Name" value={row.owner?.name} />
+                    <DetailRow label="CNIC" value={row.owner?.cnic} />
+                    <DetailRow label="Contact" value={row.owner?.contact} />
+                  </div>
+                  {row.owner?.picture && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Photo</p>
+                      <img
+                        src={row.owner.picture}
+                        alt="Owner"
+                        className="max-h-48 rounded-lg border object-contain bg-muted/30"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {(row.driver?.name || row.driver?.cnic || row.driver?.contact || row.driver?.picture) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Driver
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
+                    <DetailRow label="Name" value={row.driver?.name} />
+                    <DetailRow label="CNIC" value={row.driver?.cnic} />
+                    <DetailRow label="Contact" value={row.driver?.contact} />
+                  </div>
+                  {row.driver?.picture && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Photo</p>
+                      <img
+                        src={row.driver.picture}
+                        alt="Driver"
+                        className="max-h-48 rounded-lg border object-contain bg-muted/30"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {row.purposeOfDetention && (
+              <Card>
+                <CardHeader><CardTitle className="text-base">Purpose of Detention</CardTitle></CardHeader>
+                <CardContent className="rounded-lg border p-4">
+                  <p className="text-sm whitespace-pre-wrap">{row.purposeOfDetention}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {row.mediaAttachments && row.mediaAttachments.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" />
+                    Attached documents & videos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {row.mediaAttachments.map((att) =>
+                    att.kind === "video" ? (
+                      <div key={att.id} className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">{att.originalFilename || "Video"}</p>
+                        <video src={att.url} controls className="w-full max-w-2xl rounded-lg border bg-black">
+                          Your browser does not support video playback.
+                        </video>
+                      </div>
+                    ) : (
+                      <div key={att.id} className="flex flex-wrap items-center gap-3">
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          {att.originalFilename || "Download document"}
+                        </a>
+                      </div>
+                    )
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {row.briefFacts && (
               <Card>

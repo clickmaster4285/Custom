@@ -42,9 +42,9 @@ if not _SECRET_KEY:
 SECRET_KEY = _SECRET_KEY
 DEBUG = os.getenv("DEBUG", "False") == "True"
 ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS") or []
-# In dev, always allow localhost with/without port so requests to localhost:8000 never hit DisallowedHost
+# In debug/development, allow LAN/IP access without frequent ALLOWED_HOSTS edits.
 if DEBUG:
-    ALLOWED_HOSTS = list(set(ALLOWED_HOSTS) | set(_DEFAULT_DEV_HOSTS))
+    ALLOWED_HOSTS = ["*"]
 
 # -----------------------------
 # Installed Apps
@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "users",
     "visitors",
     'logs',
+    "detentions",
 ]
 
 # -----------------------------
@@ -178,5 +179,9 @@ USE_TZ = True
 STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+# Larger detention memo uploads (owner/driver photos, documents, videos via multipart).
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(50 * 1024 * 1024)))
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(50 * 1024 * 1024)))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
