@@ -180,8 +180,14 @@ STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-# Larger detention memo uploads (owner/driver photos, documents, videos via multipart).
-FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(50 * 1024 * 1024)))
-DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(50 * 1024 * 1024)))
+# File upload settings for detention memo uploads (photos, documents, videos).
+# Note: These are for Django — nginx has a separate client_max_body_size limit.
+# Default Django limits are 2.5MB for file and 2.5MB for form data.
+# We increase both to 100MB to handle large image uploads that will be compressed.
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(100 * 1024 * 1024)))  # 100MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(100 * 1024 * 1024)))  # 100MB
+
+# Images are automatically compressed on the backend before storage
+# This reduces stored file sizes significantly (typically 70-85% reduction)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
