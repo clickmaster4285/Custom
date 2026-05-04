@@ -14,6 +14,7 @@ urlpatterns = [
     path("api/", include("users.urls")),
     path("api/", include("visitors.urls")),
     path("api/", include("logs.urls")),
+    path("api/", include("detentions.urls")),
 ]
 
 # Serve uploaded media files in development (e.g. /media/staff_docs/CRM.docx)

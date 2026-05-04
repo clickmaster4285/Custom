@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, ChevronDown, Plus, Trash2, Copy, Eye } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
@@ -32,12 +32,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
+import { ROUTES } from "@/routes/config"
 import { CUSTOMS_STATIONS } from "@/lib/case-fir-spec"
 import { toast } from "@/components/ui/use-toast"
 import { getStoredUser } from "@/lib/auth"
-
-const STORAGE_KEY = "wms_detention_memo"
+import { createDetentionMemo } from "@/lib/detention-memo-api"
 
 const DETENTION_TYPES = ["Claimed", "Un-Claimed"] as const
 const REASONS = [
@@ -132,12 +131,17 @@ export default function DetentionMemoCreatePage() {
   const [ownerName, setOwnerName] = useState("")
   const [ownerCnic, setOwnerCnic] = useState("")
   const [ownerContact, setOwnerContact] = useState("")
-  const [ownerPicture, setOwnerPicture] = useState<string | null>(null)
+  const [ownerPhotoFile, setOwnerPhotoFile] = useState<File | null>(null)
+  const [ownerPhotoPreviewUrl, setOwnerPhotoPreviewUrl] = useState<string | null>(null)
   // Driver fields
   const [driverName, setDriverName] = useState("")
   const [driverCnic, setDriverCnic] = useState("")
   const [driverContact, setDriverContact] = useState("")
-  const [driverPicture, setDriverPicture] = useState<string | null>(null)
+  const [driverPhotoFile, setDriverPhotoFile] = useState<File | null>(null)
+  const [driverPhotoPreviewUrl, setDriverPhotoPreviewUrl] = useState<string | null>(null)
+  // Documents & videos (uploaded to server with memo)
+  const [documentFiles, setDocumentFiles] = useState<File[]>([])
+  const [videoFiles, setVideoFiles] = useState<File[]>([])
   // Purpose of Detention (rich text)
   const [purposeOfDetention, setPurposeOfDetention] = useState("")
   // Goods items
@@ -147,6 +151,14 @@ export default function DetentionMemoCreatePage() {
   const [detentionNotes, setDetentionNotes] = useState("")
   // QR preview dialog
   const [previewQrData, setPreviewQrData] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (ownerPhotoPreviewUrl) URL.revokeObjectURL(ownerPhotoPreviewUrl)
+      if (driverPhotoPreviewUrl) URL.revokeObjectURL(driverPhotoPreviewUrl)
+    }
+  }, [ownerPhotoPreviewUrl, driverPhotoPreviewUrl])
 
   const addGoodsLine = () => setGoodsItems((prev) => [...prev, emptyGoodsItem()])
   const removeGoodsLine = (id: string) => setGoodsItems((prev) => prev.filter((i) => i.id !== id))
@@ -154,22 +166,29 @@ export default function DetentionMemoCreatePage() {
     setGoodsItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)))
   }
 
-  // Picture handlers
   const handleOwnerPictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setOwnerPicture(reader.result as string)
-      reader.readAsDataURL(file)
-    }
+    setOwnerPhotoFile(file ?? null)
+    if (ownerPhotoPreviewUrl) URL.revokeObjectURL(ownerPhotoPreviewUrl)
+    setOwnerPhotoPreviewUrl(file ? URL.createObjectURL(file) : null)
+    e.target.value = ""
+  }
+  const clearOwnerPhoto = () => {
+    setOwnerPhotoFile(null)
+    if (ownerPhotoPreviewUrl) URL.revokeObjectURL(ownerPhotoPreviewUrl)
+    setOwnerPhotoPreviewUrl(null)
   }
   const handleDriverPictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setDriverPicture(reader.result as string)
-      reader.readAsDataURL(file)
-    }
+    setDriverPhotoFile(file ?? null)
+    if (driverPhotoPreviewUrl) URL.revokeObjectURL(driverPhotoPreviewUrl)
+    setDriverPhotoPreviewUrl(file ? URL.createObjectURL(file) : null)
+    e.target.value = ""
+  }
+  const clearDriverPhoto = () => {
+    setDriverPhotoFile(null)
+    if (driverPhotoPreviewUrl) URL.revokeObjectURL(driverPhotoPreviewUrl)
+    setDriverPhotoPreviewUrl(null)
   }
 
   const copyToClipboard = (text: string) => {
@@ -177,13 +196,10 @@ export default function DetentionMemoCreatePage() {
     toast({ title: "Copied!", description: "QR code number copied to clipboard." })
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const currentUser = getStoredUser()
-    const memoId = `dm-${Date.now()}`
     const memoQrCodeNumber = generateMemoQrCodeNumber()
-    const memoReportUrl = `${window.location.origin}${getDetentionMemoDetailPath(memoId)}?print=full`
-    const row = {
-      id: memoId,
+    const payload: Record<string, unknown> = {
       caseNo: caseNo || `DM-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
       referenceNumber,
       firNumber,
@@ -194,44 +210,57 @@ export default function DetentionMemoCreatePage() {
       detentionType,
       directorate,
       reasonForDetention,
+      locationOfDetention,
+      gdNumber,
+      gdNumber2,
       whereDeposited: whereDeposited === SELECT_WAREHOUSE_PLACEHOLDER ? "" : whereDeposited,
+      searchChassisNumber,
+      receiptOfficer,
       settlementStatus,
       verificationStatus,
       briefFacts,
       forwardingOfficerRemarks,
-      owner: { name: ownerName, cnic: ownerCnic, contact: ownerContact, picture: ownerPicture },
-      driver: { name: driverName, cnic: driverCnic, contact: driverContact, picture: driverPicture },
       purposeOfDetention,
+      owner: { name: ownerName, cnic: ownerCnic, contact: ownerContact },
+      driver: { name: driverName, cnic: driverCnic, contact: driverContact },
       goodsItems,
       seizingOfficerNotes,
       examiningOfficerNotes,
       detentionNotes,
       createdBy: currentUser?.username?.trim() || "ASO Portal",
       memoQrCodeNumber,
-      memoQrCodePayload: memoReportUrl,
-      createdAt: new Date().toISOString().slice(0, 10),
-      updatedAt: new Date().toISOString().slice(0, 10),
+      memoQrCodePayload: "",
+      clientOrigin: window.location.origin,
     }
+    setSaving(true)
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY)
-      const list = raw ? JSON.parse(raw) : []
-      if (!Array.isArray(list)) throw new Error()
-      list.unshift(row)
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
-    } catch {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify([row]))
+      await createDetentionMemo(payload, {
+        ownerPhoto: ownerPhotoFile,
+        driverPhoto: driverPhotoFile,
+        documents: documentFiles,
+        videos: videoFiles,
+      })
+      toast({ title: "Saved", description: "Detention memo saved to the database." })
+      navigate(ROUTES.DETENTION_MEMO)
+    } catch (e) {
+      toast({
+        title: "Save failed",
+        description: e instanceof Error ? e.message : "Could not save detention memo.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
     }
-    navigate(ROUTES.DETENTION_MEMO)
   }
 
   const handleSubmit = () => {
-    handleSave()
+    void handleSave()
   }
 
   return (
     <ModulePageLayout
       title="Detention Memo / Create"
-      description="Add a new detention memo (prepared after the detention). All fields as per Pakistan Customs detention memo. Data stored in localStorage."
+      description="Add a new detention memo (prepared after the detention). All fields as per Pakistan Customs detention memo. Data is saved to the server database."
       breadcrumbs={[
         { label: "WMS" },
         { label: "Detentions" },
@@ -350,10 +379,10 @@ export default function DetentionMemoCreatePage() {
                       <div className="grid gap-2">
                         <Label>Picture</Label>
                         <Input type="file" accept="image/*" onChange={handleOwnerPictureChange} />
-                        {ownerPicture && (
+                        {ownerPhotoPreviewUrl && (
                           <div className="mt-2 flex items-center gap-2">
-                            <img src={ownerPicture} alt="Owner" className="h-12 w-12 rounded object-cover border" />
-                            <Button variant="ghost" size="sm" onClick={() => setOwnerPicture(null)}>Remove</Button>
+                            <img src={ownerPhotoPreviewUrl} alt="Owner" className="h-12 w-12 rounded object-cover border" />
+                            <Button variant="ghost" size="sm" type="button" onClick={clearOwnerPhoto}>Remove</Button>
                           </div>
                         )}
                       </div>
@@ -378,10 +407,10 @@ export default function DetentionMemoCreatePage() {
                       <div className="grid gap-2">
                         <Label>Picture</Label>
                         <Input type="file" accept="image/*" onChange={handleDriverPictureChange} />
-                        {driverPicture && (
+                        {driverPhotoPreviewUrl && (
                           <div className="mt-2 flex items-center gap-2">
-                            <img src={driverPicture} alt="Driver" className="h-12 w-12 rounded object-cover border" />
-                            <Button variant="ghost" size="sm" onClick={() => setDriverPicture(null)}>Remove</Button>
+                            <img src={driverPhotoPreviewUrl} alt="Driver" className="h-12 w-12 rounded object-cover border" />
+                            <Button variant="ghost" size="sm" type="button" onClick={clearDriverPhoto}>Remove</Button>
                           </div>
                         )}
                       </div>
@@ -708,8 +737,21 @@ export default function DetentionMemoCreatePage() {
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent className="pt-0">
-                  <Input type="file" multiple className="max-w-md" />
+                <CardContent className="pt-0 space-y-2">
+                  <Input
+                    type="file"
+                    multiple
+                    className="max-w-md"
+                    onChange={(e) => setDocumentFiles(Array.from(e.target.files ?? []))}
+                  />
+                  {documentFiles.length > 0 && (
+                    <ul className="text-sm text-muted-foreground space-y-0.5 list-disc pl-5">
+                      {documentFiles.map((f, i) => (
+                        <li key={`${f.name}-${i}-${f.lastModified}`}>{f.name}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="text-xs text-muted-foreground">Files listed here are uploaded with Save/Submit.</p>
                 </CardContent>
               </CollapsibleContent>
             </Card>
@@ -725,8 +767,21 @@ export default function DetentionMemoCreatePage() {
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent className="pt-0">
-                  <Input type="file" accept="video/*" multiple className="max-w-md" />
+                <CardContent className="pt-0 space-y-2">
+                  <Input
+                    type="file"
+                    accept="video/*"
+                    multiple
+                    className="max-w-md"
+                    onChange={(e) => setVideoFiles(Array.from(e.target.files ?? []))}
+                  />
+                  {videoFiles.length > 0 && (
+                    <ul className="text-sm text-muted-foreground space-y-0.5 list-disc pl-5">
+                      {videoFiles.map((f, i) => (
+                        <li key={`${f.name}-${i}-${f.lastModified}`}>{f.name}</li>
+                      ))}
+                    </ul>
+                  )}
                 </CardContent>
               </CollapsibleContent>
             </Card>
@@ -755,7 +810,7 @@ export default function DetentionMemoCreatePage() {
             <CardHeader>
               <CardTitle className="text-base">Remarks & Notes</CardTitle>
               <p className="text-sm text-muted-foreground font-normal">
-                Officer notes for seizure/detention. All fields are saved with the memo in localStorage.
+                Officer notes for seizure/detention. All fields are saved with the memo in the database.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -800,8 +855,12 @@ export default function DetentionMemoCreatePage() {
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2 pb-8">
-            <Button onClick={handleSave}>Save</Button>
-            <Button onClick={handleSubmit}>Submit</Button>
+            <Button onClick={() => void handleSave()} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+            <Button onClick={() => void handleSubmit()} disabled={saving}>
+              {saving ? "Saving…" : "Submit"}
+            </Button>
             <Button variant="outline" asChild>
               <Link to={ROUTES.DETENTION_MEMO}>Cancel</Link>
             </Button>

@@ -24,60 +24,18 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
+import { fetchDetentionMemos, type DetentionMemoApiRecord } from "@/lib/detention-memo-api"
+import { createDepositAccountEntry, fetchDepositAccounts } from "@/lib/deposit-account-api"
 
-const STORAGE_KEY = "wms_detention_memo"
 const SEIZED_STORAGE_KEY = "wms_seized_inventory"
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 const DEFAULT_PAGE_SIZE = 10
 const DETENTION_ALERT_DAYS = 60
 
-type DetentionMemoRow = {
-  id: string
-  caseNo: string
-  firNumber?: string
-  referenceNumber: string
-  dateTimeOccurrence: string
-  placeOfOccurrence: string
-  dateTimeDetention: string
-  placeOfDetention: string
-  detentionType: string
-  directorate: string
-  reasonForDetention: string
-  whereDeposited: string
-  settlementStatus: string
-  verificationStatus: string
-  createdAt: string
-  updatedAt?: string
-  createdBy?: string
-  memoQrCodeNumber?: string
-  memoQrCodePayload?: string
+type DetentionMemoRow = DetentionMemoApiRecord & {
   serialNo?: number
   year?: number
 }
-
-const defaultRows: DetentionMemoRow[] = [
-  {
-    id: "1",
-    caseNo: "1/2026",
-    firNumber: "FIR-2024-001",
-    referenceNumber: "REF-001",
-    dateTimeOccurrence: "2024-02-01 09:00",
-    placeOfOccurrence: "Port Qasim",
-    dateTimeDetention: "2024-02-01 10:30",
-    placeOfDetention: "D.I.Khan",
-    detentionType: "Un-Claimed",
-    directorate: "MCC D.I Khan AFU Import",
-    reasonForDetention: "Pending Examination",
-    whereDeposited: "State Warehouse, D.I Khan",
-    settlementStatus: "Partial Settled",
-    verificationStatus: "Verified",
-    createdAt: "2024-02-01",
-    updatedAt: "2024-02-01",
-    createdBy: "ASO Portal",
-    serialNo: 1,
-    year: 2026,
-  },
-]
 
 function extractSerialInfo(caseNo: string): { serialNo: number; year: number } | null {
   const match = caseNo.match(/(\d+)\/(\d{4})/)
@@ -85,28 +43,6 @@ function extractSerialInfo(caseNo: string): { serialNo: number; year: number } |
     return { serialNo: parseInt(match[1], 10), year: parseInt(match[2], 10) }
   }
   return null
-}
-
-function loadRows(): DetentionMemoRow[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((r: any) => {
-          const serialInfo = extractSerialInfo(r.caseNo)
-          return {
-            ...r,
-            updatedAt: r.updatedAt ?? r.createdAt,
-            createdBy: r.createdBy ?? "ASO Portal",
-            serialNo: serialInfo?.serialNo || r.serialNo,
-            year: serialInfo?.year || r.year,
-          }
-        })
-      }
-    }
-  } catch {}
-  return defaultRows
 }
 
 function addToSeizedInventory(row: DetentionMemoRow): boolean {
@@ -120,33 +56,6 @@ function addToSeizedInventory(row: DetentionMemoRow): boolean {
     return true
   } catch {
     localStorage.setItem(SEIZED_STORAGE_KEY, JSON.stringify([seized]))
-    return true
-  }
-}
-
-function addToDepositAccount(row: DetentionMemoRow): boolean {
-  const deposit = {
-    id: `dep-${Date.now()}`,
-    treasuryChallanNo: "",
-    depositType: "Detention",
-    caseSeizureRef: row.caseNo,
-    firNo: row.firNumber || "",
-    customsStation: row.placeOfDetention,
-    amount: "",
-    depositDate: new Date().toISOString().slice(0, 10),
-    bankTreasuryName: "",
-    status: "Pending",
-    remarks: ""
-  }
-  try {
-    const raw = localStorage.getItem("wms_deposit_account_register")
-    const list = raw ? JSON.parse(raw) : []
-    if (!Array.isArray(list)) throw new Error()
-    list.unshift(deposit)
-    localStorage.setItem("wms_deposit_account_register", JSON.stringify(list))
-    return true
-  } catch {
-    localStorage.setItem("wms_deposit_account_register", JSON.stringify([deposit]))
     return true
   }
 }
@@ -174,12 +83,47 @@ function printQr(id: string) {
 
 export default function DetentionMemoPage() {
   const [rows, setRows] = useState<DetentionMemoRow[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [caseNumberSearch, setCaseNumberSearch] = useState("")
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [page, setPage] = useState(1)
+  const [memoIdsWithDeposit, setMemoIdsWithDeposit] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
-    setRows(loadRows())
+    let cancelled = false
+    setLoading(true)
+    setLoadError(null)
+    Promise.all([fetchDetentionMemos(), fetchDepositAccounts().catch(() => [])])
+      .then(([list, deposits]) => {
+        if (cancelled) return
+        const ids = new Set<string>()
+        for (const d of deposits) {
+          const mid = d.detentionMemoId?.trim()
+          if (mid) ids.add(mid)
+        }
+        setMemoIdsWithDeposit(ids)
+        const mapped = list.map((r) => {
+          const serialInfo = extractSerialInfo(r.caseNo)
+          return {
+            ...r,
+            updatedAt: r.updatedAt ?? r.createdAt,
+            createdBy: r.createdBy ?? "ASO Portal",
+            serialNo: serialInfo?.serialNo,
+            year: serialInfo?.year,
+          }
+        })
+        setRows(mapped)
+      })
+      .catch((e) => {
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : "Failed to load detention memos.")
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const filteredRows = useMemo(() => {
@@ -202,23 +146,52 @@ export default function DetentionMemoPage() {
     }
   }
 
-  const handleDeposit = (row: DetentionMemoRow) => {
-    if (addToDepositAccount(row)) {
-      alert("✓ Deposit entry created.\nCheck Deposit Account Register for details.")
-    } else {
-      alert("✗ Could not create deposit entry.")
+  const handleDeposit = async (row: DetentionMemoRow) => {
+    if (memoIdsWithDeposit.has(row.id)) return
+    try {
+      await createDepositAccountEntry({
+        detentionMemoId: row.id,
+        treasuryChallanNo: "",
+        depositType: "Detention",
+        caseSeizureRef: row.caseNo,
+        firNo: row.firNumber ?? "",
+        customsStation: row.placeOfDetention,
+        amount: "",
+        depositDate: new Date().toISOString().slice(0, 10),
+        bankTreasuryName: "",
+        status: "Pending",
+        remarks:
+          `Detention deposit linked to memo ${row.caseNo}` +
+          (row.referenceNumber ? ` (ref ${row.referenceNumber})` : ""),
+      })
+      setMemoIdsWithDeposit((prev) => new Set(prev).add(row.id))
+      alert(
+        "Deposit entry saved on the server.\n\nGo to Detentions → Deposit Account Register to add treasury challan, amount, or bank details when issued."
+      )
+    } catch (e) {
+      alert(
+        `Could not save deposit: ${e instanceof Error ? e.message : "unknown error"}\n\nCheck that the API is running (VITE_API_BASE_URL).`
+      )
     }
   }
 
   return (
     <ModulePageLayout
       title="Detention Memo"
-      description="Create, view, and print detention memo records with QR-enabled report access."
+      description="Create, view, and print detention memo records with QR-enabled report access. Deposit is available once per memo (disabled after a linked Deposit Account Register entry exists)."
       breadcrumbs={[{ label: "WMS" }, { label: "Detentions" }, { label: "Detention Memo" }]}
     >
       <div className="grid gap-6">
         <Card className="shadow-sm border-0">
           <CardContent className="pt-6">
+            {loadError && (
+              <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {loadError}
+              </div>
+            )}
+            {loading && (
+              <p className="mb-4 text-sm text-muted-foreground">Loading detention memos…</p>
+            )}
             {/* Header with Add Button */}
             <div className="flex flex-row items-center justify-between gap-4 flex-wrap mb-6">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" asChild>
@@ -227,8 +200,13 @@ export default function DetentionMemoPage() {
                   Add New Detention Memo
                 </Link>
               </Button>
-              <div className="text-sm text-muted-foreground">
-                Total Records: <span className="font-semibold text-foreground">{filteredRows.length}</span>
+              <div className="text-sm text-muted-foreground flex flex-col items-end gap-1">
+                <span>
+                  Total Records: <span className="font-semibold text-foreground">{filteredRows.length}</span>
+                </span>
+                <Link className="text-primary hover:underline" to={ROUTES.DEPOSIT_ACCOUNT_REGISTER}>
+                  Open Deposit Account Register
+                </Link>
               </div>
             </div>
 
@@ -341,7 +319,14 @@ export default function DetentionMemoPage() {
                                     <DropdownMenuItem onClick={() => printMemo(row.id)}>Print Full Report</DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
-                                <Button variant="outline" size="sm" onClick={() => handleDeposit(row)} className="h-8 px-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={memoIdsWithDeposit.has(row.id)}
+                                  title={memoIdsWithDeposit.has(row.id) ? "Already deposited — open Deposit Account Register for this memo" : "Add to Deposit Account Register"}
+                                  onClick={() => void handleDeposit(row)}
+                                  className="h-8 px-2"
+                                >
                                   <BookOpen className="h-3.5 w-3.5 mr-1" /> Deposit
                                 </Button>
                                 <Button variant="outline" size="sm" onClick={() => handleSeize(row)} className="h-8 px-2">

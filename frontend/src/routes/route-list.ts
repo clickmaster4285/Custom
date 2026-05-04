@@ -51,6 +51,7 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.RELEASE_INVENTORY), page: "ReleaseInventory" },
   { path: toChildPath(ROUTES.HS_CODES_FILE), page: "HSCodesFile" },
   { path: toChildPath(ROUTES.DEPOSIT_ACCOUNT_REGISTER), page: "DepositAccountRegister" },
+  { path: "deposit-account-register/:id", page: "DepositAccountRegisterDetail" },
   { path: toChildPath(ROUTES.DETENTION_MEMO), page: "DetentionMemo" },
   { path: "detention-memo/create", page: "DetentionMemoCreate" },
   { path: "detention-memo/:id", page: "DetentionMemoDetail" },

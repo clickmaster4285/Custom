@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import { BookOpen, Plus } from "lucide-react"
+import { Link } from "react-router-dom"
+import { BookOpen, Eye, Package, Plus } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -28,111 +29,167 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { CUSTOMS_STATIONS } from "@/lib/case-fir-spec"
+import { getDepositAccountRegisterDetailPath } from "@/routes/config"
+import {
+  fetchDepositAccounts,
+  createDepositAccountEntry,
+  updateDepositAccountEntry,
+  type DepositAccountRow,
+} from "@/lib/deposit-account-api"
+import { toast } from "@/components/ui/use-toast"
 
-const STORAGE_KEY = "wms_deposit_account_register"
+const DEPOSIT_TYPES = ["Detention", "Bail", "Security", "Duty", "Fine", "Other"] as const
+const STATUSES = ["Pending", "Posted", "Reversed", "Released", "Forwarded to seizure"] as const
+const SEIZED_STORAGE_KEY = "wms_seized_inventory"
+const DEPOSIT_STATUS_RELEASED = "Released"
+const DEPOSIT_STATUS_FORWARDED_SEIZURE = "Forwarded to seizure"
 
-const DEPOSIT_TYPES = ["Bail", "Security", "Duty", "Detention", "Fine", "Other"] as const
-const STATUSES = ["Pending", "Posted", "Reversed"] as const
-
-type DepositRow = {
-  id: string
-  treasuryChallanNo: string
-  depositType: string
-  caseSeizureRef: string
-  firNo: string
-  customsStation: string
-  amount: string
-  depositDate: string
-  bankTreasuryName: string
-  status: string
-  remarks: string
+function isDepositSeizeDisabled(row: DepositAccountRow): boolean {
+  const s = (row.status || "").trim()
+  return s === DEPOSIT_STATUS_RELEASED || s === DEPOSIT_STATUS_FORWARDED_SEIZURE
 }
 
-const defaultRows: DepositRow[] = [
-  { id: "1", treasuryChallanNo: "TCH-2024-001", depositType: "Bail", caseSeizureRef: "SZ-2024-001", firNo: "FIR-2024-0841", customsStation: "DI Khan", amount: "125,000", depositDate: "2024-02-01", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Bail against release of consignment" },
-  { id: "2", treasuryChallanNo: "TCH-2024-002", depositType: "Security", caseSeizureRef: "SZ-2024-002", firNo: "FIR-2024-0842", customsStation: "Customs Peshawar", amount: "50,000", depositDate: "2024-02-03", bankTreasuryName: "National Treasury", status: "Pending", remarks: "" },
-  { id: "3", treasuryChallanNo: "TCH-2024-003", depositType: "Duty", caseSeizureRef: "GD-2024-0156", firNo: "", customsStation: "Yarik", amount: "275,000", depositDate: "2024-02-05", bankTreasuryName: "State Bank Treasury", status: "Posted", remarks: "Provisional duty deposit" },
-  { id: "4", treasuryChallanNo: "TCH-2024-004", depositType: "Detention", caseSeizureRef: "SZ-2024-003", firNo: "FIR-2024-0845", customsStation: "Mardan", amount: "75,000", depositDate: "2024-02-07", bankTreasuryName: "Customs House Peshawar", status: "Pending", remarks: "Detention charges" },
-]
-
-function loadRows(): DepositRow[] {
+function addDepositRowToSeizedRegister(row: DepositAccountRow): void {
+  const memoId = row.detentionMemoId?.trim()
+  const seized = {
+    id: `seized-${Date.now()}`,
+    sourceDetentionId: memoId || `deposit-${row.id}`,
+    seizedAt: new Date().toISOString(),
+    caseNo: row.caseSeizureRef || row.treasuryChallanNo || "—",
+    firNumber: row.firNo || "",
+    referenceNumber: row.treasuryChallanNo || "",
+    dateTimeDetention: row.depositDate,
+    placeOfDetention: row.customsStation,
+    directorate: "",
+    reasonForDetention: "Seized from Deposit Account Register — forwarded to seizure register.",
+    whereDeposited: row.bankTreasuryName || "",
+    settlementStatus: DEPOSIT_STATUS_FORWARDED_SEIZURE,
+    verificationStatus: "Registered",
+    createdAt: row.depositDate,
+    updatedAt: new Date().toISOString().slice(0, 10),
+  }
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
-    }
-  } catch {}
-  return defaultRows
+    const raw = window.localStorage.getItem(SEIZED_STORAGE_KEY)
+    const list = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(list)) throw new Error()
+    list.unshift(seized)
+    window.localStorage.setItem(SEIZED_STORAGE_KEY, JSON.stringify(list))
+  } catch {
+    window.localStorage.setItem(SEIZED_STORAGE_KEY, JSON.stringify([seized]))
+  }
 }
 
-function saveRows(rows: DepositRow[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
-}
+const emptyForm = () => ({
+  treasuryChallanNo: "",
+  depositType: "Detention",
+  caseSeizureRef: "",
+  firNo: "",
+  customsStation: "DI Khan",
+  amount: "",
+  depositDate: new Date().toISOString().slice(0, 10),
+  bankTreasuryName: "",
+  status: "Pending",
+  remarks: "",
+})
 
 export default function DepositAccountRegisterPage() {
-  const [rows, setRows] = useState<DepositRow[]>([])
+  const [rows, setRows] = useState<DepositAccountRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({
-    treasuryChallanNo: "",
-    depositType: "Bail",
-    caseSeizureRef: "",
-    firNo: "",
-    customsStation: "DI Khan",
-    amount: "",
-    depositDate: new Date().toISOString().slice(0, 10),
-    bankTreasuryName: "",
-    status: "Pending",
-    remarks: "",
-  })
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState(emptyForm)
+
+  const reload = async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const list = await fetchDepositAccounts()
+      setRows(list)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to load deposits."
+      setLoadError(msg)
+      toast({ title: "Could not load register", description: msg, variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    setRows(loadRows())
+    void reload()
   }, [])
 
-  useEffect(() => {
-    if (rows.length > 0) saveRows(rows)
-  }, [rows])
-
   const openAdd = () => {
-    setForm({
-      treasuryChallanNo: "",
-      depositType: "Bail",
-      caseSeizureRef: "",
-      firNo: "",
-      customsStation: "DI Khan",
-      amount: "",
-      depositDate: new Date().toISOString().slice(0, 10),
-      bankTreasuryName: "",
-      status: "Pending",
-      remarks: "",
-    })
+    setForm(emptyForm())
     setOpen(true)
   }
 
-  const onSave = () => {
-    if (!form.treasuryChallanNo.trim() || !form.amount.trim() || !form.depositDate.trim()) return
-    const newRow: DepositRow = {
-      id: `dep-${Date.now()}`,
-      treasuryChallanNo: form.treasuryChallanNo.trim(),
-      depositType: form.depositType,
-      caseSeizureRef: form.caseSeizureRef.trim(),
-      firNo: form.firNo.trim(),
-      customsStation: form.customsStation,
-      amount: form.amount.trim(),
-      depositDate: form.depositDate,
-      bankTreasuryName: form.bankTreasuryName.trim(),
-      status: form.status,
-      remarks: form.remarks.trim(),
+  const onSave = async () => {
+    if (!form.depositDate.trim()) {
+      toast({ title: "Deposit date required", variant: "destructive" })
+      return
     }
-    setRows((prev) => [newRow, ...prev])
-    setOpen(false)
+    setSaving(true)
+    try {
+      await createDepositAccountEntry({
+        treasuryChallanNo: form.treasuryChallanNo.trim(),
+        depositType: form.depositType,
+        caseSeizureRef: form.caseSeizureRef.trim(),
+        firNo: form.firNo.trim(),
+        customsStation: form.customsStation,
+        amount: form.amount.trim(),
+        depositDate: form.depositDate,
+        bankTreasuryName: form.bankTreasuryName.trim(),
+        status: form.status,
+        remarks: form.remarks.trim(),
+      })
+      toast({ title: "Saved", description: "Deposit entry saved to the database." })
+      setOpen(false)
+      await reload()
+    } catch (e) {
+      toast({
+        title: "Save failed",
+        description: e instanceof Error ? e.message : "Could not save entry.",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSeize = async (row: DepositAccountRow) => {
+    if (isDepositSeizeDisabled(row)) {
+      toast({ title: "Cannot seize", description: "This deposit is already released or forwarded to seizure.", variant: "destructive" })
+      return
+    }
+    const stamp = new Date().toISOString().slice(0, 10)
+    const line = `[${stamp}] Seize: forwarded to seizure register from Deposit Account Register.`
+    const mergedRemarks = [row.remarks?.trim(), line].filter(Boolean).join("\n")
+    try {
+      await updateDepositAccountEntry(row.id, {
+        status: DEPOSIT_STATUS_FORWARDED_SEIZURE,
+        remarks: mergedRemarks,
+      })
+    } catch (e) {
+      toast({
+        title: "Seize failed",
+        description: e instanceof Error ? e.message : "Could not update deposit on the server.",
+        variant: "destructive",
+      })
+      return
+    }
+    addDepositRowToSeizedRegister({ ...row, status: DEPOSIT_STATUS_FORWARDED_SEIZURE, remarks: mergedRemarks })
+    toast({
+      title: "Seized",
+      description: "Entry forwarded to seizure. View under Seizure & Receipt → Seizure Register.",
+    })
+    await reload()
   }
 
   return (
     <ModulePageLayout
       title="Deposit Account Register"
-      description="Pakistan Customs: Treasury challans, bail, security, duty and detention deposits. Data stored in localStorage."
+      description="Pakistan Customs: treasury challans and deposits (bail, security, duty, detention). Records detained goods moved into deposit accounts; detention-type rows can be pushed from Detention Memo."
       breadcrumbs={[{ label: "WMS" }, { label: "Detentions" }, { label: "Deposit Account Register" }]}
     >
       <div className="grid gap-6">
@@ -143,7 +200,9 @@ export default function DepositAccountRegisterPage() {
                 <BookOpen className="h-5 w-5" />
                 Deposit Account Register
               </CardTitle>
-              <CardDescription>Treasury challans and deposits linked to case/seizure and FIR. Data in localStorage.</CardDescription>
+              <CardDescription>
+                Treasury challans linked to case/seizure and FIR. Use <strong>Seize</strong> to forward a line to the Seizure Register when goods must be seized (same as Release Inventory → Transfer to Seizure). View opens the deposit detail.
+              </CardDescription>
             </div>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0" onClick={openAdd}>
               <Plus className="h-4 w-4 mr-2" />
@@ -151,40 +210,81 @@ export default function DepositAccountRegisterPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Treasury Challan No</TableHead>
-                  <TableHead>Deposit Type</TableHead>
-                  <TableHead>Case/Seizure Ref</TableHead>
-                  <TableHead>FIR No</TableHead>
-                  <TableHead>Customs Station</TableHead>
-                  <TableHead>Average Value</TableHead>
-                  <TableHead>Deposit Date</TableHead>
+            {loadError && (
+              <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {loadError}
+              </div>
+            )}
+            {loading && rows.length === 0 && (
+              <p className="text-sm text-muted-foreground py-8">Loading deposit entries…</p>
+            )}
+            {!loading && rows.length === 0 && !loadError && (
+              <p className="text-sm text-muted-foreground py-8">
+                No deposit entries yet. Use <strong>New Entry</strong>, or raise a detention in <strong>Detention Memo</strong> and click <strong>Deposit</strong> to add a detention row automatically.
+              </p>
+            )}
+            {rows.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Treasury Challan No</TableHead>
+                    <TableHead>Deposit Type</TableHead>
+                    <TableHead>Case/Seizure Ref</TableHead>
+                    <TableHead>FIR No</TableHead>
+                    <TableHead>Customs Station</TableHead>
+                    <TableHead>Average Value</TableHead>
+                    <TableHead>Deposit Date</TableHead>
                   <TableHead>Bank/Treasury</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right min-w-[180px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.treasuryChallanNo}</TableCell>
+                    <TableCell className="font-medium">{row.treasuryChallanNo || "—"}</TableCell>
                     <TableCell>{row.depositType}</TableCell>
                     <TableCell>{row.caseSeizureRef || "—"}</TableCell>
                     <TableCell>{row.firNo || "—"}</TableCell>
-                    <TableCell>{row.customsStation}</TableCell>
-                    <TableCell>{row.amount}</TableCell>
-                    <TableCell>{row.depositDate}</TableCell>
+                    <TableCell>{row.customsStation || "—"}</TableCell>
+                    <TableCell>{row.amount || "—"}</TableCell>
+                    <TableCell>{row.depositDate || "—"}</TableCell>
                     <TableCell>{row.bankTreasuryName || "—"}</TableCell>
                     <TableCell>
                       <Badge variant={row.status === "Posted" ? "default" : row.status === "Pending" ? "secondary" : "outline"}>
-                        {row.status}
+                        {row.status || "—"}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        <Button variant="outline" size="sm" className="h-8 px-2" asChild>
+                          <Link to={getDepositAccountRegisterDetailPath(row.id)}>
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            View
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="h-8 px-2"
+                          disabled={isDepositSeizeDisabled(row)}
+                          title={
+                            isDepositSeizeDisabled(row)
+                              ? "Already released or forwarded to seizure"
+                              : "Forward to Seizure Register and mark deposit row"
+                          }
+                          onClick={() => void handleSeize(row)}
+                        >
+                          <Package className="h-3.5 w-3.5 mr-1" />
+                          Seize
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -193,25 +293,37 @@ export default function DepositAccountRegisterPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>New Deposit Entry</DialogTitle>
-            <p className="text-sm text-muted-foreground">Pakistan Customs deposit account (treasury challan). Stored in localStorage.</p>
+            <p className="text-sm text-muted-foreground">
+              Add a treasury challan deposit. For <strong>Detention</strong>, use Case/Seizure ref = detention case number when not coming from Detention Memo.
+            </p>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Treasury Challan No *</Label>
-              <Input value={form.treasuryChallanNo} onChange={(e) => setForm((f) => ({ ...f, treasuryChallanNo: e.target.value }))} placeholder="e.g. TCH-2024-003" />
+              <Label>Treasury Challan No</Label>
+              <Input
+                value={form.treasuryChallanNo}
+                onChange={(e) => setForm((f) => ({ ...f, treasuryChallanNo: e.target.value }))}
+                placeholder="Leave blank until challan issued; fill when posting"
+              />
             </div>
             <div className="grid gap-2">
               <Label>Deposit Type</Label>
               <Select value={form.depositType} onValueChange={(v) => setForm((f) => ({ ...f, depositType: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {DEPOSIT_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {DEPOSIT_TYPES.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
               <Label>Case / Seizure Reference</Label>
-              <Input value={form.caseSeizureRef} onChange={(e) => setForm((f) => ({ ...f, caseSeizureRef: e.target.value }))} placeholder="e.g. SZ-2024-001" />
+              <Input
+                value={form.caseSeizureRef}
+                onChange={(e) => setForm((f) => ({ ...f, caseSeizureRef: e.target.value }))}
+                placeholder="e.g. case no from detention memo"
+              />
             </div>
             <div className="grid gap-2">
               <Label>FIR No</Label>
@@ -222,13 +334,15 @@ export default function DepositAccountRegisterPage() {
               <Select value={form.customsStation} onValueChange={(v) => setForm((f) => ({ ...f, customsStation: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CUSTOMS_STATIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {CUSTOMS_STATIONS.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Amount (PKR) *</Label>
-              <Input value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="e.g. 125,000" />
+              <Label>Amount / average value (PKR)</Label>
+              <Input value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="e.g. 125,000 or leave blank until valued" />
             </div>
             <div className="grid gap-2">
               <Label>Deposit Date *</Label>
@@ -236,14 +350,20 @@ export default function DepositAccountRegisterPage() {
             </div>
             <div className="grid gap-2">
               <Label>Bank / Treasury Name</Label>
-              <Input value={form.bankTreasuryName} onChange={(e) => setForm((f) => ({ ...f, bankTreasuryName: e.target.value }))} placeholder="e.g. State Bank Treasury" />
+              <Input
+                value={form.bankTreasuryName}
+                onChange={(e) => setForm((f) => ({ ...f, bankTreasuryName: e.target.value }))}
+                placeholder="e.g. State Bank Treasury"
+              />
             </div>
             <div className="grid gap-2">
               <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -253,8 +373,12 @@ export default function DepositAccountRegisterPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSave}>Save</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={() => void onSave()} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

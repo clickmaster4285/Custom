@@ -47,6 +47,9 @@ export const PAGES = {
   ReleaseInventory: lazy(() => import("@/pages/warehouse/ReleaseInventory").then((m) => ({ default: m.default }))),
   HSCodesFile: lazy(() => import("@/pages/warehouse/HSCodesFile").then((m) => ({ default: m.default }))),
   DepositAccountRegister: lazy(() => import("@/pages/warehouse/DepositAccountRegister").then((m) => ({ default: m.default }))),
+  DepositAccountRegisterDetail: lazy(() =>
+    import("@/pages/warehouse/DepositAccountRegisterDetail").then((m) => ({ default: m.default }))
+  ),
   DetentionMemo: lazy(() => import("@/pages/detentions/DetentionMemo").then((m) => ({ default: m.default }))),
   DetentionMemoCreate: lazy(() => import("@/pages/detentions/DetentionMemoCreate").then((m) => ({ default: m.default }))),
   DetentionMemoDetail: lazy(() => import("@/pages/detentions/DetentionMemoDetail").then((m) => ({ default: m.default }))),
