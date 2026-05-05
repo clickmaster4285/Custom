@@ -31,6 +31,7 @@ export type DetentionMemoGoodsLineApi = {
   identificationRef: string
   itemNotes: string
   perishable: boolean
+  images: string[]
 }
 
 export type DetentionMemoMediaAttachment = {
@@ -46,6 +47,7 @@ export type DetentionMemoCreateMedia = {
   driverPhoto?: File | null
   documents?: File[]
   videos?: File[]
+  goodsImages?: Record<string, File[]>
 }
 
 /** Record shape returned by the API (camelCase). */
@@ -166,6 +168,7 @@ export function memoApiRecordToWritePayload(record: DetentionMemoApiRecord): Rec
       identificationRef: g.identificationRef,
       itemNotes: g.itemNotes,
       perishable: g.perishable,
+      images: g.images ?? [],
     })),
     seizingOfficerNotes: record.seizingOfficerNotes ?? "",
     examiningOfficerNotes: record.examiningOfficerNotes ?? "",
@@ -203,7 +206,8 @@ function hasCreateMedia(media?: DetentionMemoCreateMedia): boolean {
     media.ownerPhoto ||
     media.driverPhoto ||
     (media.documents?.length ?? 0) > 0 ||
-    (media.videos?.length ?? 0) > 0
+    (media.videos?.length ?? 0) > 0 ||
+    (media.goodsImages && Object.keys(media.goodsImages).length > 0)
   )
 }
 
@@ -237,6 +241,14 @@ export async function createDetentionMemo(
   for (const f of media?.videos ?? []) {
     form.append("videos", f)
   }
+  // Add goods images with prefix based on goods item id
+  if (media?.goodsImages) {
+    for (const [goodsId, files] of Object.entries(media.goodsImages)) {
+      for (let i = 0; i < files.length; i++) {
+        form.append(`goods_image_${goodsId}_${i}`, files[i])
+      }
+    }
+  }
 
   const res = await fetch(`${BASE}/create/`, {
     method: "POST",
@@ -251,4 +263,20 @@ export async function createDetentionMemo(
   }
   if (!res.ok) throw new Error(errorMessage(res, body))
   return body as DetentionMemoApiRecord
+}
+
+export async function deleteDetentionMemo(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/${encodeURIComponent(id)}/delete/`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  })
+  if (!res.status.toString().startsWith("2")) {
+    let body: unknown = null
+    try {
+      body = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new Error(errorMessage(res, body))
+  }
 }

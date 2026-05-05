@@ -27,6 +27,14 @@ def detention_attachment_path(instance, filename: str) -> str:
     return f"detention_memos/{instance.memo_id}/{instance.kind}s/{uuid.uuid4().hex}_{safe}"
 
 
+def detention_goods_image_path(instance: "DetentionMemoGoodsImage", filename: str) -> str:
+    goods_line = instance.goods_line
+    memo_id = goods_line.memo_id
+    goods_id = goods_line.pk or "new"
+    ext = os.path.splitext(filename)[1].lower()
+    return f"detention_memos/{memo_id}/goods/{goods_id}/{uuid.uuid4().hex}{ext or '.jpg'}"
+
+
 class DetentionMemo(models.Model):
     """Pakistan Customs detention memo — header and narrative fields."""
 
@@ -120,6 +128,24 @@ class DetentionMemoGoodsLine(models.Model):
 
     def __str__(self):
         return f"{self.memo_id} — {self.description[:40] if self.description else self.pk}"
+
+
+class DetentionMemoGoodsImage(models.Model):
+    """Images for goods line items (up to 10 per goods line)."""
+
+    goods_line = models.ForeignKey(
+        DetentionMemoGoodsLine,
+        on_delete=models.CASCADE,
+        related_name="images",
+    )
+    image = models.FileField(upload_to=detention_goods_image_path)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["uploaded_at"]
+
+    def __str__(self):
+        return f"Goods image {self.pk} for {self.goods_line_id}"
 
 
 class DetentionMemoAttachment(models.Model):

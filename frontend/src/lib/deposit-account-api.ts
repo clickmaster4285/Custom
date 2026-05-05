@@ -119,3 +119,19 @@ export async function updateDepositAccountEntry(
   if (!res.ok) throw new Error(errorMessage(res, body))
   return body as DepositAccountRow
 }
+
+export async function deleteDepositAccountEntry(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/${encodeURIComponent(id)}/delete/`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  })
+  if (!res.status.toString().startsWith("2")) {
+    let body: unknown = null
+    try {
+      body = await res.json()
+    } catch {
+      // ignore
+    }
+    throw new Error(errorMessage(res, body))
+  }
+}

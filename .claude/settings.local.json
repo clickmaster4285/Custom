@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py makemigrations detentions --name goods_image)",
+      "Bash(python manage.py migrate detentions)",
+      "Bash(npm run *)"
+    ]
+  }
+}

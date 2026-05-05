@@ -31,6 +31,7 @@ type GoodsLineItem = {
   identificationRef: string
   itemNotes: string
   perishable?: boolean
+  images?: string[]
 }
 
 type DetentionMemoRow = {
@@ -477,6 +478,7 @@ export default function DetentionMemoDetailPage() {
                           <TableHead>Perishable</TableHead>
                           <TableHead>ID / Chassis</TableHead>
                           <TableHead>Item Notes</TableHead>
+                          <TableHead>Images</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -503,6 +505,22 @@ export default function DetentionMemoDetailPage() {
                             <TableCell>{item.perishable ? "Yes" : "No"}</TableCell>
                             <TableCell>{item.identificationRef || "—"}</TableCell>
                             <TableCell className="text-muted-foreground max-w-[200px] truncate">{item.itemNotes || "—"}</TableCell>
+                            <TableCell>
+                              {item.images && item.images.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {item.images.map((imgUrl, idx) => (
+                                    <img
+                                      key={idx}
+                                      src={imgUrl}
+                                      alt={`Goods image ${idx + 1}`}
+                                      className="h-10 w-10 object-cover rounded border"
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">—</span>
+                              )}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

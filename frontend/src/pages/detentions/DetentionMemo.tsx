@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
-import { AlertTriangle, BookOpen, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, Package, Plus, Printer, Search, CheckCircle, Clock } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { AlertTriangle, BookOpen, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Eye, Package, Plus, Printer, Search, CheckCircle, Clock, Edit2, Trash2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,10 +22,20 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
-import { fetchDetentionMemos, type DetentionMemoApiRecord } from "@/lib/detention-memo-api"
+import { fetchDetentionMemos, deleteDetentionMemo, type DetentionMemoApiRecord } from "@/lib/detention-memo-api"
 import { createDepositAccountEntry, fetchDepositAccounts } from "@/lib/deposit-account-api"
+import { toast } from "@/components/ui/use-toast"
 
 const SEIZED_STORAGE_KEY = "wms_seized_inventory"
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
@@ -82,6 +92,7 @@ function printQr(id: string) {
 }
 
 export default function DetentionMemoPage() {
+  const navigate = useNavigate()
   const [rows, setRows] = useState<DetentionMemoRow[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -89,6 +100,9 @@ export default function DetentionMemoPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [page, setPage] = useState(1)
   const [memoIdsWithDeposit, setMemoIdsWithDeposit] = useState<Set<string>>(() => new Set())
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<DetentionMemoRow | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -173,6 +187,38 @@ export default function DetentionMemoPage() {
         `Could not save deposit: ${e instanceof Error ? e.message : "unknown error"}\n\nCheck that the API is running (VITE_API_BASE_URL).`
       )
     }
+  }
+
+  const handleDeleteClick = (row: DetentionMemoRow) => {
+    setDeleteTarget(row)
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteDetentionMemo(deleteTarget.id)
+      toast({
+        title: "Deleted",
+        description: `Detention memo ${deleteTarget.caseNo} has been removed.`,
+      })
+      setDeleteConfirmOpen(false)
+      setDeleteTarget(null)
+      setRows((prev) => prev.filter((r) => r.id !== deleteTarget.id))
+    } catch (e) {
+      toast({
+        title: "Delete failed",
+        description: e instanceof Error ? e.message : "Could not delete memo.",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleEdit = (row: DetentionMemoRow) => {
+    navigate(getDetentionMemoDetailPath(row.id))
   }
 
   return (
@@ -332,6 +378,12 @@ export default function DetentionMemoPage() {
                                 <Button variant="outline" size="sm" onClick={() => handleSeize(row)} className="h-8 px-2">
                                   <Package className="h-3.5 w-3.5 mr-1" /> Seize
                                 </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(row)} className="h-8 px-2">
+                                  <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
+                                </Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(row)} className="h-8 px-2">
+                                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -415,6 +467,27 @@ export default function DetentionMemoPage() {
             )}
           </CardContent>
         </Card>
+
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Detention Memo?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the detention memo for case {deleteTarget?.caseNo}. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex gap-4 justify-end">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => void confirmDelete()}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </ModulePageLayout>
   )

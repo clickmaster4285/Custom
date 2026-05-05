@@ -25,7 +25,8 @@ def _env_list(key: str, default: str = "") -> list[str]:
 
 
 # Dev fallback hosts so DisallowedHost is avoided even if .env is missing or ALLOWED_HOSTS empty
-_DEFAULT_DEV_HOSTS = ["127.0.0.1", "localhost", "127.0.0.1:8000", "localhost:8000"]
+_DEFAULT_DEV_HOSTS = ["127.0.0.1", "localhost",
+                      "127.0.0.1:8000", "localhost:8000"]
 
 # -----------------------------
 # Security Settings
@@ -84,7 +85,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    #for Logs
+    # for Logs
     'logs.middleware.ActivityLogMiddleware',
 ]
 
@@ -184,8 +185,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Note: These are for Django — nginx has a separate client_max_body_size limit.
 # Default Django limits are 2.5MB for file and 2.5MB for form data.
 # We increase both to 100MB to handle large image uploads that will be compressed.
-FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(100 * 1024 * 1024)))  # 100MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(100 * 1024 * 1024)))  # 100MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(
+    os.getenv("FILE_UPLOAD_MAX_MEMORY_SIZE", str(100 * 1024 * 1024)))  # 100MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(
+    os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(100 * 1024 * 1024)))  # 100MB
 
 # Images are automatically compressed on the backend before storage
 # This reduces stored file sizes significantly (typically 70-85% reduction)

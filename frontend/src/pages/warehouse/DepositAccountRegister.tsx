@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { BookOpen, Eye, Package, Plus } from "lucide-react"
+import { BookOpen, Eye, Package, Plus, Trash2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,6 +43,7 @@ import {
   fetchDepositAccounts,
   createDepositAccountEntry,
   updateDepositAccountEntry,
+  deleteDepositAccountEntry,
   type DepositAccountRow,
 } from "@/lib/deposit-account-api"
 import { toast } from "@/components/ui/use-toast"
@@ -98,6 +108,9 @@ export default function DepositAccountRegisterPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<DepositAccountRow | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [form, setForm] = useState(emptyForm)
 
   const reload = async () => {
@@ -184,6 +197,34 @@ export default function DepositAccountRegisterPage() {
       description: "Entry forwarded to seizure. View under Seizure & Receipt → Seizure Register.",
     })
     await reload()
+  }
+
+  const handleDeleteClick = (row: DepositAccountRow) => {
+    setDeleteTarget(row)
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteDepositAccountEntry(deleteTarget.id)
+      toast({
+        title: "Deleted",
+        description: "Deposit entry has been removed.",
+      })
+      setDeleteConfirmOpen(false)
+      setDeleteTarget(null)
+      await reload()
+    } catch (e) {
+      toast({
+        title: "Delete failed",
+        description: e instanceof Error ? e.message : "Could not delete entry.",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -278,6 +319,16 @@ export default function DepositAccountRegisterPage() {
                           <Package className="h-3.5 w-3.5 mr-1" />
                           Seize
                         </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-8 px-2"
+                          title="Delete this deposit entry"
+                          onClick={() => handleDeleteClick(row)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Delete
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -288,6 +339,27 @@ export default function DepositAccountRegisterPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Deposit Entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the deposit entry{deleteTarget?.treasuryChallanNo ? ` (${deleteTarget.treasuryChallanNo})` : ""}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-4 justify-end">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void confirmDelete()}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
