@@ -46,13 +46,14 @@ export default function SaleCompletionPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>Completed Sales</CardTitle>
             <CardDescription>Sales ready for handover or completed</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+              <Table className="min-w-[860px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Sale ID</TableHead>
@@ -80,8 +81,9 @@ export default function SaleCompletionPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-            <Button className="mt-4 bg-[#3b82f6] hover:bg-[#2563eb] text-white">Generate Sale Certificate</Button>
+              </Table>
+            </div>
+            <Button className="mt-1 w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto">Generate Sale Certificate</Button>
           </CardContent>
         </Card>
       </div>

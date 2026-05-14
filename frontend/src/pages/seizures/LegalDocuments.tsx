@@ -88,53 +88,71 @@ export default function LegalDocumentsPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Legal Documents" }]}
     >
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Legal Documents</CardTitle>
-              <CardDescription>Upload and manage case-related documents</CardDescription>
+              <CardDescription className="break-words">Upload and manage case-related documents</CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={openAddForm}>
+            <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto" onClick={openAddForm}>
               <Upload className="h-4 w-4 mr-2" /> Add / Upload
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="w-full min-w-0 space-y-3">
             <Input
               placeholder="Search documents..."
-              className="mb-4 w-64"
+              className="w-full sm:w-64"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Case ID</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Uploaded</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((row) => (
-                  <TableRow key={`${row.name}-${row.caseId}-${row.uploaded}`}>
-                    <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell>{row.caseId}</TableCell>
-                    <TableCell><Badge variant="outline">{row.type}</Badge></TableCell>
-                    <TableCell>{row.uploaded}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">Download</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="divide-y rounded-lg border md:hidden">
+              {filtered.map((row) => (
+                <div key={`${row.name}-${row.caseId}-${row.uploaded}`} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.name}</p>
+                    <Badge variant="outline" className="shrink-0">{row.type}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Case ID: {row.caseId}</p>
+                  <p className="text-xs text-muted-foreground">Uploaded: {row.uploaded}</p>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">Download</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[820px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Document</TableHead>
+                      <TableHead>Case ID</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Uploaded</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((row) => (
+                      <TableRow key={`${row.name}-${row.caseId}-${row.uploaded}`}>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell>{row.caseId}</TableCell>
+                        <TableCell><Badge variant="outline">{row.type}</Badge></TableCell>
+                        <TableCell>{row.uploaded}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-[#3b82f6]">Download</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ name: "", caseId: "", type: "Court Order" }) }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Document</DialogTitle>
             <p className="text-sm text-muted-foreground">Add a legal document entry (dummy data saved locally).</p>
@@ -169,9 +187,9 @@ export default function LegalDocumentsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={onSave}>Save</Button>
+            <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
+              <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
             </div>
           </div>
         </DialogContent>

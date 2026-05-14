@@ -83,8 +83,8 @@ export function CameraManagementContent() {
   const offlineCount = rows.filter((r) => r.status !== "Online").length
 
   return (
-    <ScrollArea className="h-[calc(100vh-10rem)]">
-      <div className="space-y-6 pb-6">
+    <ScrollArea className="h-[calc(100vh-10rem)] w-full min-w-0">
+      <div className="w-full min-w-0 space-y-6 pb-6">
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -128,7 +128,7 @@ export function CameraManagementContent() {
               <CollapsibleContent>
                 <CardContent className="pt-0">
                   <Tabs defaultValue="manual">
-                    <TabsList className="grid w-full max-w-md grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-2 sm:max-w-md">
                       <TabsTrigger value="discovery">Auto-Discovery</TabsTrigger>
                       <TabsTrigger value="manual">Manual Add</TabsTrigger>
                     </TabsList>
@@ -139,7 +139,7 @@ export function CameraManagementContent() {
                       </div>
                       <div>
                         <Label className="text-sm">Protocol filter</Label>
-                        <div className="flex gap-4 mt-1">
+                        <div className="mt-1 flex flex-wrap gap-4">
                           {PROTOCOLS.map((p) => (
                             <label key={p} className="flex items-center gap-2 text-sm">
                               <Checkbox value={p} /> {p}
@@ -150,8 +150,8 @@ export function CameraManagementContent() {
                       <Button>Scan Now</Button>
                       <div>
                         <Label className="text-sm">Discovered cameras (selectable table)</Label>
-                        <div className="mt-1 rounded border border-border overflow-hidden">
-                          <Table>
+                        <div className="mt-1 w-full max-w-full overflow-x-auto rounded border border-border pb-2">
+                          <Table className="min-w-[760px]">
                             <TableHeader>
                               <TableRow>
                                 <TableHead className="w-10" />
@@ -200,15 +200,15 @@ export function CameraManagementContent() {
                         </div>
                         <div>
                           <Label className="text-sm">HTTP port * (default 80)</Label>
-                          <Input type="number" defaultValue={80} className="mt-1 w-24" />
+                          <Input type="number" defaultValue={80} className="mt-1 w-full sm:w-24" />
                         </div>
                         <div>
                           <Label className="text-sm">RTSP port * (default 554)</Label>
-                          <Input type="number" defaultValue={554} className="mt-1 w-24" />
+                          <Input type="number" defaultValue={554} className="mt-1 w-full sm:w-24" />
                         </div>
                         <div>
                           <Label className="text-sm">ONVIF port (default 80)</Label>
-                          <Input type="number" defaultValue={80} className="mt-1 w-24" />
+                          <Input type="number" defaultValue={80} className="mt-1 w-full sm:w-24" />
                         </div>
                         <div>
                           <Label className="text-sm">Username * (stored encrypted)</Label>
@@ -236,11 +236,11 @@ export function CameraManagementContent() {
                         </div>
                         <div>
                           <Label className="text-sm">Camera direction (°) 0–360</Label>
-                          <Input type="number" min={0} max={360} className="mt-1 w-24" />
+                          <Input type="number" min={0} max={360} className="mt-1 w-full sm:w-24" />
                         </div>
                         <div>
                           <Label className="text-sm">Camera tilt (°) 0–90</Label>
-                          <Input type="number" min={0} max={90} className="mt-1 w-24" />
+                          <Input type="number" min={0} max={90} className="mt-1 w-full sm:w-24" />
                         </div>
                       </div>
                       <Button>Add Camera</Button>
@@ -252,7 +252,7 @@ export function CameraManagementContent() {
           </Card>
 
           {/* 2. Camera Configuration */}
-          <Card>
+          <Card className="w-full min-w-0">
             <Collapsible>
               <CollapsibleTrigger className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50">
                 <CardTitle className="text-base flex items-center gap-2"><Settings className="h-4 w-4" /> Camera Configuration</CardTitle>
@@ -290,11 +290,11 @@ export function CameraManagementContent() {
                       </div>
                       <div>
                         <Label className="text-sm">Main stream FPS * (default 25)</Label>
-                        <Input type="number" min={1} max={60} value={mainFps} onChange={(e) => setMainFps(Number(e.target.value))} className="mt-1 w-24" />
+                        <Input type="number" min={1} max={60} value={mainFps} onChange={(e) => setMainFps(Number(e.target.value))} className="mt-1 w-full sm:w-24" />
                       </div>
                       <div>
                         <Label className="text-sm">Main stream bitrate (Kbps, default 4000)</Label>
-                        <Input type="number" value={mainBitrate} onChange={(e) => setMainBitrate(Number(e.target.value))} className="mt-1 w-28" />
+                        <Input type="number" value={mainBitrate} onChange={(e) => setMainBitrate(Number(e.target.value))} className="mt-1 w-full sm:w-28" />
                       </div>
                       <div>
                         <Label className="text-sm">Sub stream resolution</Label>
@@ -302,7 +302,7 @@ export function CameraManagementContent() {
                       </div>
                       <div>
                         <Label className="text-sm">Sub stream FPS (default 15)</Label>
-                        <Input type="number" value={subFps} onChange={(e) => setSubFps(Number(e.target.value))} className="mt-1 w-24" />
+                        <Input type="number" value={subFps} onChange={(e) => setSubFps(Number(e.target.value))} className="mt-1 w-full sm:w-24" />
                       </div>
                       <div>
                         <Label className="text-sm">Codec *</Label>
@@ -310,7 +310,7 @@ export function CameraManagementContent() {
                       </div>
                       <div>
                         <Label className="text-sm">I-frame interval (frames, default 50)</Label>
-                        <Input type="number" value={iframeInterval} onChange={(e) => setIframeInterval(Number(e.target.value))} className="mt-1 w-24" />
+                        <Input type="number" value={iframeInterval} onChange={(e) => setIframeInterval(Number(e.target.value))} className="mt-1 w-full sm:w-24" />
                       </div>
                     </div>
                   </div>
@@ -323,11 +323,11 @@ export function CameraManagementContent() {
                       </div>
                       <div>
                         <Label className="text-sm">Pre-event buffer (sec, 0–300, default 20)</Label>
-                        <Input type="number" min={0} max={300} value={preBuffer} onChange={(e) => setPreBuffer(Number(e.target.value))} className="mt-1 w-24" />
+                        <Input type="number" min={0} max={300} value={preBuffer} onChange={(e) => setPreBuffer(Number(e.target.value))} className="mt-1 w-full sm:w-24" />
                       </div>
                       <div>
                         <Label className="text-sm">Post-event buffer (sec, 0–300, default 20)</Label>
-                        <Input type="number" min={0} max={300} value={postBuffer} onChange={(e) => setPostBuffer(Number(e.target.value))} className="mt-1 w-24" />
+                        <Input type="number" min={0} max={300} value={postBuffer} onChange={(e) => setPostBuffer(Number(e.target.value))} className="mt-1 w-full sm:w-24" />
                       </div>
                       <div>
                         <Label className="text-sm">Recording schedule (days/hours)</Label>
@@ -335,7 +335,7 @@ export function CameraManagementContent() {
                       </div>
                       <div>
                         <Label className="text-sm">Retention days *</Label>
-                        <Input type="number" placeholder="Days to keep recordings" className="mt-1 w-28" />
+                        <Input type="number" placeholder="Days to keep recordings" className="mt-1 w-full sm:w-28" />
                       </div>
                     </div>
                   </div>
@@ -352,7 +352,7 @@ export function CameraManagementContent() {
                       </div>
                       <div>
                         <Label className="text-sm">PTZ speed default (1–10)</Label>
-                        <Slider value={[ptzSpeed]} onValueChange={([v]) => setPtzSpeed(v)} min={1} max={10} className="mt-1 w-40" />
+                        <Slider value={[ptzSpeed]} onValueChange={([v]) => setPtzSpeed(v)} min={1} max={10} className="mt-1 w-full sm:w-40" />
                         <span className="text-sm ml-2">{ptzSpeed}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -374,7 +374,7 @@ export function CameraManagementContent() {
                       </div>
                       <div>
                         <Label className="text-sm">Image flip</Label>
-                        <div className="flex gap-4 mt-1">
+                        <div className="mt-1 flex flex-wrap gap-4">
                           <label className="flex items-center gap-2 text-sm"><Checkbox /> H (Horizontal)</label>
                           <label className="flex items-center gap-2 text-sm"><Checkbox /> V (Vertical)</label>
                           <label className="flex items-center gap-2 text-sm"><Checkbox /> Both</label>
@@ -424,7 +424,7 @@ export function CameraManagementContent() {
                   </div>
                   <div>
                     <Label className="text-sm">Group icon/color</Label>
-                    <div className="flex gap-2 mt-1 items-center">
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
                       <Input type="color" className="w-10 h-9 p-1 cursor-pointer" defaultValue="#3b82f6" />
                       <Input placeholder="Icon picker" className="w-32" />
                     </div>
@@ -459,7 +459,7 @@ export function CameraManagementContent() {
                     <Label className="text-sm">Address</Label>
                     <Input placeholder="Physical address" className="mt-1" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <Label className="text-sm">Latitude</Label>
                       <Input type="number" step="any" className="mt-1" />
@@ -491,7 +491,7 @@ export function CameraManagementContent() {
                     <h4 className="font-medium text-sm">Camera Status</h4>
                     <div>
                       <Label className="text-sm">Status filter</Label>
-                      <div className="flex gap-4 mt-1">
+                      <div className="mt-1 flex flex-wrap gap-4">
                         {STATUSES.map((s) => (
                           <label key={s} className="flex items-center gap-2 text-sm">
                             <Checkbox value={s} /> {s}
@@ -502,7 +502,7 @@ export function CameraManagementContent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm">Last seen (auto)</Label>
-                        <div className="mt-1 px-3 py-2 rounded border border-border bg-muted/30 text-sm">{new Date().toLocaleString()}</div>
+                      <div className="mt-1 break-words rounded border border-border bg-muted/30 px-3 py-2 text-sm">{new Date().toLocaleString()}</div>
                       </div>
                       <div>
                         <Label className="text-sm">Health score (auto, 0–100%)</Label>
@@ -512,7 +512,7 @@ export function CameraManagementContent() {
                   </div>
                   <div className="border-l-2 border-primary/30 pl-4 space-y-4">
                     <h4 className="font-medium text-sm">Diagnostics</h4>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button variant="outline">Run Ping Test</Button>
                       <Button variant="outline">Run Stream Test</Button>
                     </div>
@@ -539,38 +539,56 @@ export function CameraManagementContent() {
           </Card>
 
           {/* Camera list table */}
-          <Card>
+          <Card className="w-full min-w-0">
             <CardHeader>
               <CardTitle>Cameras</CardTitle>
               <CardDescription>Camera list and status by location</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Camera ID</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium">{row.id}</TableCell>
-                      <TableCell>{row.location}</TableCell>
-                      <TableCell>{row.type}</TableCell>
-                      <TableCell>
-                        <Badge variant={row.status === "Online" ? "default" : "destructive"}>{row.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" className="text-[#3b82f6]">Configure</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardContent className="w-full min-w-0 space-y-3">
+              <div className="divide-y rounded-lg border md:hidden">
+                {rows.map((row) => (
+                  <div key={row.id} className="p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold">{row.id}</p>
+                      <Badge variant={row.status === "Online" ? "default" : "destructive"}>{row.status}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm">{row.location}</p>
+                    <p className="text-xs text-muted-foreground">Type: {row.type}</p>
+                    <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">Configure</Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden w-full min-w-0 md:block">
+                <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                  <Table className="min-w-[860px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Camera ID</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rows.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="font-medium">{row.id}</TableCell>
+                          <TableCell>{row.location}</TableCell>
+                          <TableCell>{row.type}</TableCell>
+                          <TableCell>
+                            <Badge variant={row.status === "Online" ? "default" : "destructive"}>{row.status}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" className="whitespace-nowrap text-[#3b82f6]">Configure</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </CardContent>
           </Card>
       </div>

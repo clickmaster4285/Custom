@@ -228,8 +228,8 @@ export default function DetentionMemoPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Detentions" }, { label: "Detention Memo" }]}
     >
       <div className="grid gap-6">
-        <Card className="shadow-sm border-0">
-          <CardContent className="pt-6">
+        <Card className="w-full min-w-0 border-0 shadow-sm">
+          <CardContent className="w-full min-w-0 pt-6">
             {loadError && (
               <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {loadError}
@@ -239,14 +239,14 @@ export default function DetentionMemoPage() {
               <p className="mb-4 text-sm text-muted-foreground">Loading detention memos…</p>
             )}
             {/* Header with Add Button */}
-            <div className="flex flex-row items-center justify-between gap-4 flex-wrap mb-6">
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-3 sm:items-center sm:gap-4">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" asChild>
                 <Link to={ROUTES.DETENTION_MEMO_CREATE}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add New Detention Memo
                 </Link>
               </Button>
-              <div className="text-sm text-muted-foreground flex flex-col items-end gap-1">
+              <div className="flex w-full flex-col gap-1 text-sm text-muted-foreground sm:w-auto sm:items-end">
                 <span>
                   Total Records: <span className="font-semibold text-foreground">{filteredRows.length}</span>
                 </span>
@@ -257,8 +257,8 @@ export default function DetentionMemoPage() {
             </div>
 
             {/* Search Bar */}
-            <div className="flex flex-wrap items-end gap-3 mb-6">
-              <div className="flex-1 min-w-[240px]">
+            <div className="mb-6 flex flex-wrap items-end gap-3">
+              <div className="min-w-0 flex-1 sm:min-w-[240px]">
                 <Label className="text-sm font-medium mb-2 block">Case Number</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -271,19 +271,127 @@ export default function DetentionMemoPage() {
                   />
                 </div>
               </div>
-              <Button onClick={handleSearch} className="gap-2">
+              <Button onClick={handleSearch} className="w-full gap-2 sm:w-auto">
                 <Search className="h-4 w-4" />
                 Search
               </Button>
-              <Button variant="outline" onClick={handleClear} className="gap-2">
+              <Button variant="outline" onClick={handleClear} className="w-full gap-2 sm:w-auto">
                 Clear
               </Button>
             </div>
 
-            {/* Table */}
-            <div className="overflow-hidden rounded-lg border bg-background">
-              <div className="overflow-auto max-h-[65vh]">
-                <Table>
+            {/* Mobile list */}
+            <div className="space-y-3 md:hidden">
+              {pageRows.length === 0 ? (
+                <div className="rounded-lg border bg-background px-4 py-10 text-center text-muted-foreground">
+                  <Package className="mx-auto mb-3 h-10 w-10 opacity-30" />
+                  No detention memos found
+                </div>
+              ) : (
+                pageRows.map((row, index) => {
+                  const serialInfo = extractSerialInfo(row.caseNo)
+                  const isAlert = isDetentionOverTwoMonths(row.dateTimeDetention)
+                  return (
+                    <div key={row.id} className="rounded-lg border bg-background p-3 shadow-sm">
+                      <div className="mb-2 flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Sr.No</p>
+                          <p className="font-mono text-xs font-medium">
+                            {serialInfo ? `${serialInfo.serialNo}/${serialInfo.year}` : row.serialNo ?? index + 1}
+                          </p>
+                        </div>
+                        {row.verificationStatus === "Verified" ? (
+                          <Badge className="gap-1 bg-green-100 text-green-800 hover:bg-green-100">
+                            <CheckCircle className="h-3 w-3" /> Verified
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1">
+                            <Clock className="h-3 w-3" /> {row.verificationStatus}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Case Number</p>
+                          <p className="font-medium">{row.caseNo}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">FIR Number</p>
+                          <p className="font-mono text-xs">{row.firNumber || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Detention Date/Time</p>
+                          <p>{row.dateTimeDetention || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Posting / Updation</p>
+                          <p>{row.createdAt || "—"} / {row.updatedAt ?? row.createdAt ?? "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Created By</p>
+                          <p>{row.createdBy || "ASO Portal"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Alert</p>
+                          {isAlert ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                              Over 60 days
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button variant="ghost" size="sm" asChild className="h-8 px-2">
+                          <Link to={getDetentionMemoDetailPath(row.id)}>
+                            <Eye className="mr-1 h-3.5 w-3.5" /> View
+                          </Link>
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 px-2">
+                              <Printer className="mr-1 h-3.5 w-3.5" /> Print
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => printQr(row.id)}>Print QR Code</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => printMemo(row.id)}>Print Full Report</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={memoIdsWithDeposit.has(row.id)}
+                          title={memoIdsWithDeposit.has(row.id) ? "Already deposited — open Deposit Account Register for this memo" : "Add to Deposit Account Register"}
+                          onClick={() => void handleDeposit(row)}
+                          className="h-8 px-2"
+                        >
+                          <BookOpen className="mr-1 h-3.5 w-3.5" /> Deposit
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleSeize(row)} className="h-8 px-2">
+                          <Package className="mr-1 h-3.5 w-3.5" /> Seize
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(row)} className="h-8 px-2">
+                          <Edit2 className="mr-1 h-3.5 w-3.5" /> Edit
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(row)} className="h-8 px-2">
+                          <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden w-full min-w-0 overflow-hidden rounded-lg border bg-background md:block">
+              <div className="max-h-[65vh] w-full max-w-full overflow-x-auto overflow-y-auto pb-2">
+                <Table className="min-w-[1400px]">
                   <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur-sm">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="w-[80px] font-semibold">Sr.No</TableHead>
@@ -348,7 +456,7 @@ export default function DetentionMemoPage() {
                             </TableCell>
                             <TableCell className="text-sm">{row.createdBy || "ASO Portal"}</TableCell>
                             <TableCell className="text-right">
-                              <div className="flex gap-1 justify-end flex-wrap">
+                              <div className="flex flex-wrap justify-end gap-1">
                                 <Button variant="ghost" size="sm" asChild className="h-8 px-2">
                                   <Link to={getDetentionMemoDetailPath(row.id)}>
                                     <Eye className="h-3.5 w-3.5 mr-1" /> View
@@ -397,7 +505,7 @@ export default function DetentionMemoPage() {
 
             {/* Pagination */}
             {filteredRows.length > 0 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+              <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Rows per page:</span>
                   <Select
@@ -418,11 +526,11 @@ export default function DetentionMemoPage() {
                   </Select>
                 </div>
                 
-                <div className="text-sm text-muted-foreground">
+                <div className="text-center text-sm text-muted-foreground lg:text-left">
                   Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, filteredRows.length)} of {filteredRows.length} entries
                 </div>
                 
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center justify-center gap-1 lg:justify-end">
                   <Button
                     variant="outline"
                     size="sm"

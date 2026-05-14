@@ -116,16 +116,16 @@ export default function NewSeizureEntryPage() {
     >
       <div className="grid gap-6">
         {/* Flow guide (spec) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
                 <ListOrdered className="h-5 w-5" />
                 Standard Seizure Registration Flow
               </CardTitle>
-              <CardDescription>Follow this flow: Seizure Event → Authority Verification → Documentation → Chain of Custody → System Registration</CardDescription>
+              <CardDescription className="break-words">Follow this flow: Seizure Event → Authority Verification → Documentation → Chain of Custody → System Registration</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowFlow(!showFlow)}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setShowFlow(!showFlow)}>
               {showFlow ? "Hide" : "Show"} steps
             </Button>
           </CardHeader>
@@ -140,62 +140,87 @@ export default function NewSeizureEntryPage() {
           )}
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Create Seizure Entry</CardTitle>
-              <CardDescription>Enter seizure details per spec. Attach supporting documents where applicable.</CardDescription>
+              <CardDescription className="break-words">Enter seizure details per spec. Attach supporting documents where applicable.</CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={() => setShowModal(true)}>
+            <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto" onClick={() => setShowModal(true)}>
               <Plus className="h-4 w-4 mr-2" /> New Entry
             </Button>
           </CardHeader>
         </Card>
 
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>Recent Seizure Entries</CardTitle>
             <CardDescription>Latest seizure records (spec-aligned columns)</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {SEIZURE_TABLE_COLUMNS.map((col) => (
-                    <TableHead key={col}>{col}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {entries.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.seizureReferenceNumber || row.id}</TableCell>
-                    <TableCell>{row.caseNumber}</TableCell>
-                    <TableCell>{row.seizureDate}</TableCell>
-                    <TableCell>{row.seizureTime}</TableCell>
-                    <TableCell>{row.seizureLocation}</TableCell>
-                    <TableCell>{row.locationType}</TableCell>
-                    <TableCell>{row.primaryAgency}</TableCell>
-                    <TableCell>{row.subjectName}</TableCell>
-                    <TableCell>{row.seizureType}</TableCell>
-                    <TableCell>{row.totalNumberOfItems}</TableCell>
-                    <TableCell>{row.totalEstimatedValue} {row.currency}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{row.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {entries.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.seizureReferenceNumber || row.id}</p>
+                    <Badge variant="outline">{row.status}</Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                    <p className="truncate text-muted-foreground">Case: <span className="text-foreground">{row.caseNumber || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Date/Time: <span className="text-foreground">{row.seizureDate || "—"} {row.seizureTime || ""}</span></p>
+                    <p className="col-span-2 truncate text-muted-foreground">Location: <span className="text-foreground">{row.seizureLocation || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Subject: <span className="text-foreground">{row.subjectName || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Type: <span className="text-foreground">{row.seizureType || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Items: <span className="text-foreground">{row.totalNumberOfItems || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Value: <span className="text-foreground">{row.totalEstimatedValue || "—"} {row.currency || ""}</span></p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">View</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[1400px]">
+                  <TableHeader>
+                    <TableRow>
+                      {SEIZURE_TABLE_COLUMNS.map((col) => (
+                        <TableHead key={col}>{col}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {entries.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.seizureReferenceNumber || row.id}</TableCell>
+                        <TableCell>{row.caseNumber}</TableCell>
+                        <TableCell>{row.seizureDate}</TableCell>
+                        <TableCell>{row.seizureTime}</TableCell>
+                        <TableCell>{row.seizureLocation}</TableCell>
+                        <TableCell>{row.locationType}</TableCell>
+                        <TableCell>{row.primaryAgency}</TableCell>
+                        <TableCell>{row.subjectName}</TableCell>
+                        <TableCell>{row.seizureType}</TableCell>
+                        <TableCell>{row.totalNumberOfItems}</TableCell>
+                        <TableCell>{row.totalEstimatedValue} {row.currency}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{row.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>New Seizure Entry</DialogTitle>
             <CardDescription>Seizure Registration & Intake – authority verification, legal document check, evidence tagging.</CardDescription>
@@ -405,9 +430,9 @@ export default function NewSeizureEntryPage() {
                 </Select>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={!requiredForSubmit}>
+            <div className="flex flex-col-reverse justify-end gap-2 pt-4 sm:flex-row">
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setShowModal(false)}>Cancel</Button>
+              <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto" disabled={!requiredForSubmit}>
                 Save Entry
               </Button>
             </div>

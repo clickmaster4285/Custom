@@ -87,64 +87,82 @@ export default function AiItemCatalogingPage() {
         </div>
 
         {/* Item Catalog Table */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Item Catalog</CardTitle>
-              <CardDescription>AI-classified items and categories</CardDescription>
+              <CardDescription className="break-words">AI-classified items and categories</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Input
                 placeholder="Search items..."
-                className="w-64"
+                className="w-full sm:w-64"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
               <Button
-                className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+                className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto"
                 onClick={() => setShowModal(true)}
               >
                 <Plus className="h-4 w-4 mr-2" /> Add Item
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item ID</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category (AI)</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.id}</TableCell>
-                    <TableCell>{row.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{row.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={row.status === "Approved" ? "default" : "secondary"}>{row.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">Edit</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {filteredItems.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.id}</p>
+                    <Badge variant={row.status === "Approved" ? "default" : "secondary"}>{row.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm">{row.description}</p>
+                  <p className="text-xs text-muted-foreground">Category: {row.category || "—"}</p>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">Edit</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[820px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item ID</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Category (AI)</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredItems.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.id}</TableCell>
+                        <TableCell>{row.description}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{row.category}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={row.status === "Approved" ? "default" : "secondary"}>{row.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-[#3b82f6]">Edit</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Modal for adding new item */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+          <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 shadow-lg">
             <button
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
               onClick={() => setShowModal(false)}

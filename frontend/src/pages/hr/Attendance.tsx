@@ -212,19 +212,19 @@ export default function AttendancePage() {
           </Card>
         </div>
 
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>Mark attendance (camera)</CardTitle>
             <CardDescription>
               Select staff, choose check-in or check-out, then capture photo with camera to record attendance.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 w-full min-w-0">
             <div className="flex flex-wrap items-end gap-4">
               <div className="space-y-2">
                 <Label>Staff</Label>
                 <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                  <SelectTrigger className="w-56">
+                  <SelectTrigger className="w-full sm:w-56">
                     <SelectValue placeholder="Select staff" />
                   </SelectTrigger>
                   <SelectContent>
@@ -258,7 +258,7 @@ export default function AttendancePage() {
                 </div>
               </div>
               <Button
-                className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+                className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto"
                 disabled={!userIdNum || (markType === "check_out" && !todayRecord)}
                 onClick={() => {
                   setMarkError(null)
@@ -273,7 +273,7 @@ export default function AttendancePage() {
               <p className="text-sm text-amber-600">No check-in found for today. Mark check-in first.</p>
             )}
             <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-              <DialogContent className="max-w-md">
+              <DialogContent className="w-[95vw] sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>
                     {markType === "check_in" ? "Check-in" : "Check-out"} — capture photo
@@ -294,20 +294,20 @@ export default function AttendancePage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Today&apos;s Attendance</CardTitle>
               <CardDescription>Check-in and check-out log for current day</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Input
                 type="date"
-                className="w-40"
+                className="w-full sm:w-40"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
               />
-              <Button variant="outline" onClick={handleExport}>
+              <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
                 Export CSV
               </Button>
             </div>
@@ -319,7 +319,8 @@ export default function AttendancePage() {
             {loading ? (
               <p className="text-sm text-muted-foreground py-8">Loading attendance…</p>
             ) : (
-            <Table>
+            <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+            <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
@@ -362,6 +363,7 @@ export default function AttendancePage() {
                 )}
               </TableBody>
             </Table>
+            </div>
             )}
           </CardContent>
         </Card>

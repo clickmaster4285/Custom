@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react"
 import { useLocation, useNavigate, Link, NavLink } from "react-router-dom"
-import { ChevronDown, ChevronRight, Star } from "lucide-react"
+import { ChevronDown, ChevronRight, Star, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { NAV_SECTIONS, getAncestorMenusForPath, type NavGroup } from "@/routes/config"
 import { getNodeKey, hasActiveDescendant, isNavGroup, type SidebarNode } from "@/components/dashboard/sidebar.helpers"
@@ -127,7 +127,12 @@ function SidebarChildren({
   )
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean
+  onMobileOpenChange?: (open: boolean) => void
+}
+
+export function Sidebar({ mobileOpen = false, onMobileOpenChange }: SidebarProps) {
   const pathname = useLocation().pathname
   const navigate = useNavigate()
   const [expandedItems, setExpandedItems] = useState<string[]>(() => getAncestorMenusForPath(pathname))
@@ -136,6 +141,10 @@ export function Sidebar() {
   useEffect(() => {
     setExpandedItems(getAncestorMenusForPath(pathname))
   }, [pathname])
+
+  useEffect(() => {
+    onMobileOpenChange?.(false)
+  }, [pathname, onMobileOpenChange])
 
   useEffect(() => {
     saveFavorites(favorites)
@@ -173,7 +182,22 @@ export function Sidebar() {
     )
 
   return (
-    <aside className="sidebar-font fixed inset-y-0 left-0 z-30 w-[333px] h-screen bg-[#FFFFFF] border-r border-[#E5E7EB] flex flex-col shrink-0 pt-[15px] pr-[3px] pl-[15px]">
+    <>
+      <div
+        className={cn(
+          "fixed inset-0 z-30 bg-black/40 transition-opacity md:hidden",
+          mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={() => onMobileOpenChange?.(false)}
+        aria-hidden
+      />
+      <aside
+        className={cn(
+          "sidebar-font fixed inset-y-0 left-0 z-40 h-screen w-[280px] border-r border-[#E5E7EB] bg-[#FFFFFF] flex flex-col shrink-0 pt-[15px] pr-[3px] pl-[15px] transition-transform md:z-30 md:w-[333px] md:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+          "md:flex"
+        )}
+      >
       <div className="pb-4 border-b border-[#E5E7EB] shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 flex items-center justify-center shrink-0" aria-hidden>
@@ -187,6 +211,14 @@ export function Sidebar() {
             </svg>
           </div>
           <span className="sidebar-app-name">TekEye</span>
+          <button
+            type="button"
+            className="ml-auto inline-flex rounded-md p-1 text-muted-foreground hover:bg-muted md:hidden"
+            onClick={() => onMobileOpenChange?.(false)}
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
@@ -344,5 +376,6 @@ export function Sidebar() {
         </p>
       </div>
     </aside>
+    </>
   )
 }

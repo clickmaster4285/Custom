@@ -81,49 +81,67 @@ export default function HandoverRequestsPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Handover Requests" }]}
     >
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Handover Requests</CardTitle>
-              <CardDescription>Pending and completed handovers</CardDescription>
+              <CardDescription className="break-words">Pending and completed handovers</CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={openAddForm}>
+            <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto" onClick={openAddForm}>
               <Plus className="h-4 w-4 mr-2" /> New Handover Request
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ref</TableHead>
-                  <TableHead>Requested By</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.ref}>
-                    <TableCell className="font-medium">{row.ref}</TableCell>
-                    <TableCell>{row.by}</TableCell>
-                    <TableCell>{row.date}</TableCell>
-                    <TableCell>
-                      <Badge variant={row.status === "Completed" ? "default" : "secondary"}>{row.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {rows.map((row) => (
+                <div key={row.ref} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.ref}</p>
+                    <Badge variant={row.status === "Completed" ? "default" : "secondary"}>{row.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Requested By: {row.by}</p>
+                  <p className="text-xs text-muted-foreground">Date: {row.date}</p>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">View</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ref</TableHead>
+                      <TableHead>Requested By</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.ref}>
+                        <TableCell className="font-medium">{row.ref}</TableCell>
+                        <TableCell>{row.by}</TableCell>
+                        <TableCell>{row.date}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.status === "Completed" ? "default" : "secondary"}>{row.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ by: "Yarik Collectorate", date: "", status: "Pending" }) }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>New Handover Request</DialogTitle>
             <p className="text-sm text-muted-foreground">Ref will be auto-generated. Data saved locally.</p>
@@ -163,9 +181,9 @@ export default function HandoverRequestsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={onSave}>Save</Button>
+            <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
+              <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
             </div>
           </div>
         </DialogContent>

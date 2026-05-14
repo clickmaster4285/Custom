@@ -234,23 +234,23 @@ export default function DepositAccountRegisterPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Detentions" }, { label: "Deposit Account Register" }]}
     >
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-4 flex-wrap">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-4 space-y-0">
+            <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5" />
                 Deposit Account Register
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="break-words">
                 Treasury challans linked to case/seizure and FIR. Use <strong>Seize</strong> to forward a line to the Seizure Register when goods must be seized (same as Release Inventory → Transfer to Seizure). View opens the deposit detail.
               </CardDescription>
             </div>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0" onClick={openAdd}>
+            <Button className="w-full flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto" onClick={openAdd}>
               <Plus className="h-4 w-4 mr-2" />
               New Entry
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="w-full min-w-0 space-y-3">
             {loadError && (
               <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {loadError}
@@ -265,39 +265,26 @@ export default function DepositAccountRegisterPage() {
               </p>
             )}
             {rows.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Treasury Challan No</TableHead>
-                    <TableHead>Deposit Type</TableHead>
-                    <TableHead>Case/Seizure Ref</TableHead>
-                    <TableHead>FIR No</TableHead>
-                    <TableHead>Customs Station</TableHead>
-                    <TableHead>Average Value</TableHead>
-                    <TableHead>Deposit Date</TableHead>
-                  <TableHead>Bank/Treasury</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right min-w-[180px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.treasuryChallanNo || "—"}</TableCell>
-                    <TableCell>{row.depositType}</TableCell>
-                    <TableCell>{row.caseSeizureRef || "—"}</TableCell>
-                    <TableCell>{row.firNo || "—"}</TableCell>
-                    <TableCell>{row.customsStation || "—"}</TableCell>
-                    <TableCell>{row.amount || "—"}</TableCell>
-                    <TableCell>{row.depositDate || "—"}</TableCell>
-                    <TableCell>{row.bankTreasuryName || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={row.status === "Posted" ? "default" : row.status === "Pending" ? "secondary" : "outline"}>
-                        {row.status || "—"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex flex-wrap items-center justify-end gap-1">
+              <>
+                <div className="divide-y rounded-lg border md:hidden">
+                  {rows.map((row) => (
+                    <div key={row.id} className="p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-semibold">{row.treasuryChallanNo || "—"}</p>
+                        <Badge variant={row.status === "Posted" ? "default" : row.status === "Pending" ? "secondary" : "outline"}>
+                          {row.status || "—"}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                        <p className="truncate text-muted-foreground">Type: <span className="text-foreground">{row.depositType}</span></p>
+                        <p className="truncate text-muted-foreground">Date: <span className="text-foreground">{row.depositDate || "—"}</span></p>
+                        <p className="truncate text-muted-foreground">Case Ref: <span className="text-foreground">{row.caseSeizureRef || "—"}</span></p>
+                        <p className="truncate text-muted-foreground">FIR: <span className="text-foreground">{row.firNo || "—"}</span></p>
+                        <p className="truncate text-muted-foreground">Station: <span className="text-foreground">{row.customsStation || "—"}</span></p>
+                        <p className="truncate text-muted-foreground">Amount: <span className="text-foreground">{row.amount || "—"}</span></p>
+                        <p className="col-span-2 truncate text-muted-foreground">Bank/Treasury: <span className="text-foreground">{row.bankTreasuryName || "—"}</span></p>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
                         <Button variant="outline" size="sm" className="h-8 px-2" asChild>
                           <Link to={getDepositAccountRegisterDetailPath(row.id)}>
                             <Eye className="h-3.5 w-3.5 mr-1" />
@@ -330,11 +317,85 @@ export default function DepositAccountRegisterPage() {
                           Delete
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                </TableBody>
-              </Table>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="hidden w-full min-w-0 md:block">
+                  <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                    <Table className="min-w-[1280px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Treasury Challan No</TableHead>
+                          <TableHead>Deposit Type</TableHead>
+                          <TableHead>Case/Seizure Ref</TableHead>
+                          <TableHead>FIR No</TableHead>
+                          <TableHead>Customs Station</TableHead>
+                          <TableHead>Average Value</TableHead>
+                          <TableHead>Deposit Date</TableHead>
+                          <TableHead>Bank/Treasury</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="min-w-[180px] text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell className="font-medium">{row.treasuryChallanNo || "—"}</TableCell>
+                            <TableCell>{row.depositType}</TableCell>
+                            <TableCell>{row.caseSeizureRef || "—"}</TableCell>
+                            <TableCell>{row.firNo || "—"}</TableCell>
+                            <TableCell>{row.customsStation || "—"}</TableCell>
+                            <TableCell>{row.amount || "—"}</TableCell>
+                            <TableCell>{row.depositDate || "—"}</TableCell>
+                            <TableCell>{row.bankTreasuryName || "—"}</TableCell>
+                            <TableCell>
+                              <Badge variant={row.status === "Posted" ? "default" : row.status === "Pending" ? "secondary" : "outline"}>
+                                {row.status || "—"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex flex-wrap items-center justify-end gap-1">
+                                <Button variant="outline" size="sm" className="h-8 px-2" asChild>
+                                  <Link to={getDepositAccountRegisterDetailPath(row.id)}>
+                                    <Eye className="h-3.5 w-3.5 mr-1" />
+                                    View
+                                  </Link>
+                                </Button>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-8 px-2"
+                                  disabled={isDepositSeizeDisabled(row)}
+                                  title={
+                                    isDepositSeizeDisabled(row)
+                                      ? "Already released or forwarded to seizure"
+                                      : "Forward to Seizure Register and mark deposit row"
+                                  }
+                                  onClick={() => void handleSeize(row)}
+                                >
+                                  <Package className="h-3.5 w-3.5 mr-1" />
+                                  Seize
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="h-8 px-2"
+                                  title="Delete this deposit entry"
+                                  onClick={() => handleDeleteClick(row)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -362,7 +423,7 @@ export default function DepositAccountRegisterPage() {
       </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>New Deposit Entry</DialogTitle>
             <p className="text-sm text-muted-foreground">
@@ -444,11 +505,11 @@ export default function DepositAccountRegisterPage() {
               <Input value={form.remarks} onChange={(e) => setForm((f) => ({ ...f, remarks: e.target.value }))} placeholder="Optional" />
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
+          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={() => void onSave()} disabled={saving}>
+            <Button onClick={() => void onSave()} disabled={saving} className="w-full sm:w-auto">
               {saving ? "Saving…" : "Save"}
             </Button>
           </div>

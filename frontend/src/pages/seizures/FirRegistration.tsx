@@ -218,69 +218,93 @@ export default function FirRegistrationPage() {
         </div>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <CardTitle>FIR Register</CardTitle>
               <CardDescription>All FIR records with complainant, accused, occurrence, witnesses, and investigation details</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by FIR no, station, complainant..."
-                  className="pl-8 w-64"
+                  className="w-full pl-8 sm:w-64"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={openAddForm}>
+              <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto" onClick={openAddForm}>
                 <Plus className="h-4 w-4 mr-2" /> New FIR
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {FIR_TABLE_COLUMNS.map((col) => (
-                    <TableHead key={col}>{col}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.firNumber}</TableCell>
-                    <TableCell>{row.registrationDate}</TableCell>
-                    <TableCell>{row.customsOfficeStation}</TableCell>
-                    <TableCell>{row.complainantName || "—"}</TableCell>
-                    <TableCell>{row.accusedName || (row.accusedUnknown === "Yes" ? "Unknown" : "—")}</TableCell>
-                    <TableCell>{row.placeOfOccurrence || "—"}</TableCell>
-                    <TableCell>{row.sectionOfLaw || "—"}</TableCell>
-                    <TableCell>{row.investigationOfficerName || "—"}</TableCell>
-                    <TableCell>{row.seizureReference || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{row.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
-                    </TableCell>
+            <div className="space-y-3 md:hidden">
+              {filtered.map((row) => (
+                <div key={row.id} className="rounded-lg border p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{row.firNumber}</p>
+                    <Badge variant="outline">{row.status}</Badge>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="text-muted-foreground">Date:</span> {row.registrationDate}</p>
+                    <p><span className="text-muted-foreground">Station:</span> {row.customsOfficeStation}</p>
+                    <p><span className="text-muted-foreground">Complainant:</span> {row.complainantName || "—"}</p>
+                    <p><span className="text-muted-foreground">Accused:</span> {row.accusedName || (row.accusedUnknown === "Yes" ? "Unknown" : "—")}</p>
+                    <p><span className="text-muted-foreground">Occurrence:</span> {row.placeOfOccurrence || "—"}</p>
+                    <p><span className="text-muted-foreground">Law:</span> {row.sectionOfLaw || "—"}</p>
+                    <p><span className="text-muted-foreground">Investigation Officer:</span> {row.investigationOfficerName || "—"}</p>
+                    <p><span className="text-muted-foreground">Seizure Ref:</span> {row.seizureReference || "—"}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="mt-2 px-0 text-[#3b82f6]">View</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {FIR_TABLE_COLUMNS.map((col) => (
+                      <TableHead key={col}>{col}</TableHead>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-medium">{row.firNumber}</TableCell>
+                      <TableCell>{row.registrationDate}</TableCell>
+                      <TableCell>{row.customsOfficeStation}</TableCell>
+                      <TableCell>{row.complainantName || "—"}</TableCell>
+                      <TableCell>{row.accusedName || (row.accusedUnknown === "Yes" ? "Unknown" : "—")}</TableCell>
+                      <TableCell>{row.placeOfOccurrence || "—"}</TableCell>
+                      <TableCell>{row.sectionOfLaw || "—"}</TableCell>
+                      <TableCell>{row.investigationOfficerName || "—"}</TableCell>
+                      <TableCell>{row.seizureReference || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{row.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) setForm(emptyForm()); setOpen(isOpen) }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>New FIR – First Information Report</DialogTitle>
             <CardDescription>Complete all sections: FIR details, complainant, accused, occurrence, property, witnesses, investigation.</CardDescription>
           </DialogHeader>
           <Tabs defaultValue="fir" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
               <TabsTrigger value="fir">FIR Details</TabsTrigger>
               <TabsTrigger value="complainant">Complainant</TabsTrigger>
               <TabsTrigger value="accused">Accused</TabsTrigger>
@@ -519,9 +543,9 @@ export default function FirRegistrationPage() {
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSave} disabled={!canSave}>Save FIR</Button>
+          <div className="flex flex-col-reverse justify-end gap-2 border-t pt-4 sm:flex-row">
+            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={onSave} disabled={!canSave} className="w-full sm:w-auto">Save FIR</Button>
           </div>
         </DialogContent>
       </Dialog>

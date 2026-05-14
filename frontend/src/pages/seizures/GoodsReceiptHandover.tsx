@@ -141,16 +141,16 @@ export default function GoodsReceiptHandoverPage() {
     >
       <div className="grid gap-6">
         {/* Flow guide (spec) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
                 <ListOrdered className="h-5 w-5" />
                 Standard Receipt Flow
               </CardTitle>
-              <CardDescription>ASN Received → Appointment → Gate Entry → Unloading → Inspection → Acceptance → Put-away → Inventory Update → Closure</CardDescription>
+              <CardDescription className="break-words">ASN Received → Appointment → Gate Entry → Unloading → Inspection → Acceptance → Put-away → Inventory Update → Closure</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowFlow(!showFlow)}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setShowFlow(!showFlow)}>
               {showFlow ? "Hide" : "Show"} steps
             </Button>
           </CardHeader>
@@ -198,55 +198,83 @@ export default function GoodsReceiptHandoverPage() {
           </Card>
         </div>
 
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-            <div>
+            <div className="min-w-0">
               <CardTitle>Receipt & Handover Register</CardTitle>
-              <CardDescription>Spec-aligned receipt records (Receipt Number, Type, Supplier, PO, Invoice, Gate Entry, Acceptance, Status)</CardDescription>
+              <CardDescription className="break-words">Spec-aligned receipt records (Receipt Number, Type, Supplier, PO, Invoice, Gate Entry, Acceptance, Status)</CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white mt-4 sm:mt-0" onClick={openNewReceipt}>
+            <Button className="mt-4 w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:mt-0 sm:w-auto" onClick={openNewReceipt}>
               New Receipt
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {RECEIPT_TABLE_COLUMNS.map((col) => (
-                    <TableHead key={col}>{col}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {records.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.receiptNumber}</TableCell>
-                    <TableCell>{row.receiptType}</TableCell>
-                    <TableCell>{row.receiptDate}</TableCell>
-                    <TableCell>{row.supplierName}</TableCell>
-                    <TableCell>{row.purchaseOrderNumber}</TableCell>
-                    <TableCell>{row.invoiceNumber}</TableCell>
-                    <TableCell>{row.gateEntryNumber}</TableCell>
-                    <TableCell>{row.totalPackages}</TableCell>
-                    <TableCell>{row.acceptanceStatus}</TableCell>
-                    <TableCell>
-                      <Badge variant={row.receiptStatus === "Completed" ? "default" : "secondary"}>
-                        {row.receiptStatus}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {records.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.receiptNumber || "—"}</p>
+                    <Badge variant={row.receiptStatus === "Completed" ? "default" : "secondary"}>
+                      {row.receiptStatus}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                    <p className="truncate text-muted-foreground">Type: <span className="text-foreground">{row.receiptType || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Date: <span className="text-foreground">{row.receiptDate || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Supplier: <span className="text-foreground">{row.supplierName || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">PO: <span className="text-foreground">{row.purchaseOrderNumber || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Invoice: <span className="text-foreground">{row.invoiceNumber || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Gate Entry: <span className="text-foreground">{row.gateEntryNumber || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Packages: <span className="text-foreground">{row.totalPackages || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Acceptance: <span className="text-foreground">{row.acceptanceStatus || "—"}</span></p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">View</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[1280px]">
+                  <TableHeader>
+                    <TableRow>
+                      {RECEIPT_TABLE_COLUMNS.map((col) => (
+                        <TableHead key={col}>{col}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {records.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.receiptNumber}</TableCell>
+                        <TableCell>{row.receiptType}</TableCell>
+                        <TableCell>{row.receiptDate}</TableCell>
+                        <TableCell>{row.supplierName}</TableCell>
+                        <TableCell>{row.purchaseOrderNumber}</TableCell>
+                        <TableCell>{row.invoiceNumber}</TableCell>
+                        <TableCell>{row.gateEntryNumber}</TableCell>
+                        <TableCell>{row.totalPackages}</TableCell>
+                        <TableCell>{row.acceptanceStatus}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.receiptStatus === "Completed" ? "default" : "secondary"}>
+                            {row.receiptStatus}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>New Receipt / Handover</DialogTitle>
             <CardDescription>Receipt Registration per spec: ASN, Gate Entry, Inspection, Acceptance, Put-away.</CardDescription>
@@ -412,9 +440,9 @@ export default function GoodsReceiptHandoverPage() {
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={!formData.receiptDate.trim() || !formData.supplierName.trim()}>
+            <div className="flex flex-col-reverse justify-end gap-2 pt-4 sm:flex-row">
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setShowModal(false)}>Cancel</Button>
+              <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto" disabled={!formData.receiptDate.trim() || !formData.supplierName.trim()}>
                 Save
               </Button>
             </div>

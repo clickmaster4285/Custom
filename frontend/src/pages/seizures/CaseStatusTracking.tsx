@@ -7,6 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 
 export default function CaseStatusTrackingPage() {
+  const statusRows = [
+    { id: "CF-2024-0841", fir: "FIR-2024-0841", status: "In Court", updated: "2024-02-04" },
+    { id: "CF-2024-0840", fir: "FIR-2024-0840", status: "Under Investigation", updated: "2024-02-03" },
+  ]
+
   return (
     <ModulePageLayout
       title="Case Status Tracking"
@@ -46,39 +51,54 @@ export default function CaseStatusTrackingPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>Case Status Overview</CardTitle>
             <CardDescription>All cases by status</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Case ID</TableHead>
-                  <TableHead>FIR Ref</TableHead>
-                  <TableHead>Current Status</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  { id: "CF-2024-0841", fir: "FIR-2024-0841", status: "In Court", updated: "2024-02-04" },
-                  { id: "CF-2024-0840", fir: "FIR-2024-0840", status: "Under Investigation", updated: "2024-02-03" },
-                ].map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.id}</TableCell>
-                    <TableCell>{row.fir}</TableCell>
-                    <TableCell><Badge variant="outline">{row.status}</Badge></TableCell>
-                    <TableCell>{row.updated}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">Track</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {statusRows.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{row.id}</p>
+                    <Badge variant="outline">{row.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">FIR Ref: {row.fir}</p>
+                  <p className="text-xs text-muted-foreground">Last Updated: {row.updated}</p>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">Track</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Case ID</TableHead>
+                      <TableHead>FIR Ref</TableHead>
+                      <TableHead>Current Status</TableHead>
+                      <TableHead>Last Updated</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {statusRows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.id}</TableCell>
+                        <TableCell>{row.fir}</TableCell>
+                        <TableCell><Badge variant="outline">{row.status}</Badge></TableCell>
+                        <TableCell>{row.updated}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-[#3b82f6]">Track</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

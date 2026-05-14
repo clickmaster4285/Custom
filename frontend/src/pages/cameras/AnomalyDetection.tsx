@@ -46,13 +46,14 @@ export default function AnomalyDetectionPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>Anomaly Alerts</CardTitle>
             <CardDescription>Recent anomalies detected by AI models</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+              <Table className="min-w-[860px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Time</TableHead>
@@ -81,8 +82,9 @@ export default function AnomalyDetectionPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-            <Button className="mt-4 bg-[#3b82f6] hover:bg-[#2563eb] text-white">Configure Rules</Button>
+              </Table>
+            </div>
+            <Button className="mt-1 w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto">Configure Rules</Button>
           </CardContent>
         </Card>
       </div>

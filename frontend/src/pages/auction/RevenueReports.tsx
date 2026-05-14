@@ -45,16 +45,17 @@ export default function RevenueReportsPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Revenue by Month</CardTitle>
-              <CardDescription>Monthly auction and disposal revenue</CardDescription>
+              <CardDescription className="break-words">Monthly auction and disposal revenue</CardDescription>
             </div>
-            <Button variant="outline">Export</Button>
+            <Button variant="outline" className="w-full sm:w-auto">Export</Button>
           </CardHeader>
-          <CardContent>
-            <Table>
+          <CardContent className="w-full min-w-0">
+            <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+              <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Month</TableHead>
@@ -77,7 +78,8 @@ export default function RevenueReportsPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

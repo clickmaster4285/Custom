@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { FolderPlus, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -157,59 +157,88 @@ export default function CaseFileCreationPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Case File Creation" }]}
     >
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Case Files</CardTitle>
-              <CardDescription>All case records with FIR ref, seizure, type, category, accused, charges, court, and next hearing</CardDescription>
+              <CardDescription className="break-words">
+                All case records with FIR ref, seizure, type, category, accused, charges, court, and next hearing
+              </CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={openAddForm}>
+            <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto" onClick={openAddForm}>
               <Plus className="h-4 w-4 mr-2" /> New Case File
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {CASE_TABLE_COLUMNS.map((col) => (
-                    <TableHead key={col}>{col}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.caseId}</TableCell>
-                    <TableCell>{row.caseNumber}</TableCell>
-                    <TableCell>{row.firReference}</TableCell>
-                    <TableCell>{row.seizureId || "—"}</TableCell>
-                    <TableCell>{row.caseType}</TableCell>
-                    <TableCell>{row.caseCategory}</TableCell>
-                    <TableCell>{row.casePriority}</TableCell>
-                    <TableCell><Badge variant="outline">{row.caseStatus}</Badge></TableCell>
-                    <TableCell>{row.accusedName || "—"}</TableCell>
-                    <TableCell>{row.primaryCharge || "—"}</TableCell>
-                    <TableCell>{row.courtName || "—"}</TableCell>
-                    <TableCell>{row.nextHearingDate || "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
-                    </TableCell>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="max-h-[62vh] divide-y overflow-y-auto overflow-x-hidden rounded-lg border md:hidden">
+              {rows.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{row.caseId}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {row.caseNumber || "—"} • {row.firReference || "—"}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="shrink-0">{row.caseStatus}</Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                    <p className="truncate text-muted-foreground">Type: <span className="text-foreground">{row.caseType}</span></p>
+                    <p className="truncate text-muted-foreground">Priority: <span className="text-foreground">{row.casePriority}</span></p>
+                    <p className="truncate text-muted-foreground">Accused: <span className="text-foreground">{row.accusedName || "—"}</span></p>
+                    <p className="truncate text-muted-foreground">Court: <span className="text-foreground">{row.courtName || "—"}</span></p>
+                    <p className="col-span-2 truncate text-muted-foreground">Hearing: <span className="text-foreground">{row.nextHearingDate || "—"}</span></p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">View</Button>
+                </div>
+              ))}
+            </div>
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+              <Table className="min-w-[1350px]">
+                <TableHeader>
+                  <TableRow>
+                    {CASE_TABLE_COLUMNS.map((col) => (
+                      <TableHead key={col}>{col}</TableHead>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-medium">{row.caseId}</TableCell>
+                      <TableCell>{row.caseNumber}</TableCell>
+                      <TableCell>{row.firReference}</TableCell>
+                      <TableCell>{row.seizureId || "—"}</TableCell>
+                      <TableCell>{row.caseType}</TableCell>
+                      <TableCell>{row.caseCategory}</TableCell>
+                      <TableCell>{row.casePriority}</TableCell>
+                      <TableCell><Badge variant="outline">{row.caseStatus}</Badge></TableCell>
+                      <TableCell>{row.accusedName || "—"}</TableCell>
+                      <TableCell>{row.primaryCharge || "—"}</TableCell>
+                      <TableCell>{row.courtName || "—"}</TableCell>
+                      <TableCell>{row.nextHearingDate || "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) setForm(emptyForm()); setOpen(isOpen) }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] w-[95vw] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>New Case File</DialogTitle>
             <CardDescription>Link to FIR and seizure; set case type, category, investigation, accused, charges, and court details.</CardDescription>
           </DialogHeader>
           <Tabs defaultValue="case" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-3">
               <TabsTrigger value="case">Case & FIR</TabsTrigger>
               <TabsTrigger value="parties">Parties & Charges</TabsTrigger>
               <TabsTrigger value="court">Court & Hearing</TabsTrigger>
@@ -359,9 +388,9 @@ export default function CaseFileCreationPage() {
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSave} disabled={!canSave}>Save Case File</Button>
+          <div className="flex flex-col-reverse justify-end gap-2 border-t pt-4 sm:flex-row">
+            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={onSave} disabled={!canSave} className="w-full sm:w-auto">Save Case File</Button>
           </div>
         </DialogContent>
       </Dialog>

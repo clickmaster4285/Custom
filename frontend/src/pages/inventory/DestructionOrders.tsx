@@ -90,50 +90,68 @@ export default function DestructionOrdersPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Destruction Orders" }]}
     >
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-4 flex-wrap">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-4 space-y-0">
+            <div className="min-w-0">
               <CardTitle>Destruction Orders</CardTitle>
-              <CardDescription>Orders for disposal/destruction of items. Data in localStorage.</CardDescription>
+              <CardDescription className="break-words">Orders for disposal/destruction of items. Data in localStorage.</CardDescription>
             </div>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0" onClick={openAdd}>
+            <Button className="w-full flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto" onClick={openAdd}>
               <Plus className="h-4 w-4 mr-2" />
               New Destruction Order
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.id}</TableCell>
-                    <TableCell>{row.items}</TableCell>
-                    <TableCell>{row.date}</TableCell>
-                    <TableCell>
-                      <Badge variant={row.status === "Completed" ? "default" : "secondary"}>{row.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-primary">View</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {rows.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.id}</p>
+                    <Badge variant={row.status === "Completed" ? "default" : "secondary"}>{row.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Items: {row.items}</p>
+                  <p className="text-xs text-muted-foreground">Date: {row.date}</p>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-primary">View</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.id}</TableCell>
+                        <TableCell>{row.items}</TableCell>
+                        <TableCell>{row.date}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.status === "Completed" ? "default" : "secondary"}>{row.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-primary">View</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>New Destruction Order</DialogTitle>
             <p className="text-sm text-muted-foreground">Create order. Stored in localStorage.</p>
@@ -171,9 +189,9 @@ export default function DestructionOrdersPage() {
               </Select>
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSave}>Save</Button>
+          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
           </div>
         </DialogContent>
       </Dialog>

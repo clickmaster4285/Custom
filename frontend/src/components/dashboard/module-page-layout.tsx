@@ -30,8 +30,8 @@ export function ModulePageLayout({
 }: ModulePageLayoutProps) {
   return (
     <>
-      <Breadcrumb className="mb-4">
-        <BreadcrumbList>
+      <Breadcrumb className="mb-4 overflow-x-auto">
+        <BreadcrumbList className="min-w-max">
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link to={ROUTES.DASHBOARD}>Home</Link>
@@ -58,7 +58,7 @@ export function ModulePageLayout({
         </BreadcrumbList>
       </Breadcrumb>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+        <h1 className="text-lg font-semibold text-foreground sm:text-xl">{title}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
       </div>
       {children}

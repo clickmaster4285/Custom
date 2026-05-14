@@ -140,16 +140,16 @@ export default function WarehouseSetupPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Warehouse Setup" }]}
     >
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
                 <ListOrdered className="h-5 w-5" />
                 Create Warehouse Flow
               </CardTitle>
-              <CardDescription>Create Warehouse → Define Zones → Assign Storage Locations → Map Cameras → Activate</CardDescription>
+              <CardDescription className="break-words">Create Warehouse → Define Zones → Assign Storage Locations → Map Cameras → Activate</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowFlow(!showFlow)}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setShowFlow(!showFlow)}>
               {showFlow ? "Hide" : "Show"} steps
             </Button>
           </CardHeader>
@@ -197,52 +197,76 @@ export default function WarehouseSetupPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-4 flex-wrap">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-4 space-y-0">
+            <div className="min-w-0">
               <CardTitle>Warehouse List</CardTitle>
-              <CardDescription>Spec-aligned columns: Warehouse ID, Name, Location, Total Area, Zone, Storage Capacity, Current Occupancy, Status.</CardDescription>
+              <CardDescription className="break-words">Spec-aligned columns: Warehouse ID, Name, Location, Total Area, Zone, Storage Capacity, Current Occupancy, Status.</CardDescription>
             </div>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0" onClick={openAdd}>
+            <Button className="w-full flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto" onClick={openAdd}>
               <Plus className="h-4 w-4 mr-2" />
               Add Warehouse
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {WAREHOUSE_TABLE_COLUMNS.map((col) => (
-                    <TableHead key={col}>{col}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.code}</TableCell>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.location}</TableCell>
-                    <TableCell>{row.totalArea || row.capacity}</TableCell>
-                    <TableCell>{row.zoneType || "—"}</TableCell>
-                    <TableCell>{row.capacity}</TableCell>
-                    <TableCell>{row.currentOccupancy || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={row.status === "Active" ? "default" : "secondary"}>{row.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-primary">Edit</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {rows.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.code}</p>
+                    <Badge variant={row.status === "Active" ? "default" : "secondary"}>{row.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm">{row.name}</p>
+                  <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <p className="truncate">Location: <span className="text-foreground">{row.location || "—"}</span></p>
+                    <p className="truncate">Zone: <span className="text-foreground">{row.zoneType || "—"}</span></p>
+                    <p className="truncate">Capacity: <span className="text-foreground">{row.capacity || "—"}</span></p>
+                    <p className="truncate">Occupancy: <span className="text-foreground">{row.currentOccupancy || "—"}</span></p>
+                    <p className="col-span-2 truncate">Area: <span className="text-foreground">{row.totalArea || row.capacity}</span></p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-primary">Edit</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[980px]">
+                  <TableHeader>
+                    <TableRow>
+                      {WAREHOUSE_TABLE_COLUMNS.map((col) => (
+                        <TableHead key={col}>{col}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.code}</TableCell>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell>{row.location}</TableCell>
+                        <TableCell>{row.totalArea || row.capacity}</TableCell>
+                        <TableCell>{row.zoneType || "—"}</TableCell>
+                        <TableCell>{row.capacity}</TableCell>
+                        <TableCell>{row.currentOccupancy || "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.status === "Active" ? "default" : "secondary"}>{row.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-primary">Edit</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Add Warehouse</DialogTitle>
             <p className="text-sm text-muted-foreground">Warehouse Master fields per spec. Stored in localStorage.</p>
@@ -323,9 +347,9 @@ export default function WarehouseSetupPage() {
               </Select>
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSave}>Save</Button>
+          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
           </div>
         </DialogContent>
       </Dialog>

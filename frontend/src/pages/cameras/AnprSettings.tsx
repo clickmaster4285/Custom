@@ -112,18 +112,19 @@ export default function AnprSettingsPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>ANPR Gate Configuration</CardTitle>
-              <CardDescription>Cameras and rules per gate / toll plaza</CardDescription>
+              <CardDescription className="break-words">Cameras and rules per gate / toll plaza</CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={openAddForm}>
+            <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto" onClick={openAddForm}>
               Add Gate
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
+          <CardContent className="w-full min-w-0">
+            <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+              <Table className="min-w-[860px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Gate / Location</TableHead>
@@ -146,13 +147,14 @@ export default function AnprSettingsPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ gate: "", camera: "", region: "PK-Punjab", status: "Active" }) }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Gate</DialogTitle>
             <p className="text-sm text-muted-foreground">ANPR gate configuration. Data saved locally.</p>
@@ -187,9 +189,9 @@ export default function AnprSettingsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={onSave}>Save</Button>
+            <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
+              <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
             </div>
           </div>
         </DialogContent>

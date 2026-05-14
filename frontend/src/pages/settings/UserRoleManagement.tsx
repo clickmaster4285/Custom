@@ -157,18 +157,18 @@ export default function UserRoleManagementPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Users & Roles</CardTitle>
               <CardDescription>Assign roles and manage access</CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={openAddForm}>
+            <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto" onClick={openAddForm}>
               <UserPlus className="h-4 w-4 mr-2" />
               Add User
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="w-full min-w-0">
             <Tabs defaultValue="users" className="w-full">
               <TabsList>
                 <TabsTrigger value="users">Users</TabsTrigger>
@@ -177,11 +177,12 @@ export default function UserRoleManagementPage() {
               <TabsContent value="users" className="mt-6">
                 <Input
                   placeholder="Search users..."
-                  className="mb-4 w-64"
+                  className="mb-4 w-full sm:w-64"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-                <Table>
+                <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Username</TableHead>
@@ -211,9 +212,11 @@ export default function UserRoleManagementPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </TabsContent>
               <TabsContent value="roles" className="mt-6">
-                <Table>
+                <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Role Name</TableHead>
@@ -247,6 +250,7 @@ export default function UserRoleManagementPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -254,7 +258,7 @@ export default function UserRoleManagementPage() {
       </div>
 
       <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ user: "", email: "", role: "Admin", status: "Active" }) }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add User</DialogTitle>
             <p className="text-sm text-muted-foreground">User account (dummy data saved locally).</p>
@@ -290,9 +294,9 @@ export default function UserRoleManagementPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={onSave}>Save</Button>
+            <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
+              <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
             </div>
           </div>
         </DialogContent>

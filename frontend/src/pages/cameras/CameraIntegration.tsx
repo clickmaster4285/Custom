@@ -269,74 +269,108 @@ export default function CameraIntegrationPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Camera List</CardTitle>
-              <CardDescription>All cameras with required fields. Stream URL is used for live footage.</CardDescription>
+              <CardDescription className="break-words">All cameras with required fields. Stream URL is used for live footage.</CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={openAddForm}>
+            <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto" onClick={openAddForm}>
               Add Camera
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Camera ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Warehouse</TableHead>
-                  <TableHead>Zone</TableHead>
-                  <TableHead>Resolution</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Recording</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.id}</TableCell>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.location}</TableCell>
-                    <TableCell>{row.cameraType}</TableCell>
-                    <TableCell>{row.wh}</TableCell>
-                    <TableCell>{row.zone}</TableCell>
-                    <TableCell>{row.resolution}</TableCell>
-                    <TableCell>
-                      <Badge variant={row.status === "Online" ? "default" : "secondary"}>
-                        {row.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch checked={row.recording} disabled />
-                        <span className="text-sm text-muted-foreground">{row.recording ? "On" : "Off"}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-[#3b82f6]"
-                        onClick={() => setLiveCamera(row)}
-                      >
-                        View Feed
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {rows.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.id}</p>
+                    <Badge variant={row.status === "Online" ? "default" : "secondary"}>
+                      {row.status}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-sm">{row.name}</p>
+                  <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <p className="truncate">Location: <span className="text-foreground">{row.location}</span></p>
+                    <p className="truncate">Type: <span className="text-foreground">{row.cameraType}</span></p>
+                    <p className="truncate">Warehouse: <span className="text-foreground">{row.wh}</span></p>
+                    <p className="truncate">Zone: <span className="text-foreground">{row.zone}</span></p>
+                    <p className="truncate">Resolution: <span className="text-foreground">{row.resolution}</span></p>
+                    <p className="truncate">Recording: <span className="text-foreground">{row.recording ? "On" : "Off"}</span></p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-1 h-7 px-0 text-[#3b82f6]"
+                    onClick={() => setLiveCamera(row)}
+                  >
+                    View Feed
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[1220px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Camera ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Warehouse</TableHead>
+                      <TableHead>Zone</TableHead>
+                      <TableHead>Resolution</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Recording</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.id}</TableCell>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell>{row.location}</TableCell>
+                        <TableCell>{row.cameraType}</TableCell>
+                        <TableCell>{row.wh}</TableCell>
+                        <TableCell>{row.zone}</TableCell>
+                        <TableCell>{row.resolution}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.status === "Online" ? "default" : "secondary"}>
+                            {row.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch checked={row.recording} disabled />
+                            <span className="text-sm text-muted-foreground">{row.recording ? "On" : "Off"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[#3b82f6]"
+                            onClick={() => setLiveCamera(row)}
+                          >
+                            View Feed
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Add / Edit Camera – all required fields */}
       <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm(emptyForm()) }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Camera</DialogTitle>
             <CardDescription>All fields required for integration. Stream URL must be a valid video stream (e.g. HTTP/HTTPS MP4 or HLS) for live footage.</CardDescription>
@@ -460,9 +494,9 @@ export default function CameraIntegrationPage() {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={onSave} disabled={!canSave}>Save</Button>
+            <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
+              <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button onClick={onSave} disabled={!canSave} className="w-full sm:w-auto">Save</Button>
             </div>
           </div>
         </DialogContent>

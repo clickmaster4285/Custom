@@ -46,13 +46,14 @@ export default function BiddingManagementPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>Active Bids</CardTitle>
             <CardDescription>Bids received for open lots</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+              <Table className="min-w-[860px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Lot No</TableHead>
@@ -80,8 +81,9 @@ export default function BiddingManagementPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-            <Button className="mt-4 bg-[#3b82f6] hover:bg-[#2563eb] text-white">New Auction</Button>
+              </Table>
+            </div>
+            <Button className="mt-1 w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto">New Auction</Button>
           </CardContent>
         </Card>
       </div>
