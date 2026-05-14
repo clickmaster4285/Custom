@@ -1,18 +1,6 @@
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  Shield,
-  Lock,
-  User,
-  Eye,
-  EyeOff,
-  Info,
-  CheckCircle2,
-  Download,
-  Smartphone,
-  Apple,
-  ExternalLink,
-} from "lucide-react"
+import { Shield, Lock, User, Eye, EyeOff, Info, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,11 +16,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { setAuthenticatedWithToken } from "@/lib/auth"
 import { login } from "@/lib/auth-api"
 import { ROUTES } from "@/routes/config"
-
-const ANDROID_APK_HREF =
-  import.meta.env.VITE_ANDROID_APK_URL?.trim() || "/pakistan-customs-portal.apk"
-const ANDROID_APK_FILENAME = "Pakistan-Customs-Portal.apk"
-const IOS_APP_STORE_URL = import.meta.env.VITE_IOS_APP_STORE_URL?.trim() ?? ""
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -111,48 +94,6 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <div className="relative z-10 max-w-sm space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-white/70">
-            Install on your phone
-          </p>
-          <div className="flex flex-col gap-2">
-            <a
-              href={ANDROID_APK_HREF}
-              download={ANDROID_APK_FILENAME}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              <Download className="h-4 w-4 shrink-0" aria-hidden />
-              Android — download APK
-            </a>
-            {IOS_APP_STORE_URL ? (
-              <a
-                href={IOS_APP_STORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              >
-                <Apple className="h-4 w-4 shrink-0" aria-hidden />
-                iPhone / iPad — App Store
-                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-              </a>
-            ) : (
-              <div className="rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-sm leading-snug text-white/90 backdrop-blur-sm">
-                <p className="flex items-center gap-2 font-semibold text-white">
-                  <Apple className="h-4 w-4 shrink-0" aria-hidden />
-                  iPhone / iPad — web app
-                </p>
-                <p className="mt-2 text-xs text-white/70">
-                  Apple does not allow installing an app file from a website like Android. Open this
-                  portal in <span className="font-semibold text-white/90">Safari</span>, tap{" "}
-                  <span className="font-semibold text-white/90">Share</span>, then{" "}
-                  <span className="font-semibold text-white/90">Add to Home Screen</span> to install
-                  it like a native app.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
         <p className="relative z-10 text-sm font-medium text-white/60">
           © Pakistan Customs · Authorized personnel only
         </p>
@@ -160,45 +101,15 @@ export default function LoginPage() {
 
       <div className="relative flex flex-1 items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-[420px]">
-          <div className="mb-10 flex flex-wrap items-center gap-2 lg:hidden">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#1d4ed8] text-white shadow-lg shadow-[#3b82f6]/30">
-                <Shield className="h-6 w-6" strokeWidth={2} />
-              </div>
-              <div className="min-w-0">
-                <span className="text-lg font-bold text-foreground">Pakistan Customs</span>
-                <p className="text-xs font-medium text-[#3b82f6] uppercase tracking-wider">
-                  World&apos;s Leading AI Analytic System
-                </p>
-              </div>
+          <div className="mb-10 flex items-center gap-3 lg:hidden">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#1d4ed8] text-white shadow-lg shadow-[#3b82f6]/30">
+              <Shield className="h-6 w-6" strokeWidth={2} />
             </div>
-            <div className="ml-auto flex shrink-0 gap-1.5">
-              <Button variant="outline" size="sm" className="gap-1.5 border-[#1d4ed8]/30 text-[#1d4ed8]" asChild>
-                <a href={ANDROID_APK_HREF} download={ANDROID_APK_FILENAME} aria-label="Download Android APK">
-                  <Download className="h-4 w-4" aria-hidden />
-                  APK
-                </a>
-              </Button>
-              {IOS_APP_STORE_URL ? (
-                <Button variant="outline" size="sm" className="gap-1.5 border-[#1d4ed8]/30 text-[#1d4ed8]" asChild>
-                  <a
-                    href={IOS_APP_STORE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Open in App Store"
-                  >
-                    <Apple className="h-4 w-4" aria-hidden />
-                    iOS
-                  </a>
-                </Button>
-              ) : (
-                <Button variant="outline" size="sm" className="gap-1.5 border-[#1d4ed8]/30 text-[#1d4ed8]" asChild>
-                  <a href="#install-app" aria-label="iPhone install instructions">
-                    <Apple className="h-4 w-4" aria-hidden />
-                    iOS
-                  </a>
-                </Button>
-              )}
+            <div className="min-w-0">
+              <span className="text-lg font-bold text-foreground">Pakistan Customs</span>
+              <p className="text-xs font-medium text-[#3b82f6] uppercase tracking-wider">
+                World&apos;s Leading AI Analytic System
+              </p>
             </div>
           </div>
 
@@ -210,62 +121,6 @@ export default function LoginPage() {
               <CardDescription className="text-base text-muted-foreground">
                 Sign in with your Pakistan Customs credentials
               </CardDescription>
-              <div id="install-app" className="scroll-mt-24 space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Mobile app
-                </p>
-                <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-start gap-2.5 sm:items-center">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1d4ed8]/10 text-[#1d4ed8]">
-                      <Smartphone className="h-4 w-4" aria-hidden />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">Android</p>
-                      <p className="text-xs text-muted-foreground">
-                        Download the APK file and open it to install (allow unknown sources if asked).
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" className="w-full shrink-0 gap-2 sm:w-auto" asChild>
-                    <a href={ANDROID_APK_HREF} download={ANDROID_APK_FILENAME}>
-                      <Download className="h-4 w-4" aria-hidden />
-                      Download APK
-                    </a>
-                  </Button>
-                </div>
-                <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-start gap-2.5 sm:items-center">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#1d4ed8]/10 text-[#1d4ed8]">
-                      <Apple className="h-4 w-4" aria-hidden />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">iPhone / iPad</p>
-                      {IOS_APP_STORE_URL ? (
-                        <p className="text-xs text-muted-foreground">
-                          Get the official app from the App Store (same as tapping &quot;Get&quot; in the
-                          store).
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          iOS cannot install an APK-style file from the web. Open this site in{" "}
-                          <span className="font-medium text-foreground">Safari</span>, tap{" "}
-                          <span className="font-medium text-foreground">Share</span>, then{" "}
-                          <span className="font-medium text-foreground">Add to Home Screen</span> for a
-                          full-screen installable web app.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {IOS_APP_STORE_URL ? (
-                    <Button variant="outline" size="sm" className="w-full shrink-0 gap-2 sm:w-auto" asChild>
-                      <a href={IOS_APP_STORE_URL} target="_blank" rel="noopener noreferrer">
-                        App Store
-                        <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                      </a>
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-5">
