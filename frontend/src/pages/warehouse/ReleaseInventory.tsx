@@ -303,7 +303,7 @@ export default function ReleaseInventoryPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Warehouse" }, { label: "Release Inventory" }]}
     >
       <div className="grid gap-6">
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Warehouse className="h-5 w-5" />
@@ -319,7 +319,7 @@ export default function ReleaseInventoryPage() {
         </Card>
 
         {/* Released inventory records */}
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <LogOut className="h-5 w-5" />
@@ -329,9 +329,34 @@ export default function ReleaseInventoryPage() {
               Complete info for each release: QR Code, Warehouse (from which), FIR, Number of stacks, Treasury Challan, Case Ref, and dates.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-auto max-h-[50vh]">
-              <Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {releaseRecords.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  No release records yet. Use &quot;Release Inventory&quot; on a detention deposit row below to add one.
+                </div>
+              ) : (
+                releaseRecords.map((r) => (
+                  <div key={r.id} className="p-3">
+                    <p className="truncate font-mono text-sm font-semibold">{r.qrCodeNumber}</p>
+                    <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <p className="truncate">Warehouse: <span className="text-foreground">{r.warehouse || "—"}</span></p>
+                      <p className="truncate">FIR: <span className="text-foreground">{r.firNumber || "—"}</span></p>
+                      <p className="truncate">Stacks: <span className="text-foreground">{r.stackCount || "—"}</span></p>
+                      <p className="truncate">Challan: <span className="text-foreground">{r.treasuryChallanNo || "—"}</span></p>
+                      <p className="col-span-2 truncate">Case Ref: <span className="text-foreground">{r.caseSeizureRef || "—"}</span></p>
+                      <p className="truncate">Station: <span className="text-foreground">{r.customsStation || "—"}</span></p>
+                      <p className="truncate">Deposit Date: <span className="text-foreground">{r.depositDate || "—"}</span></p>
+                      <p className="col-span-2 truncate">Released: <span className="text-foreground">{r.releasedAt || "—"}</span></p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="max-h-[50vh] w-full max-w-full overflow-x-auto overflow-y-auto rounded-lg border pb-2">
+                <Table className="min-w-[1200px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead> QR Code</TableHead>
@@ -369,21 +394,78 @@ export default function ReleaseInventoryPage() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Detention deposit accounts */}
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>Detention deposit accounts</CardTitle>
             <CardDescription>
               Detention-type deposit lines from the register. Released or forwarded rows stay visible for audit; actions are disabled once finished.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-auto max-h-[60vh]">
-              <Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {detentionDeposits.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  No detention-type deposit accounts. Add entries in Detentions → Deposit Account Register with type &quot;Detention&quot;.
+                </div>
+              ) : (
+                detentionDeposits.map((row) => {
+                  const days = daysInDeposit(row.depositDate)
+                  const overTwoMonths = days !== null && days > RELEASE_ALERT_DAYS
+                  const terminal = isDepositTerminal(row)
+                  return (
+                    <div key={row.id} className={terminal ? "p-3 opacity-70" : "p-3"}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-semibold">{row.treasuryChallanNo}</p>
+                        <Badge variant={terminal ? "secondary" : "outline"}>{row.status}</Badge>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <p className="truncate">Case Ref: <span className="text-foreground">{row.caseSeizureRef || "—"}</span></p>
+                        <p className="truncate">FIR: <span className="text-foreground">{row.firNo || "—"}</span></p>
+                        <p className="truncate">Station: <span className="text-foreground">{row.customsStation}</span></p>
+                        <p className="truncate">Deposit Date: <span className="text-foreground">{row.depositDate}</span></p>
+                        <p className="truncate">Days: <span className="text-foreground">{days !== null ? days : "—"}</span></p>
+                        <p className="col-span-2 truncate">
+                          Alert:{" "}
+                          <span className="text-foreground">
+                            {terminal ? "No further action" : overTwoMonths ? "In deposit >2 mo" : "—"}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          disabled={terminal}
+                          onClick={() => openReleaseDialog(row)}
+                        >
+                          <LogOut className="h-4 w-4 mr-1" />
+                          Release
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={terminal}
+                          onClick={() => void handleTransferToSeizure(row)}
+                        >
+                          <Package className="h-4 w-4 mr-1" />
+                          Transfer
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="max-h-[60vh] w-full max-w-full overflow-x-auto overflow-y-auto rounded-lg border pb-2">
+                <Table className="min-w-[1320px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Treasury Challan</TableHead>
@@ -473,6 +555,7 @@ export default function ReleaseInventoryPage() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
               After transfer, view records under <Link to={ROUTES.SEIZURE_REGISTER} className="text-primary hover:underline">Seizure & Receipt → Seizure Register</Link>.
@@ -483,7 +566,7 @@ export default function ReleaseInventoryPage() {
 
       {/* Release Inventory dialog */}
       <Dialog open={releaseOpen} onOpenChange={setReleaseOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Release Inventory</DialogTitle>
             <p className="text-sm text-muted-foreground">
@@ -610,11 +693,11 @@ export default function ReleaseInventoryPage() {
               </div>
             ) : null}
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setReleaseOpen(false)} disabled={releaseSaving}>
+          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setReleaseOpen(false)} disabled={releaseSaving} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={() => void handleReleaseSubmit()} disabled={releaseSaving}>
+            <Button onClick={() => void handleReleaseSubmit()} disabled={releaseSaving} className="w-full sm:w-auto">
               {releaseSaving ? "Saving…" : "Save release record"}
             </Button>
           </div>

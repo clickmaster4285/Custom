@@ -116,37 +116,55 @@ export default function InterCollectorateTransferPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>Transfer Requests</CardTitle>
             <CardDescription>Inter-collectorate transfer register</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ref</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.ref}>
-                    <TableCell className="font-medium">{row.ref}</TableCell>
-                    <TableCell>{row.from}</TableCell>
-                    <TableCell>{row.to}</TableCell>
-                    <TableCell><Badge variant="outline">{row.status}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <Button className="mt-4 bg-[#3b82f6] hover:bg-[#2563eb] text-white" onClick={openAddForm}>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {rows.map((row) => (
+                <div key={row.ref} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.ref}</p>
+                    <Badge variant="outline">{row.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">From: {row.from}</p>
+                  <p className="text-xs text-muted-foreground">To: {row.to}</p>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">View</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ref</TableHead>
+                      <TableHead>From</TableHead>
+                      <TableHead>To</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.ref}>
+                        <TableCell className="font-medium">{row.ref}</TableCell>
+                        <TableCell>{row.from}</TableCell>
+                        <TableCell>{row.to}</TableCell>
+                        <TableCell><Badge variant="outline">{row.status}</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-[#3b82f6]">View</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+            <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto" onClick={openAddForm}>
               New Transfer Request
             </Button>
           </CardContent>
@@ -154,7 +172,7 @@ export default function InterCollectorateTransferPage() {
       </div>
 
       <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ from: "Yarik", to: "Peshawar", status: "Pending" }) }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>New Transfer Request</DialogTitle>
             <p className="text-sm text-muted-foreground">Ref will be auto-generated. Data saved locally.</p>
@@ -199,9 +217,9 @@ export default function InterCollectorateTransferPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={onSave}>Save</Button>
+            <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
+              <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
             </div>
           </div>
         </DialogContent>

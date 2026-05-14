@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Search, Bell, HelpCircle, User, LogOut } from "lucide-react"
+import { Search, Bell, HelpCircle, User, LogOut, Menu } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -11,7 +11,11 @@ import {
 import { clearAuth, getStoredUser } from "@/lib/auth"
 import { ROUTES } from "@/routes/config"
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const navigate = useNavigate()
   const user = getStoredUser()
   const [searchInput, setSearchInput] = useState("")
@@ -32,9 +36,17 @@ export function Header() {
     .toUpperCase()
 
   return (
-    <header className="h-16 border-b border-gray-100 bg-white px-10 flex items-center justify-between shrink-0">
+    <header className="fixed left-0 right-0 top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-gray-100 bg-white px-3 sm:px-4 lg:px-8">
+      <button
+        type="button"
+        className="inline-flex rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden"
+        onClick={onMenuClick}
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
       {/* Search bar - rounded, light gray border */}
-      <div className="flex shrink-0 items-center rounded-[10px] border border-gray-200 bg-white pl-4 pr-3.5 py-2 min-w-[200px] max-w-[452px] w-full">
+      <div className="flex min-w-0 flex-1 items-center rounded-[10px] border border-gray-200 bg-white py-2 pl-3 pr-2 sm:pl-4 sm:pr-3.5 md:max-w-[452px]">
         <Search className="w-5 h-5 text-gray-400 shrink-0" />
         <input
           type="text"
@@ -45,10 +57,10 @@ export function Header() {
         />
       </div>
 
-      <div className="flex-1 min-w-4" />
+      <div className="hidden min-w-4 flex-1 md:block" />
 
       {/* Notifications (bell with red dot) + Help */}
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <button
           type="button"
           className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
@@ -70,16 +82,16 @@ export function Header() {
       </div>
 
       {/* Vertical separator */}
-      <div className="h-8 w-px bg-gray-200 mx-2 shrink-0" aria-hidden />
+      <div className="mx-1 h-8 w-px shrink-0 bg-gray-200 sm:mx-2" aria-hidden />
 
       {/* User profile: name, role, avatar */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex shrink-0 items-center gap-3 pl-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors text-left"
+            className="flex shrink-0 items-center gap-2 rounded-lg py-1.5 pl-1 text-left transition-colors hover:bg-gray-50 sm:gap-3 sm:pl-2"
           >
-            <div className="flex flex-col items-start">
+            <div className="hidden flex-col items-start sm:flex">
               <span className="text-[#101727] text-sm font-semibold">{displayName}</span>
               <span className="text-[#697282] text-xs">{role}</span>
             </div>

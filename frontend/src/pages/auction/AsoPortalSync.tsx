@@ -46,43 +46,60 @@ export default function AsoPortalSyncPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Sync History</CardTitle>
-              <CardDescription>Recent sync operations with ASO portal</CardDescription>
+              <CardDescription className="break-words">Recent sync operations with ASO portal</CardDescription>
             </div>
-            <Button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white">
+            <Button className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto">
               <RefreshCw className="h-4 w-4 mr-2" /> Sync Now
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Records</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  { date: "2024-02-04 10:30", records: 89, status: "Success" },
-                  { date: "2024-02-04 08:00", records: 156, status: "Success" },
-                  { date: "2024-02-03 18:00", records: 42, status: "Failed" },
-                ].map((row, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{row.date}</TableCell>
-                    <TableCell>{row.records}</TableCell>
-                    <TableCell><Badge variant={row.status === "Success" ? "default" : "destructive"}>{row.status}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-[#3b82f6]">View Log</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {[
+                { date: "2024-02-04 10:30", records: 89, status: "Success" },
+                { date: "2024-02-04 08:00", records: 156, status: "Success" },
+                { date: "2024-02-03 18:00", records: 42, status: "Failed" },
+              ].map((row, i) => (
+                <div key={i} className="p-3">
+                  <p className="text-sm font-medium">{row.date}</p>
+                  <p className="text-xs text-muted-foreground">Records: {row.records}</p>
+                  <Badge variant={row.status === "Success" ? "default" : "destructive"}>{row.status}</Badge>
+                </div>
+              ))}
+            </div>
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Records</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[
+                      { date: "2024-02-04 10:30", records: 89, status: "Success" },
+                      { date: "2024-02-04 08:00", records: 156, status: "Success" },
+                      { date: "2024-02-03 18:00", records: 42, status: "Failed" },
+                    ].map((row, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{row.date}</TableCell>
+                        <TableCell>{row.records}</TableCell>
+                        <TableCell><Badge variant={row.status === "Success" ? "default" : "destructive"}>{row.status}</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-[#3b82f6]">View Log</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

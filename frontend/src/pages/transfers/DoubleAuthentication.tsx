@@ -2,11 +2,14 @@
 import { Shield, UserCheck } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
 export default function DoubleAuthenticationPage() {
+  const authRows = [
+    { tx: "TR-2024-0841", type: "Transfer", first: "2024-02-04 10:00", second: "—", status: "Pending" },
+  ]
+
   return (
     <ModulePageLayout
       title="Double Authentication"
@@ -36,36 +39,52 @@ export default function DoubleAuthenticationPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
+        <Card className="w-full min-w-0">
           <CardHeader>
             <CardTitle>Authentication Log</CardTitle>
             <CardDescription>Dual-approval and 2FA events</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Transaction</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>First Auth</TableHead>
-                  <TableHead>Second Auth</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  { tx: "TR-2024-0841", type: "Transfer", first: "2024-02-04 10:00", second: "—", status: "Pending" },
-                ].map((row) => (
-                  <TableRow key={row.tx}>
-                    <TableCell className="font-medium">{row.tx}</TableCell>
-                    <TableCell>{row.type}</TableCell>
-                    <TableCell>{row.first}</TableCell>
-                    <TableCell>{row.second}</TableCell>
-                    <TableCell><Badge variant="secondary">{row.status}</Badge></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {authRows.map((row) => (
+                <div key={row.tx} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.tx}</p>
+                    <Badge variant="secondary">{row.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Type: {row.type}</p>
+                  <p className="text-xs text-muted-foreground">First Auth: {row.first}</p>
+                  <p className="text-xs text-muted-foreground">Second Auth: {row.second}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Transaction</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>First Auth</TableHead>
+                      <TableHead>Second Auth</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {authRows.map((row) => (
+                      <TableRow key={row.tx}>
+                        <TableCell className="font-medium">{row.tx}</TableCell>
+                        <TableCell>{row.type}</TableCell>
+                        <TableCell>{row.first}</TableCell>
+                        <TableCell>{row.second}</TableCell>
+                        <TableCell><Badge variant="secondary">{row.status}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

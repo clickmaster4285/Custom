@@ -920,7 +920,7 @@ export default function JcpTollPlazaEntryPage() {
         </div>
 
         {/* Location Quick Stats */}
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
           {LOCATIONS.map(loc => {
             const count = entries.filter(e => e.location === loc.name).length
             const flagged = entries.filter(e => e.location === loc.name && ['Flagged', 'Watchlist', 'Blacklist'].includes(e.status)).length
@@ -975,7 +975,7 @@ export default function JcpTollPlazaEntryPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
+              <div className="w-full sm:flex-1 sm:min-w-[200px]">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
@@ -988,7 +988,7 @@ export default function JcpTollPlazaEntryPage() {
               </div>
 
               <select 
-                className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 sm:min-w-[150px] sm:w-auto"
                 value={selectedLocation}
                 onChange={(e) => setSelectedLocation(e.target.value)}
               >
@@ -999,7 +999,7 @@ export default function JcpTollPlazaEntryPage() {
               </select>
 
               <select 
-                className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 sm:min-w-[150px] sm:w-auto"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
               >
@@ -1012,7 +1012,7 @@ export default function JcpTollPlazaEntryPage() {
               </select>
 
               <select 
-                className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 sm:min-w-[150px] sm:w-auto"
                 value={selectedOversizeFilter}
                 onChange={(e) => setSelectedOversizeFilter(e.target.value)}
               >
@@ -1022,7 +1022,7 @@ export default function JcpTollPlazaEntryPage() {
               </select>
 
               <select 
-                className="px-3 py-2 border border-gray-300 rounded-lg min-w-[150px] bg-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 sm:min-w-[150px] sm:w-auto"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
@@ -1031,7 +1031,7 @@ export default function JcpTollPlazaEntryPage() {
                 <option value="all">All Time</option>
               </select>
 
-              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+              <div className="flex overflow-hidden rounded-lg border border-gray-300">
                 <button
                   className={`px-3 py-2 ${viewMode === 'table' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-600'}`}
                   onClick={() => setViewMode('table')}
@@ -1047,7 +1047,7 @@ export default function JcpTollPlazaEntryPage() {
               </div>
 
               <Button
-                className="bg-[#3b82f6] hover:bg-[#2563eb] text-white ml-auto"
+                className="ml-0 w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:ml-auto sm:w-auto"
                 onClick={() => setShowModal(true)}
               >
                 <Plus className="h-4 w-4 mr-2" /> Add Entry
@@ -1058,9 +1058,10 @@ export default function JcpTollPlazaEntryPage() {
 
         {/* Entries Display */}
         {viewMode === 'table' ? (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
+          <Card className="w-full min-w-0">
+            <CardContent className="w-full min-w-0 p-0">
+              <div className="w-full max-w-full overflow-x-auto pb-2">
+              <Table className="min-w-[1420px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Camera Capture</TableHead>
@@ -1162,6 +1163,7 @@ export default function JcpTollPlazaEntryPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         ) : (

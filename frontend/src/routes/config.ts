@@ -346,7 +346,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
           { label: "New Seizure Entry", href: ROUTES.NEW_SEIZURE_ENTRY },
           { label: "Goods Receipt & Handover", href: ROUTES.GOODS_RECEIPT_HANDOVER },
           { label: "AI Item Cataloging", href: ROUTES.AI_ITEM_CATALOGING },
-          { label: "QR Code Generation", href: ROUTES.QR_CODE_GENERATION },
+          // { label: "QR Code Generation", href: ROUTES.QR_CODE_GENERATION },
           { label: "Seizure Register", href: ROUTES.SEIZURE_REGISTER },
         ],
       },

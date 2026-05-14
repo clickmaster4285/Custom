@@ -2,7 +2,7 @@ from typing import Optional
 
 from rest_framework import serializers
 
-from .models import DepositAccountEntry, DetentionMemo, DetentionMemoGoodsLine
+from .models import DepositAccountEntry, DetentionMemo, DetentionMemoGoodsImage, DetentionMemoGoodsLine
 
 
 def _absolute_media_url(request, file_field) -> str:
@@ -36,6 +36,11 @@ class _GoodsItemPayloadSerializer(serializers.Serializer):
     identificationRef = serializers.CharField(required=False, allow_blank=True)
     itemNotes = serializers.CharField(required=False, allow_blank=True)
     perishable = serializers.BooleanField(required=False, default=False)
+    images = serializers.ListField(
+        child=serializers.CharField(required=False, allow_blank=True),
+        required=False,
+        default=list,
+    )
 
 
 class DetentionMemoWriteSerializer(serializers.Serializer):
@@ -100,6 +105,7 @@ def _goods_item_raw(item: dict) -> dict:
         "identificationRef": item.get("identificationRef") or "",
         "itemNotes": item.get("itemNotes") or "",
         "perishable": bool(item.get("perishable")),
+        "images": item.get("images") or [],
     }
 
 
@@ -193,6 +199,11 @@ def memo_to_frontend_dict(memo: DetentionMemo, request=None) -> dict:
 
     goods_items = []
     for gl in memo.goods_lines.all():
+        goods_images = []
+        for img in gl.images.all():
+            url = _absolute_media_url(request, img.image)
+            if url:
+                goods_images.append(url)
         goods_items.append(
             {
                 "id": gl.client_line_id or str(gl.pk),
@@ -206,6 +217,7 @@ def memo_to_frontend_dict(memo: DetentionMemo, request=None) -> dict:
                 "identificationRef": gl.identification_ref,
                 "itemNotes": gl.item_notes,
                 "perishable": gl.perishable,
+                "images": goods_images,
             }
         )
 

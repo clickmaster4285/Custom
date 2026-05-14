@@ -116,63 +116,90 @@ export default function SeizureRegisterPage() {
             </CardContent>
           </Card>
         </div>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Seizure Register</CardTitle>
-              <CardDescription>Search and view all seizure records (seized from Detention Memo)</CardDescription>
+              <CardDescription className="break-words">Search and view all seizure records (seized from Detention Memo)</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               Export
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="w-full min-w-0 space-y-3">
             <Input
               placeholder="Search by reference, location..."
-              className="mb-4 w-64"
+              className="w-full sm:w-64"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <div className="overflow-auto max-h-[50vh]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRows.length === 0 ? (
+            <div className="divide-y rounded-lg border md:hidden">
+              {filteredRows.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  No seizure records. Use &quot;Seize&quot; on a Detention Memo to add items here.
+                </div>
+              ) : (
+                filteredRows.map((row) => (
+                  <div key={row.id} className="p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold">{row.caseNo || "—"}</p>
+                      <Badge variant="outline">{row.settlementStatus || "Registered"}</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">Date: {formatDate(row.seizedAt)}</p>
+                    <p className="text-xs text-muted-foreground">Location: {row.placeOfDetention || "—"}</p>
+                    <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]" asChild>
+                      <Link to={getSeizedInventoryDetailPath(row.id)}>
+                        <Eye className="mr-1 h-4 w-4" />
+                        View
+                      </Link>
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="max-h-[50vh] w-full max-w-full overflow-x-auto overflow-y-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        No seizure records. Use &quot;Seize&quot; on a Detention Memo to add items here.
-                      </TableCell>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredRows.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="font-medium">{row.caseNo || "—"}</TableCell>
-                        <TableCell>{formatDate(row.seizedAt)}</TableCell>
-                        <TableCell>{row.placeOfDetention || "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{row.settlementStatus || "Registered"}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" className="text-[#3b82f6]" asChild>
-                            <Link to={getSeizedInventoryDetailPath(row.id)}>
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
-                            </Link>
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                          No seizure records. Use &quot;Seize&quot; on a Detention Memo to add items here.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      filteredRows.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="font-medium">{row.caseNo || "—"}</TableCell>
+                          <TableCell>{formatDate(row.seizedAt)}</TableCell>
+                          <TableCell>{row.placeOfDetention || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{row.settlementStatus || "Registered"}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" className="text-[#3b82f6]" asChild>
+                              <Link to={getSeizedInventoryDetailPath(row.id)}>
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -1,5 +1,6 @@
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
+import { VitePWA } from "vite-plugin-pwa"
 import * as path from "path"
 import * as fs from "fs"
 
@@ -24,7 +25,47 @@ function ensureDistIconPlugin() {
 export default defineConfig({
   root: projectRoot,
   publicDir: path.join(projectRoot, "public"),
-  plugins: [ensureDistIconPlugin(), react()],
+  plugins: [
+    ensureDistIconPlugin(),
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["custom-logo.jpg", "icon.svg"],
+      manifest: {
+        name: "Pakistan Customs — Secure Access Portal",
+        short_name: "Customs Portal",
+        description:
+          "Pakistan Customs integrated management system — VMS, WMS, AI Analytics, and more.",
+        theme_color: "#2563eb",
+        background_color: "#fafafa",
+        display: "standalone",
+        orientation: "any",
+        scope: "/",
+        start_url: "/",
+        lang: "en",
+        dir: "ltr",
+        icons: [
+          {
+            src: "custom-logo.jpg",
+            sizes: "512x512",
+            type: "image/jpeg",
+            purpose: "any",
+          },
+          {
+            src: "custom-logo.jpg",
+            sizes: "192x192",
+            type: "image/jpeg",
+            purpose: "any",
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,jpg,jpeg}"],
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api/, /^\/_/],
+      },
+    }),
+  ],
   optimizeDeps: {
     include: ["qrcode"],
   },

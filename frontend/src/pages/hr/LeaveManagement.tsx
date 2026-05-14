@@ -185,14 +185,14 @@ export default function LeaveManagementPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Leave Requests</CardTitle>
               <CardDescription>Pending and recent leave applications</CardDescription>
             </div>
             <Button
-              className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+              className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto"
               onClick={() => setNewOpen(true)}
             >
               <Send className="h-4 w-4 mr-2" />
@@ -204,7 +204,8 @@ export default function LeaveManagementPage() {
             {loading ? (
               <p className="text-sm text-muted-foreground py-8">Loading…</p>
             ) : (
-              <Table>
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+              <Table className="min-w-[920px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Employee</TableHead>
@@ -253,13 +254,14 @@ export default function LeaveManagementPage() {
                   )}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={newOpen} onOpenChange={setNewOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>New leave request</DialogTitle>
           </DialogHeader>
@@ -304,16 +306,16 @@ export default function LeaveManagementPage() {
               <Label>Reason</Label>
               <Textarea value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} rows={2} />
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={submitting}>{submitting ? "Submitting…" : "Submit"}</Button>
+            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => setNewOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button type="submit" disabled={submitting} className="w-full sm:w-auto">{submitting ? "Submitting…" : "Submit"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={rejectId != null} onOpenChange={(open) => !open && setRejectId(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Reject leave request</DialogTitle>
           </DialogHeader>
@@ -321,9 +323,9 @@ export default function LeaveManagementPage() {
             <Label>Reason (optional)</Label>
             <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={2} placeholder="Rejection reason" />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRejectId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject}>Reject</Button>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setRejectId(null)} className="w-full sm:w-auto">Cancel</Button>
+            <Button variant="destructive" onClick={handleReject} className="w-full sm:w-auto">Reject</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

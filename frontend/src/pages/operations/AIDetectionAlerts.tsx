@@ -1214,8 +1214,8 @@ const AIDetectionAlerts: React.FC = () => {
                                 } border border-gray-200 shadow-sm hover:shadow-md transition-shadow`}
                         >
                             <div className="p-4">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-start gap-3 flex-1">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div className="flex min-w-0 flex-1 items-start gap-3">
                                         <div className={`p-2 rounded-lg ${alert.severity === 'critical' ? 'bg-red-50' :
                                             alert.severity === 'high' ? 'bg-orange-50' :
                                                 alert.severity === 'medium' ? 'bg-yellow-50' :
@@ -1281,7 +1281,7 @@ const AIDetectionAlerts: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2 ml-4">
+                                    <div className="ml-0 flex flex-wrap justify-end gap-2 sm:ml-4 sm:flex-nowrap">
                                         {!alert.acknowledged && (
                                             <button
                                                 onClick={() => acknowledgeAlert(alert.id)}

@@ -141,24 +141,24 @@ export default function EmployeesPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle className="text-xl font-semibold">Employee Directory</CardTitle>
               <CardDescription>Search and manage employee records</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Search by name, CNIC, designation..."
-                  className="pl-9 w-80"
+                  className="w-full pl-9 sm:w-80"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
               <Button 
-                className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+                className="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto"
                 onClick={() => navigate(ROUTES.ADD_STAFF)}
               >
                 <UserPlus className="h-4 w-4 mr-2" />
@@ -173,8 +173,8 @@ export default function EmployeesPage() {
             {loading ? (
               <p className="text-sm text-muted-foreground py-8">Loading staff…</p>
             ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
+            <div className="w-full max-w-full overflow-x-auto rounded-md border pb-2">
+              <Table className="min-w-[1400px]">
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-12 text-center">S.No.</TableHead>

@@ -139,50 +139,71 @@ export default function ZoneLocationManagementPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-4 flex-wrap">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-4 space-y-0">
+            <div className="min-w-0">
               <CardTitle>Zone & Location Hierarchy</CardTitle>
-              <CardDescription>Warehouse → Zone → Aisle → Rack → Level → Bin. Data in localStorage.</CardDescription>
+              <CardDescription className="break-words">Warehouse → Zone → Aisle → Rack → Level → Bin. Data in localStorage.</CardDescription>
             </div>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0" onClick={openAdd}>
+            <Button className="w-full flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto" onClick={openAdd}>
               <Plus className="h-4 w-4 mr-2" />
               Add Zone
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Zone Code</TableHead>
-                  <TableHead>Zone Name</TableHead>
-                  <TableHead>Warehouse</TableHead>
-                  <TableHead>Locations</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.code}</TableCell>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.warehouse}</TableCell>
-                    <TableCell>{row.locations}</TableCell>
-                    <TableCell><Badge variant="outline">{row.type}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-primary">Manage</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {rows.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.code}</p>
+                    <Badge variant="outline">{row.type}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm">{row.name}</p>
+                  <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <p className="truncate">Warehouse: <span className="text-foreground">{row.warehouse}</span></p>
+                    <p className="truncate">Locations: <span className="text-foreground">{row.locations}</span></p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-primary">Manage</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[860px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Zone Code</TableHead>
+                      <TableHead>Zone Name</TableHead>
+                      <TableHead>Warehouse</TableHead>
+                      <TableHead>Locations</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.code}</TableCell>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell>{row.warehouse}</TableCell>
+                        <TableCell>{row.locations}</TableCell>
+                        <TableCell><Badge variant="outline">{row.type}</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-primary">Manage</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Add Zone</DialogTitle>
             <p className="text-sm text-muted-foreground">New zone. Stored in localStorage.</p>
@@ -220,9 +241,9 @@ export default function ZoneLocationManagementPage() {
               </Select>
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSave}>Save</Button>
+          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -148,23 +148,59 @@ export default function CycleCountingAuditPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Inventory Management" }, { label: "Cycle Counting & Audit" }]}
     >
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-4 flex-wrap">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-4 space-y-0">
+            <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
                 <ClipboardCheck className="h-5 w-5" />
                 Cycle Counting & Audit
               </CardTitle>
-              <CardDescription>Audit ref, customs station, godown location, case/seizure ref and auditing officer. Data in localStorage.</CardDescription>
+              <CardDescription className="break-words">Audit ref, customs station, godown location, case/seizure ref and auditing officer. Data in localStorage.</CardDescription>
             </div>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0" onClick={openAdd}>
+            <Button className="w-full flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto" onClick={openAdd}>
               <Plus className="h-4 w-4 mr-2" />
               New Audit
             </Button>
           </CardHeader>
-          <CardContent className="overflow-hidden">
-            <div className="overflow-auto max-h-[60vh] w-full">
-            <Table>
+          <CardContent className="w-full min-w-0 space-y-3 overflow-hidden">
+            <div className="divide-y rounded-lg border md:hidden">
+              {rows.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate font-mono text-sm font-semibold">{row.qrCodeNumber || "—"}</p>
+                    <Badge variant={row.status === "Completed" ? "default" : row.status === "Variance Reported" ? "destructive" : "secondary"}>
+                      {row.status}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <p className="truncate">Audit Ref: <span className="text-foreground">{row.auditRef}</span></p>
+                    <p className="truncate">Date: <span className="text-foreground">{row.auditDate}</span></p>
+                    <p className="truncate">Station: <span className="text-foreground">{row.customsStation}</span></p>
+                    <p className="truncate">Case Ref: <span className="text-foreground">{row.caseSeizureRef || "—"}</span></p>
+                    <p className="col-span-2 truncate">Location: <span className="text-foreground">{row.godownLocation}</span></p>
+                    <p className="truncate">Expected: <span className="text-foreground">{row.expectedQty}</span></p>
+                    <p className="truncate">Actual: <span className="text-foreground">{row.actualQty}</span></p>
+                    <p className="truncate">
+                      Variance:{" "}
+                      <span className={row.variance !== 0 ? "font-medium text-amber-600" : "text-foreground"}>
+                        {row.variance > 0 ? "+" : ""}{row.variance}
+                      </span>
+                    </p>
+                    <p className="col-span-2 truncate">Audited By: <span className="text-foreground">{row.auditedByOfficerName ? `${row.auditedByOfficerName} (${row.auditedByBadgeId || "—"})` : "—"}</span></p>
+                  </div>
+                  <Button variant="ghost" size="sm" asChild className="mt-1 h-7 px-0">
+                    <Link to={getCycleCountingDetailPath(row.id)}>
+                      <Eye className="mr-1 h-4 w-4" />
+                      View
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="max-h-[60vh] w-full max-w-full overflow-x-auto overflow-y-auto rounded-lg border pb-2">
+              <Table className="min-w-[1320px]">
               <TableHeader>
                 <TableRow>
                   <TableHead> QR Code</TableHead>
@@ -215,13 +251,14 @@ export default function CycleCountingAuditPage() {
                 ))}
               </TableBody>
             </Table>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>New Cycle Count / Audit</DialogTitle>
             <p className="text-sm text-muted-foreground">Pakistan Customs physical count and audit. Stored in localStorage.</p>
@@ -300,9 +337,9 @@ export default function CycleCountingAuditPage() {
               <Input value={form.remarks} onChange={(e) => setForm((f) => ({ ...f, remarks: e.target.value }))} placeholder="Optional" />
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSave}>Save</Button>
+          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
           </div>
         </DialogContent>
       </Dialog>

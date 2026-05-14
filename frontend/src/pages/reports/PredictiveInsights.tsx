@@ -253,9 +253,9 @@ export default function PredictiveInsightsPage() {
               AI-powered forecasts and early warnings for proactive decision making
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <Select value={timeHorizon} onValueChange={setTimeHorizon}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[150px]">
                 <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Time horizon" />
               </SelectTrigger>
@@ -269,7 +269,7 @@ export default function PredictiveInsightsPage() {
             <Button variant="outline" size="icon" onClick={handleRefresh} disabled={refreshing}>
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -278,7 +278,7 @@ export default function PredictiveInsightsPage() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-4 bg-muted/50 p-1">
+          <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 md:max-w-3xl md:grid-cols-4">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Gauge className="h-4 w-4" />
               Overview
@@ -543,8 +543,8 @@ export default function PredictiveInsightsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border overflow-hidden">
-                  <Table>
+                <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                  <Table className="min-w-[980px]">
                     <TableHeader className="bg-muted/50">
                       <TableRow>
                         <TableHead>Gate</TableHead>
@@ -644,8 +644,8 @@ export default function PredictiveInsightsPage() {
               <CardContent>
                 <div className="space-y-6">
                   {/* Queue predictions table */}
-                  <div className="rounded-lg border overflow-hidden">
-                    <Table>
+                  <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                    <Table className="min-w-[980px]">
                       <TableHeader className="bg-muted/50">
                         <TableRow>
                           <TableHead>Date</TableHead>
@@ -744,8 +744,8 @@ export default function PredictiveInsightsPage() {
               <CardContent>
                 <div className="space-y-6">
                   {/* Model metrics table */}
-                  <div className="rounded-lg border overflow-hidden">
-                    <Table>
+                  <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                    <Table className="min-w-[1100px]">
                       <TableHeader className="bg-muted/50">
                         <TableRow>
                           <TableHead>Model</TableHead>
@@ -843,13 +843,13 @@ export default function PredictiveInsightsPage() {
         </Tabs>
 
         {/* Run New Prediction Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Run New Prediction</CardTitle>
               <CardDescription>Select module and time horizon for AI forecast</CardDescription>
             </div>
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+            <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 sm:w-auto">
               <Zap className="h-4 w-4 mr-2" />
               Generate Forecast
             </Button>

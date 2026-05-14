@@ -106,7 +106,7 @@ export default function ArmoryPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Recent activity */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5" />
@@ -114,45 +114,69 @@ export default function ArmoryPage() {
                 </CardTitle>
                 <CardDescription>Latest check-out, check-in, and inspection events</CardDescription>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 View all
               </Button>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead className="text-right">Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {RECENT_ACTIVITY.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            row.type === "Check-out"
-                              ? "default"
-                              : row.type === "Check-in"
-                                ? "secondary"
-                                : "outline"
-                          }
-                        >
-                          {row.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{row.item}</TableCell>
-                      <TableCell className="text-muted-foreground">{row.user}</TableCell>
-                      <TableCell className="text-right text-muted-foreground text-xs">
-                        {row.time}
-                      </TableCell>
+              <div className="space-y-3 sm:hidden">
+                {RECENT_ACTIVITY.map((row) => (
+                  <div key={row.id} className="rounded-lg border border-border p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <Badge
+                        variant={
+                          row.type === "Check-out"
+                            ? "default"
+                            : row.type === "Check-in"
+                              ? "secondary"
+                              : "outline"
+                        }
+                      >
+                        {row.type}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{row.time}</span>
+                    </div>
+                    <p className="text-sm font-medium">{row.item}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{row.user}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead className="text-right">Time</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {RECENT_ACTIVITY.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              row.type === "Check-out"
+                                ? "default"
+                                : row.type === "Check-in"
+                                  ? "secondary"
+                                  : "outline"
+                            }
+                          >
+                            {row.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">{row.item}</TableCell>
+                        <TableCell className="text-muted-foreground">{row.user}</TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground">
+                          {row.time}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
@@ -170,7 +194,7 @@ export default function ArmoryPage() {
                 {VAULT_RACKS.map((rack) => (
                   <div
                     key={rack.id}
-                    className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-4 py-3"
+                    className="flex flex-col gap-2 rounded-lg border border-border bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#dbeafe]">
@@ -181,7 +205,7 @@ export default function ArmoryPage() {
                         <p className="text-xs text-muted-foreground">{rack.location}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs text-muted-foreground">Audit: {rack.lastAudit}</span>
                       <Badge variant={rack.status === "secure" ? "default" : "destructive"}>
                         {rack.status === "secure" ? "Secure" : "Attention"}
@@ -229,7 +253,7 @@ export default function ArmoryPage() {
                 <p className="text-xs text-muted-foreground mt-0.5">Last audit 3 days ago</p>
               </div>
             </div>
-            <Button className="mt-4 bg-[#3b82f6] hover:bg-[#2563eb] text-white">
+            <Button className="mt-4 w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] sm:w-auto">
               View inspection log
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>

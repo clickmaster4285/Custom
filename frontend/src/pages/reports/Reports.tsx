@@ -204,7 +204,7 @@ export default function ReportsPage() {
       <div className="space-y-6">
         {/* Main Tabs */}
         <Tabs defaultValue="gate-throughput" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-2 bg-muted/50 p-1">
+          <TabsList className="grid w-full grid-cols-1 bg-muted/50 p-1 sm:max-w-2xl sm:grid-cols-2">
             <TabsTrigger value="gate-throughput" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Gate Throughput Report
@@ -229,7 +229,7 @@ export default function ReportsPage() {
                       Real-time vehicle and person counts per gate per hour with occupancy tracking
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" size="sm">
                       <Printer className="h-4 w-4 mr-2" />
                       Print
@@ -396,8 +396,8 @@ export default function ReportsPage() {
 
                 {/* Gate Throughput Table/Grid */}
                 {viewMode === 'table' ? (
-                  <div className="rounded-lg border overflow-hidden">
-                    <Table>
+                  <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                    <Table className="min-w-[1200px]">
                       <TableHeader className="bg-muted/50">
                         <TableRow>
                           <TableHead>Gate</TableHead>
@@ -584,7 +584,7 @@ export default function ReportsPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t bg-muted/10 px-6 py-3">
-                <div className="flex items-center justify-between w-full text-sm">
+                  <div className="flex w-full flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" /> Last updated: {new Date().toLocaleTimeString()}
                   </span>
@@ -604,18 +604,18 @@ export default function ReportsPage() {
                   <CardTitle>Report Library</CardTitle>
                   <CardDescription>Pre-built and scheduled reports with export options</CardDescription>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
                   <div className="relative">
                     <Input
                       placeholder="Search reports..."
-                      className="w-64 pl-8"
+                      className="w-full pl-8 sm:w-64"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     <FileText className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   </div>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-[150px]">
+                    <SelectTrigger className="w-full sm:w-[150px]">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -625,18 +625,19 @@ export default function ReportsPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button variant="outline">
+                  <Button variant="outline" className="w-full sm:w-auto">
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto">
                     <FileText className="h-4 w-4 mr-2" />
                     New Report
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Table>
+              <CardContent className="w-full min-w-0">
+                <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[980px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Report Name</TableHead>
@@ -682,6 +683,7 @@ export default function ReportsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -690,7 +692,7 @@ export default function ReportsPage() {
 
       {/* Report Preview Dialog */}
       <Dialog open={showReportPreview} onOpenChange={setShowReportPreview}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-blue-600" />
@@ -728,8 +730,8 @@ export default function ReportsPage() {
             </div>
 
             {/* Preview Table */}
-            <div className="rounded-lg border overflow-hidden">
-              <Table>
+            <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+              <Table className="min-w-[760px]">
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead>Gate</TableHead>

@@ -91,47 +91,65 @@ export default function LotCreationPage() {
       breadcrumbs={[{ label: "WMS" }, { label: "Lot Creation" }]}
     >
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-4 flex-wrap">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-wrap items-center justify-between gap-4 space-y-0">
+            <div className="min-w-0">
               <CardTitle>Auction Lots</CardTitle>
-              <CardDescription>Create and manage lots for auction. Data in localStorage.</CardDescription>
+              <CardDescription className="break-words">Create and manage lots for auction. Data in localStorage.</CardDescription>
             </div>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0" onClick={openAdd}>
+            <Button className="w-full flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto" onClick={openAdd}>
               <Plus className="h-4 w-4 mr-2" /> Create Lot
             </Button>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Lot No</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Reserve Price</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.no}</TableCell>
-                    <TableCell>{row.desc}</TableCell>
-                    <TableCell>{row.reserve}</TableCell>
-                    <TableCell><Badge variant="outline">{row.status}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-primary">Edit</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            <div className="divide-y rounded-lg border md:hidden">
+              {rows.map((row) => (
+                <div key={row.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{row.no}</p>
+                    <Badge variant="outline">{row.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm">{row.desc}</p>
+                  <p className="text-xs text-muted-foreground">Reserve: {row.reserve}</p>
+                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-primary">Edit</Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 md:block">
+              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
+                <Table className="min-w-[760px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Lot No</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Reserve Price</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.no}</TableCell>
+                        <TableCell>{row.desc}</TableCell>
+                        <TableCell>{row.reserve}</TableCell>
+                        <TableCell><Badge variant="outline">{row.status}</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="text-primary">Edit</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create Lot</DialogTitle>
             <p className="text-sm text-muted-foreground">New auction lot. Stored in localStorage.</p>
@@ -159,9 +177,9 @@ export default function LotCreationPage() {
               </Select>
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={onSave}>Save</Button>
+          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
           </div>
         </DialogContent>
       </Dialog>

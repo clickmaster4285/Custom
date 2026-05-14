@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, ChevronDown, Plus, Trash2, Copy, Eye } from "lucide-react"
+import { ArrowLeft, ChevronDown, Plus, Trash2, Copy, Eye, Camera, X } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -83,6 +83,8 @@ export type GoodsLineItem = {
   identificationRef: string
   itemNotes: string
   perishable: boolean
+  images: string[]
+  imageFiles: File[]
 }
 
 const emptyGoodsItem = (): GoodsLineItem => ({
@@ -97,6 +99,8 @@ const emptyGoodsItem = (): GoodsLineItem => ({
   identificationRef: "",
   itemNotes: "",
   perishable: false,
+  images: [],
+  imageFiles: [],
 })
 
 export default function DetentionMemoCreatePage() {
@@ -223,7 +227,10 @@ export default function DetentionMemoCreatePage() {
       purposeOfDetention,
       owner: { name: ownerName, cnic: ownerCnic, contact: ownerContact },
       driver: { name: driverName, cnic: driverCnic, contact: driverContact },
-      goodsItems,
+      goodsItems: goodsItems.map((item) => ({
+        ...item,
+        images: [],
+      })),
       seizingOfficerNotes,
       examiningOfficerNotes,
       detentionNotes,
@@ -232,6 +239,15 @@ export default function DetentionMemoCreatePage() {
       memoQrCodePayload: "",
       clientOrigin: window.location.origin,
     }
+
+    // Collect goods images
+    const goodsImagesMap: Record<string, File[]> = {}
+    for (const item of goodsItems) {
+      if (item.imageFiles && item.imageFiles.length > 0) {
+        goodsImagesMap[item.id] = item.imageFiles
+      }
+    }
+
     setSaving(true)
     try {
       await createDetentionMemo(payload, {
@@ -239,6 +255,7 @@ export default function DetentionMemoCreatePage() {
         driverPhoto: driverPhotoFile,
         documents: documentFiles,
         videos: videoFiles,
+        goodsImages: goodsImagesMap,
       })
       toast({ title: "Saved", description: "Detention memo saved to the database." })
       navigate(ROUTES.DETENTION_MEMO)
@@ -460,13 +477,6 @@ export default function DetentionMemoCreatePage() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label>GD Number</Label>
-                    <div className="flex gap-2">
-                      <Input value={gdNumber} onChange={(e) => setGdNumber(e.target.value)} placeholder="GD Number" />
-                      <Button type="button" variant="outline" size="sm">View</Button>
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
                     <Label>Where detained goods deposited</Label>
                     <Select value={whereDeposited} onValueChange={setWhereDeposited}>
                       <SelectTrigger><SelectValue placeholder="Select Warehouse" /></SelectTrigger>
@@ -586,13 +596,14 @@ export default function DetentionMemoCreatePage() {
                           <TableHead className="w-[90px]">Perishable</TableHead>
                           <TableHead className="min-w-[100px]">ID / Chassis No.</TableHead>
                           <TableHead className="min-w-[140px]">Item Notes</TableHead>
+                          <TableHead className="w-[80px]">Images</TableHead>
                           <TableHead className="w-[44px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {goodsItems.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={11} className="text-muted-foreground text-center py-6">
+                            <TableCell colSpan={12} className="text-muted-foreground text-center py-6">
                               No goods added. Click "Add line" to add seized/detained items.
                             </TableCell>
                           </TableRow>
@@ -706,6 +717,52 @@ export default function DetentionMemoCreatePage() {
                                   onChange={(e) => updateGoodsLine(item.id, "itemNotes", e.target.value)}
                                   placeholder="Officer notes for this item"
                                 />
+                              </TableCell>
+                              <TableCell className="align-middle">
+                                <div className="flex flex-col gap-1">
+                                  <label className="cursor-pointer inline-flex items-center gap-1 text-xs bg-secondary text-secondary-foreground hover:bg-secondary/80 px-2 py-1 rounded">
+                                    <Camera className="h-3 w-3" />
+                                    Add ({item.imageFiles.length + (item.images?.length || 0)}/10)
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      multiple
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const files = Array.from(e.target.files ?? [])
+                                        const currentCount = item.imageFiles.length + (item.images?.length || 0)
+                                        const availableSlots = 10 - currentCount
+                                        const newFiles = files.slice(0, availableSlots)
+                                        updateGoodsLine(item.id, "imageFiles", [...item.imageFiles, ...newFiles])
+                                      }}
+                                    />
+                                  </label>
+                                  {(item.imageFiles.length > 0 || (item.images?.length ?? 0) > 0) && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {item.images?.map((imgUrl, idx) => (
+                                        <div key={`existing-${idx}`} className="relative">
+                                          <img src={imgUrl} alt={`Goods ${idx + 1}`} className="h-8 w-8 object-cover rounded border" />
+                                        </div>
+                                      ))}
+                                      {item.imageFiles.map((file, idx) => (
+                                        <div key={`new-${idx}`} className="relative">
+                                          <img src={URL.createObjectURL(file)} alt={`New ${idx + 1}`} className="h-8 w-8 object-cover rounded border" />
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const newFiles = [...item.imageFiles]
+                                              newFiles.splice(idx, 1)
+                                              updateGoodsLine(item.id, "imageFiles", newFiles)
+                                            }}
+                                            className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                                          >
+                                            <X className="h-2 w-2" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeGoodsLine(item.id)} aria-label="Remove line">

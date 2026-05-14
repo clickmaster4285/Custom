@@ -60,12 +60,12 @@ export default function DataVisualizationPage() {
       description="Interactive dashboards and advanced analytics for AI performance, security events, gate analytics, and custom reporting."
       breadcrumbs={[{ label: "AI Analytics" }, { label: "Data Visualization" }]}
     >
-      <div className="space-y-6">
+      <div className="w-full min-w-0 space-y-6">
         {/* Enhanced Quick Actions Bar */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-muted/30 p-4 rounded-lg border">
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col items-start justify-between gap-4 rounded-lg border bg-muted/30 p-4 lg:flex-row lg:items-center">
+          <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
             <Select value={selectedTimeRange} onValueChange={setSelectedTimeRange}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Time range" />
               </SelectTrigger>
@@ -77,7 +77,7 @@ export default function DataVisualizationPage() {
             </Select>
             
             <Select value={selectedChartType} onValueChange={setSelectedChartType}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-[140px]">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Chart type" />
               </SelectTrigger>
@@ -89,7 +89,7 @@ export default function DataVisualizationPage() {
             </Select>
 
             <Select value={selectedDataSource} onValueChange={setSelectedDataSource}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <Activity className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Data source" />
               </SelectTrigger>
@@ -111,7 +111,7 @@ export default function DataVisualizationPage() {
             </div>
           </div>
           
-          <div className="flex items-center gap-2 w-full lg:w-auto">
+          <div className="flex w-full flex-col items-center gap-2 sm:flex-row lg:w-auto">
             <div className="relative flex-1 lg:flex-none">
               <Input 
                 placeholder="Search dashboards..." 
@@ -121,11 +121,11 @@ export default function DataVisualizationPage() {
               />
               <Eye className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             </div>
-            <Button variant="outline" className="h-9">
+            <Button variant="outline" className="h-9 w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-9">
+            <Button className="h-9 w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 sm:w-auto">
               <Zap className="h-4 w-4 mr-2" />
               New Dashboard
             </Button>
@@ -134,7 +134,7 @@ export default function DataVisualizationPage() {
 
         {/* Main Analytics Tabs */}
         <Tabs defaultValue="ai-performance" className="w-full">
-          <TabsList className="grid w-full max-w-4xl grid-cols-4 bg-muted/50 p-1">
+          <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 lg:max-w-4xl lg:grid-cols-4">
             <TabsTrigger value="ai-performance" className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800">
               <TrendingUp className="h-4 w-4" />
               AI Performance
@@ -501,7 +501,7 @@ export default function DataVisualizationPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t bg-muted/10 px-6 py-3">
-                <div className="flex items-center justify-between w-full text-sm">
+                <div className="flex w-full flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" /> Last updated: 2 minutes ago
                   </span>
@@ -515,17 +515,17 @@ export default function DataVisualizationPage() {
           <TabsContent value="visualization-studio" className="mt-6 space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <CardTitle>Visualization Studio</CardTitle>
                     <CardDescription>Build and view custom charts from your data sources</CardDescription>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
                       <Save className="h-4 w-4 mr-2" />
                       Save View
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
                       <Share2 className="h-4 w-4 mr-2" />
                       Share
                     </Button>
@@ -534,7 +534,7 @@ export default function DataVisualizationPage() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="visitors" className="w-full">
-                  <TabsList className="grid w-full max-w-md grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-1 sm:max-w-md sm:grid-cols-3">
                     <TabsTrigger value="visitors" className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       Visitors
@@ -606,13 +606,13 @@ export default function DataVisualizationPage() {
         </Tabs>
 
         {/* Saved Views Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+        <Card className="w-full min-w-0">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>Saved Dashboards & Views</CardTitle>
               <CardDescription>Your customized analytics configurations</CardDescription>
             </div>
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+            <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 sm:w-auto">
               <Zap className="h-4 w-4 mr-2" />
               New Dashboard
             </Button>
@@ -675,7 +675,7 @@ export default function DataVisualizationPage() {
                 { action: "Created new Gate Analytics view", time: "2 hours ago", user: "Sarah Johnson" },
                 { action: "Shared Security Dashboard", time: "1 day ago", user: "Mike Chen" },
               ].map((activity, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div key={i} className="flex flex-col gap-2 rounded-lg bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
                     <Activity className="h-4 w-4 text-muted-foreground" />
                     <div>
