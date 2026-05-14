@@ -52,19 +52,21 @@ export function Dashboard() {
   ]
 
   return (
-    <div className="flex flex-col min-h-full">
-      <div className="flex flex-1 flex-col gap-11">
-        <div className="flex flex-col self-stretch  gap-9">
+    <div className="flex min-h-full w-full min-w-0 max-w-full flex-col">
+      <div className="flex min-w-0 flex-1 flex-col gap-8 sm:gap-11">
+        <div className="flex min-w-0 flex-col gap-7 self-stretch sm:gap-9">
           {/* Welcome */}
-          <div className="flex flex-col gap-2">
-            <h1 className="text-[#101727] text-3xl font-bold">Welcome Back Sarah!</h1>
-            <p className="text-[#697282] text-base">
+          <div className="flex min-w-0 flex-col gap-2">
+            <h1 className="break-words text-2xl font-bold tracking-tight text-[#101727] sm:text-3xl">
+              Welcome Back Sarah!
+            </h1>
+            <p className="text-sm text-[#697282] sm:text-base">
               Manage your data, appointments, warehouse and resources efficiently.
             </p>
           </div>
 
           {/* Stat cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid min-w-0 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="rounded-[10px] border-gray-200 pt-[22px] pb-[23px] px-6 gap-2">
               <CardContent className="p-0">
                 <div className="flex items-start gap-3">
@@ -125,41 +127,41 @@ export function Dashboard() {
 
           {/* Calendar View banner */}
           <div
-            className="flex flex-wrap justify-between items-center gap-4 p-6 rounded-[10px]"
+            className="flex flex-col gap-4 rounded-[10px] p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:p-6"
             style={{ background: "linear-gradient(180deg, #155DFC, #1447E6)" }}
           >
-            <div className="flex shrink-0 items-center gap-4">
-              <div className="w-16 h-16 rounded-lg bg-white/20 flex items-center justify-center">
-                <Calendar className="w-8 h-8 text-white" />
+            <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-white/20 sm:h-16 sm:w-16">
+                <Calendar className="h-7 w-7 text-white sm:h-8 sm:w-8" />
               </div>
-              <div>
-                <h2 className="text-white text-xl font-bold">Calendar View</h2>
-                <p className="text-blue-100 text-sm">
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-white sm:text-xl">Calendar View</h2>
+                <p className="text-sm text-blue-100">
                   View and manage all appointments, bookings, and scheduled visits.
                 </p>
               </div>
             </div>
-            <Link to={ROUTES.CALENDAR_VIEW}>
-              <Button className="bg-white text-[#155DFC] hover:bg-white/90 rounded-[10px] py-[11px] px-6 gap-2">
-                <CalendarDays className="w-5 h-5" />
+            <Link to={ROUTES.CALENDAR_VIEW} className="w-full shrink-0 sm:w-auto">
+              <Button className="w-full gap-2 rounded-[10px] bg-white px-6 py-[11px] text-[#155DFC] hover:bg-white/90 sm:w-auto">
+                <CalendarDays className="h-5 w-5" />
                 <span className="text-base font-medium">View Calendar</span>
               </Button>
             </Link>
           </div>
 
           {/* At a Glance */}
-          <div className="flex flex-col gap-8">
-            <h2 className="text-[#101727] text-2xl font-bold">At a Glance</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="flex min-w-0 flex-col gap-6 sm:gap-8">
+            <h2 className="text-xl font-bold text-[#101727] sm:text-2xl">At a Glance</h2>
+            <div className="grid min-w-0 grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2 lg:gap-10">
               {/* Visitor Management */}
-              <Card className="rounded-[10px] border-gray-200 overflow-hidden">
+              <Card className="min-w-0 overflow-hidden rounded-[10px] border-gray-200">
                 <CardContent className="p-0">
-                  <div className="h-12 bg-blue-50 flex items-center px-6">
-                    <Users className="w-6 h-6 text-[#155DFC]" />
+                  <div className="flex h-12 items-center bg-blue-50 px-4 sm:px-6">
+                    <Users className="h-6 w-6 text-[#155DFC]" />
                   </div>
-                  <div className="py-6 pr-6 pl-6 gap-3.5 flex flex-col">
-                    <h3 className="text-[#101828] text-[22px] font-bold">Visitor Management</h3>
-                    <p className="text-[#6A7282] text-lg">
+                  <div className="flex flex-col gap-3.5 px-4 py-5 sm:px-6 sm:py-6">
+                    <h3 className="text-lg font-bold text-[#101828] sm:text-[22px]">Visitor Management</h3>
+                    <p className="text-sm text-[#6A7282] sm:text-lg">
                       Manage visitor registrations, check-ins, check-outs, and access control.
                     </p>
                     <div className="flex flex-wrap gap-4">
@@ -182,14 +184,14 @@ export function Dashboard() {
               </Card>
 
               {/* Warehouse Management */}
-              <Card className="rounded-[10px] border-gray-200 overflow-hidden">
+              <Card className="min-w-0 overflow-hidden rounded-[10px] border-gray-200">
                 <CardContent className="p-0">
-                  <div className="h-12 bg-violet-50 flex items-center px-6">
-                    <Package className="w-6 h-6 text-[#9810FA]" />
+                  <div className="flex h-12 items-center bg-violet-50 px-4 sm:px-6">
+                    <Package className="h-6 w-6 text-[#9810FA]" />
                   </div>
-                  <div className="py-6 pr-6 pl-6 gap-3.5 flex flex-col">
-                    <h3 className="text-[#101828] text-[22px] font-bold">Warehouse Management</h3>
-                    <p className="text-[#6A7282] text-lg">
+                  <div className="flex flex-col gap-3.5 px-4 py-5 sm:px-6 sm:py-6">
+                    <h3 className="text-lg font-bold text-[#101828] sm:text-[22px]">Warehouse Management</h3>
+                    <p className="text-sm text-[#6A7282] sm:text-lg">
                       Track inventory, collections, kept items and warehouse operations in real-time.
                     </p>
                     <div className="flex flex-wrap gap-4">
@@ -212,14 +214,14 @@ export function Dashboard() {
               </Card>
 
               {/* AI Analytics */}
-              <Card className="rounded-[10px] border-gray-200 overflow-hidden">
+              <Card className="min-w-0 overflow-hidden rounded-[10px] border-gray-200">
                 <CardContent className="p-0">
-                  <div className="h-12 bg-cyan-50 flex items-center px-6">
-                    <BarChart3 className="w-6 h-6 text-[#0092B8]" />
+                  <div className="flex h-12 items-center bg-cyan-50 px-4 sm:px-6">
+                    <BarChart3 className="h-6 w-6 text-[#0092B8]" />
                   </div>
-                  <div className="py-6 pr-6 pl-6 gap-3.5 flex flex-col">
-                    <h3 className="text-[#101828] text-[22px] font-bold">AI Analytics</h3>
-                    <p className="text-[#6A7282] text-lg">
+                  <div className="flex flex-col gap-3.5 px-4 py-5 sm:px-6 sm:py-6">
+                    <h3 className="text-lg font-bold text-[#101828] sm:text-[22px]">AI Analytics</h3>
+                    <p className="text-sm text-[#6A7282] sm:text-lg">
                       Advanced insights and predictive analytics for visits and operations.
                     </p>
                     <div className="flex flex-wrap gap-4">
@@ -242,14 +244,14 @@ export function Dashboard() {
               </Card>
 
               {/* Human Resources */}
-              <Card className="rounded-[10px] border-gray-200 overflow-hidden">
+              <Card className="min-w-0 overflow-hidden rounded-[10px] border-gray-200">
                 <CardContent className="p-0">
-                  <div className="h-12 bg-emerald-50 flex items-center px-6">
-                    <UsersRound className="w-6 h-6 text-[#009966]" />
+                  <div className="flex h-12 items-center bg-emerald-50 px-4 sm:px-6">
+                    <UsersRound className="h-6 w-6 text-[#009966]" />
                   </div>
-                  <div className="py-6 pr-6 pl-6 gap-3.5 flex flex-col">
-                    <h3 className="text-[#101828] text-[22px] font-bold">Human Resources</h3>
-                    <p className="text-[#6A7282] text-lg">
+                  <div className="flex flex-col gap-3.5 px-4 py-5 sm:px-6 sm:py-6">
+                    <h3 className="text-lg font-bold text-[#101828] sm:text-[22px]">Human Resources</h3>
+                    <p className="text-sm text-[#6A7282] sm:text-lg">
                       Employee management, attendance and performance tracking, and HR process
                       automation.
                     </p>
@@ -275,12 +277,12 @@ export function Dashboard() {
           </div>
 
           {/* Recent Registrations */}
-          <Card className="rounded-[10px] border border-gray-200 overflow-hidden">
-            <div className="pt-4 pl-6 pb-1">
-              <h2 className="text-[#101727] text-xl font-bold">Recent Registrations</h2>
+          <Card className="min-w-0 max-w-full overflow-hidden rounded-[10px] border border-gray-200">
+            <div className="pb-1 pl-4 pt-4 sm:pl-6">
+              <h2 className="text-lg font-bold text-[#101727] sm:text-xl">Recent Registrations</h2>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px]">
+            <div className="max-w-full overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+              <table className="w-full min-w-[640px] sm:min-w-[800px]">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-7 text-[#697282] text-sm font-bold">Reg ID</th>
