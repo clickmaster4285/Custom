@@ -64,6 +64,7 @@ function saveRows(rows: UserRow[]) {
 
 const ROLES = [
   { value: "Admin", label: "Admin" },
+  { value: "Operation Manager", label: "Operation Manager" },
   { value: "Inspector", label: "Inspector" },
   { value: "Collector", label: "Collector" },
   { value: "Deputy Collector", label: "Deputy Collector" },
@@ -72,6 +73,9 @@ const ROLES = [
   { value: "Human Resource", label: "Human Resource" },
   { value: "Warehouse Officer", label: "Warehouse Officer" },
   { value: "Detection Officer", label: "Detection Officer" },
+  { value: "FIR Officer", label: "FIR Officer" },
+  { value: "Investigation Officer", label: "Investigation Officer" },
+  { value: "Seizing Officer", label: "Seizing Officer" },
 ]
 
 export default function UserRoleManagementPage() {
@@ -228,6 +232,7 @@ export default function UserRoleManagementPage() {
                   <TableBody>
                     {[
                       { name: "Admin", desc: "Full system access", users: 2 },
+                      { name: "Operation Manager", desc: "Operations oversight", users: 0 },
                       { name: "Inspector", desc: "Inspection and field ops", users: 0 },
                       { name: "Collector", desc: "Collectorate level access", users: 0 },
                       { name: "Deputy Collector", desc: "Deputy collectorate duties", users: 0 },
@@ -236,6 +241,9 @@ export default function UserRoleManagementPage() {
                       { name: "Human Resource", desc: "HR module and personnel", users: 0 },
                       { name: "Warehouse Officer", desc: "Warehouse and inventory", users: 0 },
                       { name: "Detection Officer", desc: "Detection and enforcement", users: 0 },
+                      { name: "FIR Officer", desc: "FIR registration and records", users: 0 },
+                      { name: "Investigation Officer", desc: "Case investigation workflow", users: 0 },
+                      { name: "Seizing Officer", desc: "Seizure and custody operations", users: 0 },
                     ].map((row) => (
                       <TableRow key={row.name}>
                         <TableCell className="font-medium">{row.name}</TableCell>

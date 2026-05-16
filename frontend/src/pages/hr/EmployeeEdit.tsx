@@ -39,6 +39,16 @@ export default function EmployeeEditPage() {
   const [phonePrimary, setPhonePrimary] = useState("")
   const [jobStatus, setJobStatus] = useState("")
   const [notes, setNotes] = useState("")
+  const [personalNumber, setPersonalNumber] = useState("")
+  const [employeeId, setEmployeeId] = useState("")
+  const [bps, setBps] = useState("")
+  const [qualification, setQualification] = useState("")
+  const [currentPosting, setCurrentPosting] = useState("")
+  const [collectorName, setCollectorName] = useState("")
+  const [transferredFrom, setTransferredFrom] = useState("")
+  const [transferredTo, setTransferredTo] = useState("")
+  const [employmentType, setEmploymentType] = useState("")
+  const [branchLocation, setBranchLocation] = useState("")
 
   useEffect(() => {
     if (staff) {
@@ -47,9 +57,19 @@ export default function EmployeeEditPage() {
       setDesignation(s.designation ?? "")
       setDepartment(s.department ?? "")
       setEmail(s.email ?? "")
-      setPhonePrimary(s.phone_primary ?? "")
+      setPhonePrimary(s.phone_primary ?? s.phone ?? "")
       setJobStatus(s.job_status ?? "")
       setNotes(s.notes ?? "")
+      setPersonalNumber(s.personal_number ?? "")
+      setEmployeeId(s.employee_id ?? "")
+      setBps(s.bps ?? "")
+      setQualification(s.qualification ?? "")
+      setCurrentPosting(s.current_posting ?? s.branch_location ?? "")
+      setCollectorName(s.collector_name ?? "")
+      setTransferredFrom(s.transferred_from ?? "")
+      setTransferredTo(s.transferred_to ?? "")
+      setEmploymentType(s.employment_type ?? "")
+      setBranchLocation(s.branch_location ?? "")
     }
   }, [staff])
 
@@ -66,6 +86,16 @@ export default function EmployeeEditPage() {
         phone_primary: phonePrimary || undefined,
         job_status: jobStatus || undefined,
         notes: notes || undefined,
+        personal_number: personalNumber || undefined,
+        employee_id: employeeId || undefined,
+        bps: bps || undefined,
+        qualification: qualification || undefined,
+        current_posting: currentPosting || undefined,
+        collector_name: collectorName || undefined,
+        transferred_from: transferredFrom || undefined,
+        transferred_to: transferredTo || undefined,
+        employment_type: employmentType || undefined,
+        branch_location: branchLocation || undefined,
       })
       toast({ title: "Employee updated", description: "Changes have been saved." })
       queryClient.invalidateQueries({ queryKey: ["staff", staffId] })
@@ -116,10 +146,12 @@ export default function EmployeeEditPage() {
         { label: "Edit" },
       ]}
     >
-      <Card className="max-w-2xl">
+      <Card className="max-w-4xl">
         <CardHeader>
-          <CardTitle>Basic information</CardTitle>
-          <CardDescription>Edit key fields. For full profile use the detail page.</CardDescription>
+          <CardTitle>Employee record</CardTitle>
+          <CardDescription>
+            Edit fields stored for this employee. CNIC is managed when the record is created.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -161,7 +193,7 @@ export default function EmployeeEditPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone (primary)</Label>
+                <Label htmlFor="phone">Mobile (primary)</Label>
                 <Input
                   id="phone"
                   value={phonePrimary}
@@ -169,12 +201,91 @@ export default function EmployeeEditPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="personal_number">Personal number</Label>
+                <Input
+                  id="personal_number"
+                  value={personalNumber}
+                  onChange={(e) => setPersonalNumber(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employee_id">Employee ID</Label>
+                <Input
+                  id="employee_id"
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  placeholder="Official employee / service ID"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bps">BPS</Label>
+                <Input id="bps" value={bps} onChange={(e) => setBps(e.target.value)} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="qualification">Qualification</Label>
+                <Input
+                  id="qualification"
+                  value={qualification}
+                  onChange={(e) => setQualification(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="current_posting">Current place of posting</Label>
+                <Input
+                  id="current_posting"
+                  value={currentPosting}
+                  onChange={(e) => setCurrentPosting(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="branch_location">Branch / location</Label>
+                <Input
+                  id="branch_location"
+                  value={branchLocation}
+                  onChange={(e) => setBranchLocation(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="collector_name">Collector name</Label>
+                <Input
+                  id="collector_name"
+                  value={collectorName}
+                  onChange={(e) => setCollectorName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transferred_from">Transferred from</Label>
+                <Input
+                  id="transferred_from"
+                  value={transferredFrom}
+                  onChange={(e) => setTransferredFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transferred_to">Transferred to</Label>
+                <Input
+                  id="transferred_to"
+                  value={transferredTo}
+                  onChange={(e) => setTransferredTo(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="employment_type">Employment type</Label>
+                <Input
+                  id="employment_type"
+                  value={employmentType}
+                  onChange={(e) => setEmploymentType(e.target.value)}
+                  placeholder="e.g. Permanent, Contract"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Job status</Label>
-                <Select value={jobStatus || "ACTIVE"} onValueChange={setJobStatus}>
+                <Select value={jobStatus || "none"} onValueChange={(v) => setJobStatus(v === "none" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">Not set</SelectItem>
                     <SelectItem value="ACTIVE">Active</SelectItem>
                     <SelectItem value="ON_LEAVE">On leave</SelectItem>
                     <SelectItem value="PROBATION">Probation</SelectItem>

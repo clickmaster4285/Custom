@@ -356,6 +356,7 @@ export default function EmployeeDetailPage() {
                   await deleteStaff(s.id)
                   toast({ title: "Employee deleted", description: "The record has been removed." })
                   queryClient.removeQueries({ queryKey: ["staff", s.id] })
+                  void queryClient.invalidateQueries({ queryKey: ["staff"] })
                   navigate(ROUTES.EMPLOYEES)
                 } catch (err) {
                   toast({
@@ -418,6 +419,8 @@ export default function EmployeeDetailPage() {
               ["Department", val(s.department)],
               ["Branch / Office", val(s.branch_location)],
               ["Current place of posting", val(s.current_posting)],
+              ["Transferred from", val(s.transferred_from)],
+              ["Transferred to", val(s.transferred_to)],
               ["Collectorate / Collector name", val(s.collector_name)],
               ["Manager / Supervisor", val(s.manager)],
               ["Employment type", val(s.employment_type)],

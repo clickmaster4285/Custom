@@ -16,8 +16,10 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ROUTES } from "@/routes/config"
+import { getStoredUser } from "@/lib/auth"
 
 export function Dashboard() {
+  const welcomeName = getStoredUser()?.username?.trim() || "User"
   const recentRegistrations = [
     {
       regId: "1234",
@@ -58,7 +60,7 @@ export function Dashboard() {
           {/* Welcome */}
           <div className="flex min-w-0 flex-col gap-2">
             <h1 className="break-words text-2xl font-bold tracking-tight text-[#101727] sm:text-3xl">
-              Welcome Back Sarah!
+              Welcome Back {welcomeName}!
             </h1>
             <p className="text-sm text-[#697282] sm:text-base">
               Manage your data, appointments, warehouse and resources efficiently.

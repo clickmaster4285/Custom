@@ -9,6 +9,7 @@ class User(AbstractUser):
 
     ROLE_CHOICES = [
         ("ADMIN", "Admin"),
+        ("OPERATION_MANAGER", "Operation Manager"),
         ("INSPECTOR", "Inspector"),
         ("COLLECTOR", "Collector"),
         ("DEPUTY_COLLECTOR", "Deputy Collector"),
@@ -17,6 +18,9 @@ class User(AbstractUser):
         ("HR", "Human Resource"),
         ("WAREHOUSE_OFFICER", "Warehouse Officer"),
         ("DETECTION_OFFICER", "Detection Officer"),
+        ("FIR_OFFICER", "FIR Officer"),
+        ("INVESTIGATION_OFFICER", "Investigation Officer"),
+        ("SEIZING_OFFICER", "Seizing Officer"),
     ]
     role = models.CharField(max_length=30, choices=ROLE_CHOICES)
     phone = models.CharField(max_length=20)
@@ -58,6 +62,13 @@ class Staff(models.Model):
     postal_code = models.CharField(max_length=20, null=True, blank=True)
     # Job
     employee_id = models.CharField(max_length=50, null=True, blank=True, unique=True)
+    personal_number = models.CharField(max_length=50, null=True, blank=True)
+    bps = models.CharField(max_length=10, null=True, blank=True)
+    qualification = models.CharField(max_length=200, null=True, blank=True)
+    current_posting = models.CharField(max_length=300, null=True, blank=True)
+    collector_name = models.CharField(max_length=200, null=True, blank=True)
+    transferred_from = models.CharField(max_length=300, null=True, blank=True)
+    transferred_to = models.CharField(max_length=300, null=True, blank=True)
     designation = models.CharField(max_length=100)
     department = models.CharField(max_length=100)
     branch_location = models.CharField(max_length=200, null=True, blank=True)
