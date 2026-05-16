@@ -30,7 +30,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["custom-logo.jpg", "icon.svg"],
+      includeAssets: ["pakistan-customs-logo.png", "icon.svg"],
       manifest: {
         name: "Pakistan Customs — Secure Access Portal",
         short_name: "Customs Portal",
@@ -46,15 +46,15 @@ export default defineConfig({
         dir: "ltr",
         icons: [
           {
-            src: "custom-logo.jpg",
+            src: "pakistan-customs-logo.png",
             sizes: "512x512",
-            type: "image/jpeg",
+            type: "image/png",
             purpose: "any",
           },
           {
-            src: "custom-logo.jpg",
+            src: "pakistan-customs-logo.png",
             sizes: "192x192",
-            type: "image/jpeg",
+            type: "image/png",
             purpose: "any",
           },
         ],

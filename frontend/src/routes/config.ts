@@ -298,27 +298,6 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
     ],
   },
   {
-    label: "Armory",
-    children: [
-      { label: "Armory Dashboard", href: ROUTES.ARMORY },
-    ],
-  },
-  {
-    label: "Litigation Management",
-    children: [
-      {
-        label: "Cases",
-        children: [
-          { label: "FIR Registration", href: ROUTES.FIR_REGISTRATION },
-          { label: "Case File Creation", href: ROUTES.CASE_FILE_CREATION },
-          { label: "Court Proceedings", href: ROUTES.COURT_PROCEEDINGS },
-          { label: "Legal Documents", href: ROUTES.LEGAL_DOCUMENTS },
-          { label: "Case Status Tracking", href: ROUTES.CASE_STATUS_TRACKING },
-        ],
-      },
-    ],
-  },
-  {
     label: "Warehouse Management", href: ROUTES.OPERATIONS_DASHBOARD,
     children: [
       {
@@ -421,6 +400,37 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
     ],
   },
   {
+    label: "Human Resource",
+    children: [
+      { label: "Employees", href: ROUTES.EMPLOYEES },
+      { label: "Attendance", href: ROUTES.ATTENDANCE },
+      { label: "Leave", href: ROUTES.LEAVE_MANAGEMENT },
+      { label: "Payroll", href: ROUTES.PAYROLL },
+      { label: "Recruitment", href: ROUTES.RECRUITMENT },
+    ],
+  },
+  {
+    label: "Armory",
+    children: [
+      { label: "Armory Dashboard", href: ROUTES.ARMORY },
+    ],
+  },
+  {
+    label: "Litigation Management",
+    children: [
+      {
+        label: "Cases",
+        children: [
+          { label: "FIR Registration", href: ROUTES.FIR_REGISTRATION },
+          { label: "Case File Creation", href: ROUTES.CASE_FILE_CREATION },
+          { label: "Court Proceedings", href: ROUTES.COURT_PROCEEDINGS },
+          { label: "Legal Documents", href: ROUTES.LEGAL_DOCUMENTS },
+          { label: "Case Status Tracking", href: ROUTES.CASE_STATUS_TRACKING },
+        ],
+      },
+    ],
+  },
+  {
     label: "Auction Management",
     children: [
       { label: "ASO Portal Sync", href: ROUTES.ASO_PORTAL_SYNC },
@@ -509,16 +519,7 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
     ],
   },
 
-  {
-    label: "Human Resource",
-    children: [
-      { label: "Employees", href: ROUTES.EMPLOYEES },
-      { label: "Attendance", href: ROUTES.ATTENDANCE },
-      { label: "Leave", href: ROUTES.LEAVE_MANAGEMENT },
-      { label: "Payroll", href: ROUTES.PAYROLL },
-      { label: "Recruitment", href: ROUTES.RECRUITMENT },
-    ],
-  },
+ 
   {
     label: "System Configuration",
     children: [

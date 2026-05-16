@@ -200,16 +200,14 @@ export function Sidebar({ mobileOpen = false, onMobileOpenChange }: SidebarProps
       >
       <div className="pb-4 border-b border-[#E5E7EB] shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 flex items-center justify-center shrink-0" aria-hidden>
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Outermost: solid blue diamond */}
-              <path d="M16 2 L30 16 L16 30 L2 16 Z" fill="#155DFC" />
-              {/* Middle: white diamond (creates white band) */}
-              <path d="M16 5 L27 16 L16 27 L5 16 Z" fill="white" />
-              {/* Innermost: solid blue diamond */}
-              <path d="M16 8 L24 16 L16 24 L8 16 Z" fill="#155DFC" />
-            </svg>
-          </div>
+          <img
+            src="/pakistan-customs-logo.png"
+            alt=""
+            width={40}
+            height={40}
+            className="h-10 w-10 shrink-0 object-contain"
+            decoding="async"
+          />
           <span className="sidebar-app-name">TekEye</span>
           <button
             type="button"

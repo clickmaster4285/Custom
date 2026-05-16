@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Users, UserPlus, Building2, Mail, Search, Eye, Edit, Trash2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
@@ -31,23 +32,21 @@ function staffImageUrl(profileImage: string | null | undefined, id?: number): st
 
 export default function EmployeesPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { toast } = useToast()
-  const [staff, setStaff] = useState<StaffRecord[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
 
-  const loadStaff = () => {
-    setLoading(true)
-    fetchStaff()
-      .then(setStaff)
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load staff"))
-      .finally(() => setLoading(false))
-  }
+  const {
+    data: staff = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: ["staff", "list"],
+    queryFn: fetchStaff,
+  })
 
-  useEffect(() => {
-    loadStaff()
-  }, [])
+  const error = queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null
 
   const handleViewEmployee = (employee: StaffRecord) => {
     navigate(getEmployeeDetailPath(employee.id))
@@ -58,7 +57,8 @@ export default function EmployeesPage() {
     try {
       await deleteStaff(id)
       toast({ title: "Employee deleted", description: "The record has been removed." })
-      loadStaff()
+      void queryClient.invalidateQueries({ queryKey: ["staff"] })
+      void refetch()
     } catch (err) {
       toast({ 
         title: "Delete failed", 

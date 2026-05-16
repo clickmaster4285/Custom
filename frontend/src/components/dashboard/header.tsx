@@ -26,7 +26,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     navigate(ROUTES.LOGIN, { replace: true })
   }
 
-  const displayName = user?.username ?? "Sarah Wasim"
+  const displayName = user?.username?.trim() || "User"
   const role = "Admin Panel"
   const initials = displayName
     .split(" ")

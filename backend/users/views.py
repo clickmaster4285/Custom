@@ -100,14 +100,7 @@ class StaffViewSet(viewsets.ModelViewSet):
     ordering_fields = ["full_name", "created_at"]
 
     def get_queryset(self):
-        qs = Staff.objects.all()
-        # List: only fetch columns from original schema so API works before migration 0002
-        if self.action == "list":
-            qs = qs.only(
-                "id", "full_name", "cnic", "address", "date_of_birth", "joining_date",
-                "department", "designation", "profile_image", "emergency_contact", "created_at", "user",
-            )
-        return qs
+        return Staff.objects.all()
 
     def get_serializer_class(self):
         if self.action == "create":

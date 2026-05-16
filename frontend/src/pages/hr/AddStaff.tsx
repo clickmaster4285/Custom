@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import type { CreateStaffPayload } from "@/lib/staff-api"
+import { useQueryClient } from "@tanstack/react-query"
+import { createStaff, type CreateStaffPayload } from "@/lib/staff-api"
 import { ROUTES } from "@/routes/config"
 import { StaffStepIndicator } from "@/components/hr/add-staff/staff-step-indicator"
 import { AddStaffStep1PersonalInfo } from "@/components/hr/add-staff/step1-personal-info"
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input"
 
 const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin" },
+  { value: "OPERATION_MANAGER", label: "Operation Manager" },
   { value: "INSPECTOR", label: "Inspector" },
   { value: "COLLECTOR", label: "Collector" },
   { value: "DEPUTY_COLLECTOR", label: "Deputy Collector" },
@@ -18,6 +20,9 @@ const ROLE_OPTIONS = [
   { value: "HR", label: "Human Resource" },
   { value: "WAREHOUSE_OFFICER", label: "Warehouse Officer" },
   { value: "DETECTION_OFFICER", label: "Detection Officer" },
+  { value: "FIR_OFFICER", label: "FIR Officer" },
+  { value: "INVESTIGATION_OFFICER", label: "Investigation Officer" },
+  { value: "SEIZING_OFFICER", label: "Seizing Officer" },
 ]
 
 const DEPARTMENT_OPTIONS = [
@@ -125,14 +130,6 @@ type AddStaffDraft = {
 }
 
 const ADD_STAFF_DRAFT_KEY = "tekeye.hr.addStaff.draft.v1"
-const LOCAL_STAFF_STORE_KEY = "tekeye.hr.staff.local.v1"
-
-type LocalStaffRecord = {
-  id: number
-  savedAt: string
-  payload: Record<string, unknown>
-  draft: string | null
-}
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -158,6 +155,7 @@ async function storedFileToFile(stored: StoredFile): Promise<File> {
 
 export default function AddStaffPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [form, setForm] = useState<CreateStaffPayload>(emptyForm)
   const [staffPhotos, setStaffPhotos] = useState<UploadValue[]>([])
   const [cameraOpen, setCameraOpen] = useState(false)
@@ -418,35 +416,17 @@ export default function AddStaffPage() {
         delete payload.username
         delete payload.password
       } else {
-        // Ensure both fields are set for backend
         payload.login_username = form.login_username || form.username
         payload.username = payload.login_username
       }
 
-      // Local-only mode: persist staff to localStorage (no backend calls).
+      await createStaff(payload as CreateStaffPayload)
       try {
-        const existingRaw = localStorage.getItem(LOCAL_STAFF_STORE_KEY)
-        const existing = (existingRaw ? JSON.parse(existingRaw) : []) as LocalStaffRecord[]
-        const record: LocalStaffRecord = {
-          id: Date.now(),
-          savedAt: new Date().toISOString(),
-          payload: {
-            ...payload,
-            // never store real File objects directly inside the staff list
-            profile_image: undefined,
-            staff_photos: undefined,
-            cnic_front: undefined,
-            cnic_back: undefined,
-            appointment_letter: undefined,
-            additional_document: undefined,
-          },
-          draft: localStorage.getItem(ADD_STAFF_DRAFT_KEY) ?? null,
-        }
-        localStorage.setItem(LOCAL_STAFF_STORE_KEY, JSON.stringify([record, ...existing]))
         localStorage.removeItem(ADD_STAFF_DRAFT_KEY)
       } catch {
-        // ignore localStorage errors
+        // ignore
       }
+      void queryClient.invalidateQueries({ queryKey: ["staff"] })
       navigate(ROUTES.EMPLOYEES)
       return
     } catch (err) {

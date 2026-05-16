@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Shield, Lock, User, Eye, EyeOff, Info, CheckCircle2 } from "lucide-react"
+import { Lock, User, Eye, EyeOff, Info, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -59,8 +59,15 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 shadow-lg backdrop-blur-sm ring-1 ring-white/20">
-            <Shield className="h-8 w-8" strokeWidth={2} />
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-white/30">
+            <img
+              src="/pakistan-customs-logo.png"
+              alt="Pakistan Customs"
+              width={56}
+              height={56}
+              className="h-full w-full object-contain p-1"
+              decoding="async"
+            />
           </div>
           <div>
             <span className="text-xl font-bold tracking-tight">PAKISTAN CUSTOMS</span>
@@ -102,8 +109,15 @@ export default function LoginPage() {
       <div className="relative flex flex-1 items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-[420px]">
           <div className="mb-10 flex items-center gap-3 lg:hidden">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#1d4ed8] text-white shadow-lg shadow-[#3b82f6]/30">
-              <Shield className="h-6 w-6" strokeWidth={2} />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-border/60">
+              <img
+                src="/pakistan-customs-logo.png"
+                alt="Pakistan Customs"
+                width={48}
+                height={48}
+                className="h-full w-full object-contain p-0.5"
+                decoding="async"
+              />
             </div>
             <div className="min-w-0">
               <span className="text-lg font-bold text-foreground">Pakistan Customs</span>

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, getAuthHeaders, getAuthHeadersFormData, getStoredToken } from "@/lib/api";
 
 /** Staff record as returned by the backend (list/detail). */
 export type StaffRecord = {
@@ -70,6 +70,8 @@ export type StaffRecord = {
   qualification?: string | null;
   current_posting?: string | null;
   collector_name?: string | null;
+  transferred_from?: string | null;
+  transferred_to?: string | null;
   role?: string | null;
   user_details?: {
     id: number;
@@ -82,6 +84,48 @@ export type StaffRecord = {
 };
 
 const STAFF_ENDPOINT = `${API_BASE_URL}/api/staff/`;
+
+function useStaffRestApi(): boolean {
+  return Boolean(getStoredToken());
+}
+
+async function parseApiError(res: Response): Promise<string> {
+  try {
+    const j: unknown = await res.json();
+    if (typeof j === "string") return j;
+    if (j && typeof j === "object" && "detail" in j) {
+      const d = (j as { detail: unknown }).detail;
+      if (Array.isArray(d)) return d.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(", ");
+      return String(d);
+    }
+    if (j && typeof j === "object") {
+      return Object.entries(j as Record<string, unknown>)
+        .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
+        .join("; ");
+    }
+    return res.statusText;
+  } catch {
+    return res.statusText;
+  }
+}
+
+/** Map Django staff JSON to `StaffRecord` (list or detail). */
+export function normalizeApiStaff(row: Record<string, unknown>): StaffRecord {
+  const userDetails = row.user_details as StaffRecord["user_details"] | undefined;
+  const rawProfile = row.profile_image;
+  const profile_image =
+    rawProfile === null || rawProfile === undefined ? null : String(rawProfile);
+  const base = row as unknown as StaffRecord;
+  return {
+    ...base,
+    id: Number(row.id),
+    profile_image,
+    phone: base.phone ?? base.phone_primary ?? null,
+    user: base.user ?? userDetails?.username ?? null,
+    user_details: userDetails ?? null,
+    current_posting: base.current_posting ?? base.branch_location ?? null,
+  };
+}
 
 // Local-only storage key (used when backend is not connected).
 const LOCAL_STAFF_STORE_KEY = "tekeye.hr.staff.local.v1";
@@ -177,6 +221,8 @@ function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
     qualification: (s.qualification as string) ?? null,
     current_posting: (s.current_posting as string) ?? null,
     collector_name: (s.collector_name as string) ?? null,
+    transferred_from: (s.transferred_from as string) ?? null,
+    transferred_to: (s.transferred_to as string) ?? null,
     role: (s.role as string) ?? null,
     emergency_contact: (s.emergency_contact as string) ?? null,
     emergency_contact_name: (s.emergency_contact_name as string) ?? null,
@@ -329,14 +375,22 @@ const DEFAULT_STAFF: StaffRecord[] = [
 const LOCAL_STAFF_STORE_VERSION = 2; // bump when default data format changes
 
 export async function fetchStaff(): Promise<StaffRecord[]> {
-  // Local-only mode: pull from localStorage and convert
+  if (useStaffRestApi()) {
+    const res = await fetch(STAFF_ENDPOINT, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error(await parseApiError(res));
+    const data: unknown = await res.json();
+    const rows = Array.isArray(data) ? data : (data as { results?: unknown[] }).results;
+    if (!Array.isArray(rows)) return [];
+    return rows.map((x) => normalizeApiStaff(x as Record<string, unknown>));
+  }
+
   let storedItems = readLocalStaffStore();
 
-  // if there are no items at all, or they look very old, rebuild entirely
-  const initialCheck = storedItems.length === 0 ||
+  const initialCheck =
+    storedItems.length === 0 ||
     storedItems.some((it) => {
       try {
-        const p = it.payload as any;
+        const p = it.payload as { personal_number?: string };
         return !p.personal_number || (typeof p.personal_number === "string" && !p.personal_number.startsWith("PN"));
       } catch {
         return true;
@@ -355,7 +409,6 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
     return DEFAULT_STAFF;
   }
 
-  // merge defaults for any record that is missing phone/transfer info
   let updated = false;
   storedItems = storedItems.map((it) => {
     const rec = localToStaffRecord(it);
@@ -370,7 +423,8 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
     if (!needsMerge) return it;
 
     updated = true;
-    const mergedPayload = { ...(it.payload ?? {}),
+    const mergedPayload = {
+      ...(it.payload ?? {}),
       phone: def.phone,
       transferred_from: def.transferred_from,
       transferred_to: def.transferred_to,
@@ -387,6 +441,14 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
 }
 
 export async function fetchStaffById(id: number): Promise<StaffRecord> {
+  if (useStaffRestApi()) {
+    const res = await fetch(`${STAFF_ENDPOINT}${id}/`, { headers: getAuthHeaders() });
+    if (res.status === 404) throw new Error("Staff not found");
+    if (!res.ok) throw new Error(await parseApiError(res));
+    const data = (await res.json()) as Record<string, unknown>;
+    return normalizeApiStaff(data);
+  }
+
   const items = readLocalStaffStore();
   const found = items.find((x) => x.id === id);
   if (!found) throw new Error("Staff not found");
@@ -404,9 +466,22 @@ export async function downloadStaffDocument(
   field: string,
   fileName: string
 ): Promise<void> {
-  void staffId;
-  void field;
-  void fileName;
+  if (useStaffRestApi()) {
+    const res = await fetch(getStaffDocumentDownloadUrl(staffId, field), {
+      headers: getAuthHeadersFormData(),
+    });
+    if (!res.ok) throw new Error(await parseApiError(res));
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName || "document";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return;
+  }
   throw new Error("Document download is not available in local-only mode.");
 }
 
@@ -449,6 +524,8 @@ export type CreateStaffPayload = {
   qualification?: string;
   current_posting?: string;
   collector_name?: string;
+  transferred_from?: string;
+  transferred_to?: string;
   
   // Account/Auth
   username?: string;
@@ -499,8 +576,92 @@ export type CreateStaffPayload = {
   additional_document?: File | null;
 };
 
+function buildStaffMultipartFormData(payload: CreateStaffPayload): FormData {
+  const fd = new FormData();
+  const r = payload as Record<string, unknown>;
+  const skip = new Set([
+    "has_login",
+    "login_username",
+    "password",
+    "username",
+    "role",
+    "staff_photos",
+    "father_name",
+  ]);
+
+  const phonePrimary = String(r.phone_primary ?? r.phone ?? "").trim();
+  if (phonePrimary) fd.append("phone_primary", phonePrimary);
+
+  const national = String(r.national_id ?? r.cnic ?? "").trim();
+  if (national) {
+    fd.append("national_id", national);
+    if (r.cnic) fd.append("cnic", String(r.cnic).trim());
+  }
+
+  for (const key of Object.keys(r)) {
+    if (skip.has(key)) continue;
+    const v = r[key];
+    if (v === undefined || v === null) continue;
+    if (v instanceof File) {
+      fd.append(key, v);
+      continue;
+    }
+    if (Array.isArray(v)) continue;
+    if (typeof v === "object") continue;
+    if (key === "phone_primary" || key === "phone" || key === "cnic" || key === "national_id") continue;
+    const s = String(v).trim();
+    if (s === "") continue;
+    fd.append(key, s);
+  }
+
+  const lb = r.leave_balance;
+  if (lb !== undefined && lb !== null && String(lb).trim() !== "") {
+    fd.append("leave_balance", String(lb));
+  }
+
+  const photos = r.staff_photos;
+  if (Array.isArray(photos) && photos[0] instanceof File && !fd.has("profile_image")) {
+    fd.append("profile_image", photos[0]);
+  }
+
+  return fd;
+}
+
 export async function createStaff(payload: CreateStaffPayload): Promise<StaffRecord> {
-  // Local-only mode: persist to localStorage and return mapped record.
+  if (useStaffRestApi()) {
+    const fd = buildStaffMultipartFormData(payload);
+    const res = await fetch(STAFF_ENDPOINT, {
+      method: "POST",
+      headers: getAuthHeadersFormData(),
+      body: fd,
+    });
+    if (!res.ok) throw new Error(await parseApiError(res));
+    const created = normalizeApiStaff((await res.json()) as Record<string, unknown>);
+
+    if (payload.has_login && payload.password && payload.email) {
+      const username =
+        String(payload.login_username || payload.username || payload.email.split("@")[0] || `staff_${created.id}`).trim();
+      const phone =
+        String(payload.phone || payload.phone_primary || payload.emergency_contact_phone || "0000000000").trim();
+      const cu = await fetch(`${STAFF_ENDPOINT}${created.id}/create_user/`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username,
+          email: payload.email.trim(),
+          password: payload.password,
+          role: payload.role || "RECEPTIONIST",
+          phone: phone || "0000000000",
+        }),
+      });
+      if (!cu.ok) {
+        throw new Error(`Employee saved but login was not created: ${await parseApiError(cu)}`);
+      }
+    }
+
+    return created;
+  }
+
   const items = readLocalStaffStore();
   const item: LocalStaffRecord = {
     id: Date.now(),
@@ -517,6 +678,26 @@ export async function updateStaff(
   id: number,
   payload: Partial<CreateStaffPayload>
 ): Promise<StaffRecord> {
+  if (useStaffRestApi()) {
+    const body: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(payload)) {
+      if (v === undefined) continue;
+      if (v instanceof File) continue;
+      body[k] = v;
+    }
+    if (payload.phone && !payload.phone_primary) {
+      body.phone_primary = payload.phone;
+    }
+    const res = await fetch(`${STAFF_ENDPOINT}${id}/`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body),
+    });
+    if (res.status === 404) throw new Error("Staff not found");
+    if (!res.ok) throw new Error(await parseApiError(res));
+    return normalizeApiStaff((await res.json()) as Record<string, unknown>);
+  }
+
   const items = readLocalStaffStore();
   const idx = items.findIndex((x) => x.id === id);
   if (idx < 0) throw new Error("Staff not found");
@@ -533,6 +714,16 @@ export async function updateStaff(
 
 /** Delete staff (hard delete). */
 export async function deleteStaff(id: number): Promise<void> {
+  if (useStaffRestApi()) {
+    const res = await fetch(`${STAFF_ENDPOINT}${id}/`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (res.status === 404) throw new Error("Staff not found");
+    if (!res.ok) throw new Error(await parseApiError(res));
+    return;
+  }
+
   const items = readLocalStaffStore();
   const next = items.filter((x) => x.id !== id);
   if (next.length === items.length) throw new Error("Staff not found");
