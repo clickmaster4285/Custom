@@ -13,10 +13,53 @@ import {
   Trash2,
   Copy,
 } from "lucide-react"
+import type { ReactNode } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ROUTES } from "@/routes/config"
 import { getStoredUser } from "@/lib/auth"
+import { cn } from "@/lib/utils"
+import { DashboardRtspCameraGrid } from "@/components/dashboard/dashboard-rtsp-camera-grid"
+
+type DashboardStatCardProps = {
+  title: string
+  value: string
+  footnote: string
+  footnoteClassName?: string
+  icon: ReactNode
+  iconWrapClassName: string
+}
+
+function DashboardStatCard({
+  title,
+  value,
+  footnote,
+  footnoteClassName,
+  icon,
+  iconWrapClassName,
+}: DashboardStatCardProps) {
+  return (
+    <Card className="flex h-full min-w-0 flex-col gap-0 rounded-[10px] border-gray-200 py-0 shadow-sm">
+      <CardContent className="flex h-full min-w-0 flex-col p-3 sm:p-5">
+        <div className="mb-2 flex min-w-0 items-start justify-between gap-2">
+          <p className="min-w-0 text-[11px] font-medium leading-snug text-[#4A5565] sm:text-sm lg:text-base">
+            {title}
+          </p>
+          <div
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-11 sm:w-11 lg:h-12 lg:w-12",
+              iconWrapClassName
+            )}
+          >
+            {icon}
+          </div>
+        </div>
+        <p className="text-2xl font-bold leading-none text-[#101727] sm:text-3xl lg:text-[32px]">{value}</p>
+        <p className={cn("mt-2 text-[10px] leading-tight sm:text-xs", footnoteClassName)}>{footnote}</p>
+      </CardContent>
+    </Card>
+  )
+}
 
 export function Dashboard() {
   const welcomeName = getStoredUser()?.username?.trim() || "User"
@@ -67,65 +110,43 @@ export function Dashboard() {
             </p>
           </div>
 
-          {/* Stat cards */}
-          <div className="grid min-w-0 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="rounded-[10px] border-gray-200 pt-[22px] pb-[23px] px-6 gap-2">
-              <CardContent className="p-0">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <p className="text-[#4A5565] text-base">Total Visitors Today</p>
-                    <p className="text-[#101727] text-[32px] font-bold">12</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-[#155DFC]" />
-                  </div>
-                </div>
-                <p className="text-[#00A63E] text-xs mt-2">+12% from yesterday</p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-[10px] border-gray-200 pt-[22px] pb-[23px] px-6 gap-2">
-              <CardContent className="p-0">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <p className="text-[#4A5565] text-base">Active Check-ins</p>
-                    <p className="text-[#101727] text-[32px] font-bold">12</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center">
-                    <ClipboardCheck className="w-6 h-6 text-[#00A63E]" />
-                  </div>
-                </div>
-                <p className="text-[#4A5565] text-xs mt-2">Currently on premises</p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-[10px] border-gray-200 pt-[22px] pb-[23px] px-6 gap-2">
-              <CardContent className="p-0">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <p className="text-[#4A5565] text-base">Pending Approvals</p>
-                    <p className="text-[#101727] text-[32px] font-bold">12</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6 text-[#F54900]" />
-                  </div>
-                </div>
-                <p className="text-[#F54900] text-xs mt-2">Requires Attention</p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-[10px] border-gray-200 pt-[22px] pb-[23px] px-6 gap-2">
-              <CardContent className="p-0">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <p className="text-[#4A5565] text-base">Warehouse Activities</p>
-                    <p className="text-[#101727] text-[32px] font-bold">43</p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-violet-50 flex items-center justify-center">
-                    <Package className="w-6 h-6 text-[#9810FA]" />
-                  </div>
-                </div>
-                <p className="text-[#9810FA] text-xs mt-2">Active operations</p>
-              </CardContent>
-            </Card>
+          {/* Stat cards: 2×2 on mobile/tablet, 4 across on lg+ */}
+          <div className="grid w-full min-w-0 grid-cols-2 grid-rows-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-4 lg:grid-rows-1 lg:gap-6">
+            <DashboardStatCard
+              title="Total Visitors Today"
+              value="12"
+              footnote="+12% from yesterday"
+              footnoteClassName="text-[#00A63E]"
+              iconWrapClassName="bg-blue-50"
+              icon={<Users className="h-5 w-5 text-[#155DFC] sm:h-6 sm:w-6" />}
+            />
+            <DashboardStatCard
+              title="Active Check-ins"
+              value="12"
+              footnote="Currently on premises"
+              footnoteClassName="text-[#4A5565]"
+              iconWrapClassName="bg-green-50"
+              icon={<ClipboardCheck className="h-5 w-5 text-[#00A63E] sm:h-6 sm:w-6" />}
+            />
+            <DashboardStatCard
+              title="Pending Approvals"
+              value="12"
+              footnote="Requires Attention"
+              footnoteClassName="text-[#F54900]"
+              iconWrapClassName="bg-orange-50"
+              icon={<AlertCircle className="h-5 w-5 text-[#F54900] sm:h-6 sm:w-6" />}
+            />
+            <DashboardStatCard
+              title="Warehouse Activities"
+              value="43"
+              footnote="Active operations"
+              footnoteClassName="text-[#9810FA]"
+              iconWrapClassName="bg-violet-50"
+              icon={<Package className="h-5 w-5 text-[#9810FA] sm:h-6 sm:w-6" />}
+            />
           </div>
+
+          <DashboardRtspCameraGrid />
 
           {/* Calendar View banner */}
           <div
@@ -166,12 +187,12 @@ export function Dashboard() {
                     <p className="text-sm text-[#6A7282] sm:text-lg">
                       Manage visitor registrations, check-ins, check-outs, and access control.
                     </p>
-                    <div className="flex flex-wrap gap-4">
-                      <div className="flex flex-col bg-blue-50 p-3 gap-1 rounded-[10px] min-w-[140px]">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="flex flex-col bg-blue-50 p-3 gap-1 rounded-[10px] min-w-0">
                         <span className="text-[#155DFC] text-sm">Today&apos;s Visits</span>
                         <span className="text-[#1C398E] text-xl font-bold">142</span>
                       </div>
-                      <div className="flex flex-col bg-green-50 p-3 gap-1 rounded-[10px] min-w-[140px]">
+                      <div className="flex flex-col bg-green-50 p-3 gap-1 rounded-[10px] min-w-0">
                         <span className="text-[#00A63E] text-sm">Checked In</span>
                         <span className="text-[#0D542B] text-xl font-bold">38</span>
                       </div>
@@ -196,12 +217,12 @@ export function Dashboard() {
                     <p className="text-sm text-[#6A7282] sm:text-lg">
                       Track inventory, collections, kept items and warehouse operations in real-time.
                     </p>
-                    <div className="flex flex-wrap gap-4">
-                      <div className="flex flex-col bg-blue-50 p-3 gap-1 rounded-[10px] min-w-[140px]">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="flex flex-col bg-blue-50 p-3 gap-1 rounded-[10px] min-w-0">
                         <span className="text-[#155DFC] text-sm">Active Operations</span>
                         <span className="text-[#1C398E] text-xl font-bold">142</span>
                       </div>
-                      <div className="flex flex-col bg-orange-50 p-3 gap-1 rounded-[10px] min-w-[140px]">
+                      <div className="flex flex-col bg-orange-50 p-3 gap-1 rounded-[10px] min-w-0">
                         <span className="text-[#F54900] text-sm">Pending Items</span>
                         <span className="text-[#7E2A0C] text-xl font-bold">38</span>
                       </div>
@@ -226,12 +247,12 @@ export function Dashboard() {
                     <p className="text-sm text-[#6A7282] sm:text-lg">
                       Advanced insights and predictive analytics for visits and operations.
                     </p>
-                    <div className="flex flex-wrap gap-4">
-                      <div className="flex flex-col bg-[#FDF8F0] p-3 gap-1 rounded-[10px] min-w-[140px]">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="flex flex-col bg-[#FDF8F0] p-3 gap-1 rounded-[10px] min-w-0">
                         <span className="text-[#FC7115] text-sm">Peak Hours</span>
-                        <span className="text-[#8E4B1C] text-xl font-bold">10AM - 2PM</span>
+                        <span className="text-sm font-bold leading-tight text-[#8E4B1C] sm:text-xl">10AM - 2PM</span>
                       </div>
-                      <div className="flex flex-col bg-green-50 p-3 gap-1 rounded-[10px] min-w-[140px]">
+                      <div className="flex flex-col bg-green-50 p-3 gap-1 rounded-[10px] min-w-0">
                         <span className="text-[#00A63E] text-sm">Efficiency</span>
                         <span className="text-[#0D542B] text-xl font-bold">93%</span>
                       </div>
@@ -257,12 +278,12 @@ export function Dashboard() {
                       Employee management, attendance and performance tracking, and HR process
                       automation.
                     </p>
-                    <div className="flex flex-wrap gap-4">
-                      <div className="flex flex-col bg-[#F1FFEF] p-3 gap-1 rounded-[10px] min-w-[140px]">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="flex flex-col bg-[#F1FFEF] p-3 gap-1 rounded-[10px] min-w-0">
                         <span className="text-[#019639] text-sm">Employees</span>
                         <span className="text-[#1C620C] text-xl font-bold">142</span>
                       </div>
-                      <div className="flex flex-col bg-green-50 p-3 gap-1 rounded-[10px] min-w-[140px]">
+                      <div className="flex flex-col bg-green-50 p-3 gap-1 rounded-[10px] min-w-0">
                         <span className="text-[#00A63E] text-sm">Present Today</span>
                         <span className="text-[#0D542B] text-xl font-bold">131</span>
                       </div>

@@ -1,5 +1,7 @@
 from pathlib import Path
+import glob
 import os
+import shutil
 from dotenv import load_dotenv
 
 # -----------------------------
@@ -71,6 +73,7 @@ INSTALLED_APPS = [
     "visitors",
     'logs',
     "detentions",
+    "cameras",
 ]
 
 # -----------------------------
@@ -194,3 +197,39 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = int(
 # This reduces stored file sizes significantly (typically 70-85% reduction)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# -----------------------------
+# RTSP cameras (dashboard live grid) — credentials stay server-side only
+# Comma-separated list in .env: RTSP_CAMERA_URLS=url1,url2,url3,url4
+# -----------------------------
+RTSP_CAMERA_URLS = _env_list("RTSP_CAMERA_URLS")
+
+
+def _resolve_ffmpeg_path() -> str:
+    """Full path to ffmpeg.exe (env, PATH, or WinGet install)."""
+    custom = os.getenv("FFMPEG_PATH", "").strip()
+    if custom and os.path.isfile(custom):
+        return custom
+    on_path = shutil.which("ffmpeg")
+    if on_path:
+        return on_path
+    if os.name == "nt":
+        local = os.environ.get("LOCALAPPDATA", "")
+        if local:
+            pattern = os.path.join(
+                local,
+                "Microsoft",
+                "WinGet",
+                "Packages",
+                "Gyan.FFmpeg_*",
+                "ffmpeg-*-full_build",
+                "bin",
+                "ffmpeg.exe",
+            )
+            for path in sorted(glob.glob(pattern), reverse=True):
+                if os.path.isfile(path):
+                    return path
+    return custom or ""
+
+
+FFMPEG_PATH = _resolve_ffmpeg_path()
