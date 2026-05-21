@@ -1,50 +1,13 @@
 /**
- * Gate & Zone localStorage helpers for Gate Integration.
+ * Gate & Zone persistence via VMS API (database).
  */
 
-import type { Gate, Zone } from "./gate-types"
-import { GATE_STORAGE_KEYS } from "./gate-types"
-
-function safeParse<T>(raw: string | null, fallback: T): T {
-  if (raw == null) return fallback
-  try {
-    const parsed = JSON.parse(raw) as T
-    return Array.isArray(parsed) ? parsed : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function safeSave(key: string, data: unknown): void {
-  if (typeof window === "undefined") return
-  try {
-    window.localStorage.setItem(key, JSON.stringify(data))
-  } catch {
-    // quota
-  }
-}
-
-export function getGates(): Gate[] {
-  if (typeof window === "undefined") return []
-  return safeParse<Gate[]>(window.localStorage.getItem(GATE_STORAGE_KEYS.GATES), [])
-}
-
-export function setGates(gates: Gate[]): void {
-  safeSave(GATE_STORAGE_KEYS.GATES, gates)
-}
-
-export function getZones(): Zone[] {
-  if (typeof window === "undefined") return []
-  const raw = safeParse<Record<string, unknown>[]>(
-    window.localStorage.getItem(GATE_STORAGE_KEYS.ZONES),
-    []
-  )
-  return raw.map((z) => migrateZone(z as Partial<Zone>))
-}
+import type { Gate, Zone } from "./gate-types";
+import { GATE_STORAGE_KEYS } from "./gate-types";
+import { fetchVmsJsonBlob, saveVmsJsonBlob } from "@/lib/vms-list-api";
 
 function migrateZone(z: Partial<Zone>): Zone {
-  if (z.zone_code != null && typeof z.max_occupancy === "number")
-    return z as Zone
+  if (z.zone_code != null && typeof z.max_occupancy === "number") return z as Zone;
   return {
     zone_id: z.zone_id ?? `zone-${Date.now()}`,
     zone_name: z.zone_name ?? "",
@@ -61,23 +24,7 @@ function migrateZone(z: Partial<Zone>): Zone {
     camera_ids: Array.isArray(z.camera_ids) ? z.camera_ids : [],
     gate_ids: Array.isArray(z.gate_ids) ? z.gate_ids : [],
     zone_active: z.zone_active ?? true,
-  }
-}
-
-export function setZones(zones: Zone[]): void {
-  safeSave(GATE_STORAGE_KEYS.ZONES, zones)
-}
-
-/** Ensure default zones exist so dropdown is usable (full schema) */
-export function ensureDefaultZones(): void {
-  const zones = getZones()
-  if (zones.length > 0) return
-  const defaults: Zone[] = [
-    createDefaultZone("zone-main", "Main Entrance", "MAIN"),
-    createDefaultZone("zone-warehouse", "Warehouse", "WH"),
-    createDefaultZone("zone-admin", "Admin Block", "ADM"),
-  ]
-  setZones(defaults)
+  };
 }
 
 function createDefaultZone(zone_id: string, zone_name: string, zone_code: string): Zone {
@@ -97,5 +44,57 @@ function createDefaultZone(zone_id: string, zone_name: string, zone_code: string
     camera_ids: [],
     gate_ids: [],
     zone_active: true,
-  }
+  };
+}
+
+export async function loadGates(): Promise<Gate[]> {
+  const gates = await fetchVmsJsonBlob<Gate[]>(GATE_STORAGE_KEYS.GATES, []);
+  return Array.isArray(gates) ? gates : [];
+}
+
+export async function saveGates(gates: Gate[]): Promise<void> {
+  await saveVmsJsonBlob(GATE_STORAGE_KEYS.GATES, gates);
+}
+
+export async function loadZones(): Promise<Zone[]> {
+  const raw = await fetchVmsJsonBlob<Partial<Zone>[]>(GATE_STORAGE_KEYS.ZONES, []);
+  const list = Array.isArray(raw) ? raw : [];
+  return list.map((z) => migrateZone(z));
+}
+
+export async function saveZones(zones: Zone[]): Promise<void> {
+  await saveVmsJsonBlob(GATE_STORAGE_KEYS.ZONES, zones);
+}
+
+/** Ensure default zones exist in the database when empty. */
+export async function ensureDefaultZones(): Promise<Zone[]> {
+  const zones = await loadZones();
+  if (zones.length > 0) return zones;
+  const defaults: Zone[] = [
+    createDefaultZone("zone-main", "Main Entrance", "MAIN"),
+    createDefaultZone("zone-warehouse", "Warehouse", "WH"),
+    createDefaultZone("zone-admin", "Admin Block", "ADM"),
+  ];
+  await saveZones(defaults);
+  return defaults;
+}
+
+/** @deprecated Use loadGates — sync API removed */
+export function getGates(): Gate[] {
+  return [];
+}
+
+/** @deprecated Use saveGates — sync API removed */
+export function setGates(_gates: Gate[]): void {
+  // no-op
+}
+
+/** @deprecated Use loadZones */
+export function getZones(): Zone[] {
+  return [];
+}
+
+/** @deprecated Use saveZones */
+export function setZones(_zones: Zone[]): void {
+  // no-op
 }

@@ -48,6 +48,7 @@ class LoginResponseSerializer(serializers.Serializer):
             "email": user.email,
             "role": user.role,
             "phone": user.phone,
+            "location": user.location or "",
         }
 
 
@@ -57,7 +58,7 @@ class LoginResponseSerializer(serializers.Serializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "password", "role", "phone", "is_active"]
+        fields = ["id", "username", "email", "password", "role", "phone", "location", "is_active"]
         extra_kwargs = {
             "password": {"write_only": True, "required": False},
         }

@@ -2,7 +2,7 @@
  * Gate Registry & Zone types for Access Control (Gate Integration).
  * Schema: gate_id, gate_name, gate_type, device_type, device_ip, device_port,
  * gate_zone_id_ref, qr_reader_attached, biometric_reader_attached, camera_id_ref, gate_active.
- * Persistence: localStorage only.
+ * Persistence: database via VMS API.
  */
 
 export const GATE_TYPES = ["Entry", "Exit", "Both"] as const

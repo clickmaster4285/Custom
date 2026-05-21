@@ -73,7 +73,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserCreateSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ["username", "email", "role"]
-    filterset_fields = ["role", "is_active"]
+    filterset_fields = ["role", "is_active", "location"]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -250,6 +250,7 @@ class StaffViewSet(viewsets.ModelViewSet):
             "password": request.data.get("password"),
             "role": request.data.get("role", "RECEPTIONIST"),
             "phone": request.data.get("phone", staff.emergency_contact or ""),
+            "location": request.data.get("location", ""),
         }
         
         if not user_data["email"]:

@@ -31,7 +31,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ROUTES } from "@/routes/config"
 import type { Zone, ZoneType } from "@/lib/gate-types"
 import { ZONE_TYPES } from "@/lib/gate-types"
-import { getZones, setZones, getGates, ensureDefaultZones } from "@/lib/gate-storage"
+import { loadZones, saveZones, loadGates, ensureDefaultZones } from "@/lib/gate-storage"
 
 function generateZoneId(): string {
   return `zone-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -62,15 +62,29 @@ export default function ZoneRestrictionsPage() {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState(emptyZone())
 
+  const [hydrated, setHydrated] = useState(false)
+
   useEffect(() => {
-    ensureDefaultZones()
-    setZonesState(getZones())
-    setGates(getGates().map((g) => ({ gate_id: g.gate_id, gate_name: g.gate_name })))
+    let cancelled = false
+    ;(async () => {
+      await ensureDefaultZones()
+      const z = await loadZones()
+      const g = await loadGates()
+      if (!cancelled) {
+        setZonesState(z)
+        setGates(g.map((gate) => ({ gate_id: gate.gate_id, gate_name: gate.gate_name })))
+        setHydrated(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
-    if (zones.length > 0) setZones(zones)
-  }, [zones])
+    if (!hydrated) return
+    void saveZones(zones)
+  }, [zones, hydrated])
 
   const filteredZones = useMemo(() => {
     const q = search.trim().toLowerCase()

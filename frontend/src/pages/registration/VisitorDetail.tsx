@@ -19,7 +19,7 @@ import {
   Users,
   ListChecks,
 } from "lucide-react"
-import type { RegistrationSource } from "@/lib/visitor-api"
+import { getVisitorCreatedBy, type RegistrationSource } from "@/lib/visitor-api"
 
 type VisitorRecordExtended = Record<string, unknown>
 
@@ -146,6 +146,11 @@ export default function VisitorDetailPage() {
 
   const fullName = String(v.full_name ?? "Unknown")
   const created = v.created_at ? new Date(String(v.created_at)).toLocaleString() : "—"
+  const createdBy = getVisitorCreatedBy({
+    created_by: v.created_by as string | undefined,
+    registered_by_username: v.registered_by_username as string | undefined,
+    registered_by_user_id: v.registered_by_user_id as number | undefined,
+  })
   const source = (v.registration_source as RegistrationSource) ?? "walk-in"
   const mainPhoto = getVisitorPhotoUrl(v)
   const capturedPhoto = v.captured_photo ?? v.photoCapture
@@ -247,6 +252,8 @@ export default function VisitorDetailPage() {
   ]
 
   const metadataEntries = [
+    { label: "Created by", value: createdBy },
+    { label: "Registration status", value: val(v, "registration_status", "registrationStatus") },
     { label: "Expiry status", value: val(v, "expiry_status", "expiryStatus") },
     { label: "Scan count", value: val(v, "scan_count", "scanCount") },
     { label: "Generated on", value: val(v, "generated_on", "generatedOn") },
@@ -277,6 +284,11 @@ export default function VisitorDetailPage() {
             <h1 className="text-[22px] font-bold tracking-tight text-foreground truncate">{fullName}</h1>
             <p className="text-base text-muted-foreground mt-1">
               Registered {created}
+              {createdBy !== "—" && (
+                <span className="ml-2 text-foreground">
+                  · Created by <span className="font-medium">{createdBy}</span>
+                </span>
+              )}
               {source && (
                 <span className="ml-2 inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                   {source === "pre-registration" ? "Pre-Registration" : "Walk-In"}

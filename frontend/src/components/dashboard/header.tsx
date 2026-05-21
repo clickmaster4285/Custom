@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { clearAuth, getStoredUser } from "@/lib/auth"
+import { clearLegacyVmsLocalStorage } from "@/lib/vms-list-api"
 import { getRoleDisplayLabel } from "@/lib/role-access"
 import { ROUTES } from "@/routes/config"
 
@@ -23,7 +24,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   const handleLogout = () => {
     clearAuth()
-    if (typeof window !== "undefined") window.localStorage.clear()
+    clearLegacyVmsLocalStorage()
     navigate(ROUTES.LOGIN, { replace: true })
   }
 

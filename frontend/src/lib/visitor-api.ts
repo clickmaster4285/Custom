@@ -1,5 +1,8 @@
-const VISITOR_WALKIN_KEY = "vms_visitors_walkin";
-const VISITOR_PREREG_KEY = "vms_visitors_prereg";
+import { API_BASE_URL, getAuthHeaders } from "@/lib/api";
+import { filterByUserLocation, getUserLocationFilter } from "@/lib/location-access";
+import { getStoredUser } from "@/lib/auth";
+
+const API = `${API_BASE_URL}/api`;
 
 export type RegistrationSource = "walk-in" | "pre-registration";
 
@@ -13,208 +16,204 @@ export type VisitorRecord = {
   cnic_number: string;
   passport_number: string;
   created_at: string;
+  location?: string;
+  registered_by_user_id?: number;
+  registered_by_username?: string;
+  /** Display name of the user who created this registration */
+  created_by?: string;
   registration_source?: RegistrationSource;
-  /** Draft = saved to list but not submitted; approved/sent = submitted */
   registration_status?: RegistrationStatus;
-  /** Optional fields from walk-in/UI (profile photo, screening, contact) */
   profile_image?: string;
   watchlist_check_status?: string;
   email?: string;
   phone?: string;
+  [key: string]: unknown;
 };
 
-function getStorageKey(source: RegistrationSource): string {
-  return source === "walk-in" ? VISITOR_WALKIN_KEY : VISITOR_PREREG_KEY;
+/** Alias used by VisitorEdit */
+export type VisitorDetail = VisitorRecord;
+
+export function getVisitorCreatedBy(
+  visitor: Pick<VisitorRecord, "created_by" | "registered_by_username" | "registered_by_user_id">
+): string {
+  const label =
+    (visitor.created_by && String(visitor.created_by).trim()) ||
+    (visitor.registered_by_username && String(visitor.registered_by_username).trim()) ||
+    "";
+  if (label) return label;
+  if (visitor.registered_by_user_id) return `User #${visitor.registered_by_user_id}`;
+  return "—";
 }
 
-function readVisitors(source: RegistrationSource): VisitorRecord[] {
-  if (typeof window === "undefined") return [];
-  const key = getStorageKey(source);
-  const raw = window.localStorage.getItem(key);
-  if (!raw) return [];
+function registrationMeta(): Pick<
+  VisitorRecord,
+  "location" | "registered_by_user_id" | "registered_by_username"
+> {
+  const user = getStoredUser();
+  const location = user?.location || getUserLocationFilter() || undefined;
+  return {
+    location,
+    registered_by_user_id: user?.id,
+    registered_by_username: user?.username,
+  };
+}
+
+async function parseError(res: Response): Promise<string> {
   try {
-    const parsed = JSON.parse(raw) as VisitorRecord[];
-    return Array.isArray(parsed) ? parsed : [];
+    const data = (await res.json()) as Record<string, unknown>;
+    if (typeof data.detail === "string") return data.detail;
+    return Object.entries(data)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`)
+      .join("; ");
   } catch {
-    return [];
+    return `Request failed (${res.status})`;
   }
 }
 
-/** User-facing message when localStorage is full and there are existing entries. */
+function mapVisitor(raw: Record<string, unknown>): VisitorRecord {
+  const id = Number(raw.id);
+  return {
+    id,
+    full_name: String(raw.full_name ?? "Unknown Visitor"),
+    visitor_type: String(raw.visitor_type ?? "general"),
+    department_to_visit: String(raw.department_to_visit ?? "admin"),
+    cnic_number: String(raw.cnic_number ?? raw.cnic_passport ?? ""),
+    passport_number: String(raw.passport_number ?? ""),
+    created_at: String(raw.created_at ?? new Date().toISOString()),
+    location: raw.location as string | undefined,
+    registered_by_user_id: raw.registered_by_user_id as number | undefined,
+    registered_by_username: raw.registered_by_username as string | undefined,
+    created_by: (raw.created_by as string) || (raw.registered_by_username as string) || undefined,
+    registration_source: (raw.registration_source as RegistrationSource) || undefined,
+    registration_status: (raw.registration_status as RegistrationStatus) || "approved",
+    profile_image: raw.profile_image as string | undefined,
+    watchlist_check_status: raw.watchlist_check_status as string | undefined,
+    email: (raw.email as string) || (raw.email_address as string),
+    phone: (raw.phone as string) || (raw.mobile_number as string),
+    ...raw,
+  };
+}
+
 export const STORAGE_QUOTA_MESSAGE =
-  "Storage full. Please delete some old entries from the list and try again.";
+  "Could not save registration. Try fewer or smaller images.";
 
-/** When list is empty (0 registrations), the single payload is too large. */
 export const STORAGE_QUOTA_SINGLE_MESSAGE =
-  "Registration is too large for storage (too many or large photos/documents). Try using fewer or smaller images and try again.";
+  "Registration is too large. Try fewer or smaller images.";
 
-function writeVisitors(source: RegistrationSource, rows: VisitorRecord[], previousCount?: number) {
-  if (typeof window === "undefined") return;
-  const key = getStorageKey(source);
-  try {
-    window.localStorage.setItem(key, JSON.stringify(rows));
-  } catch (err) {
-    const isQuota = err instanceof DOMException && (err.name === "QuotaExceededError" || err.code === 22);
-    if (isQuota) {
-      const noExisting = previousCount === 0;
-      throw new Error(noExisting ? STORAGE_QUOTA_SINGLE_MESSAGE : STORAGE_QUOTA_MESSAGE);
-    }
-    throw err;
-  }
+export async function fetchVisitors(
+  source: RegistrationSource = "pre-registration"
+): Promise<VisitorRecord[]> {
+  const params = new URLSearchParams({ registration_source: source });
+  const loc = getUserLocationFilter();
+  if (loc) params.set("location", loc);
+
+  const res = await fetch(`${API}/visitors/list/?${params}`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as Record<string, unknown>[];
+  const rows = data.map((r) => mapVisitor(r));
+  return filterByUserLocation(rows);
 }
 
-/** Fetch visitors for a specific source. Use "walk-in" or "pre-registration" so lists stay separate. */
-export async function fetchVisitors(source: RegistrationSource = "pre-registration"): Promise<VisitorRecord[]> {
-  return readVisitors(source);
-}
-
-/** Create a visitor for a specific source. Walk-in and pre-registration are stored separately. */
-/** For walk-in, the full payload (photos, documents, vehicle, etc.) is stored in localStorage. */
 export async function createVisitor(
   payload: Record<string, unknown>,
   source: RegistrationSource = "pre-registration"
 ): Promise<VisitorRecord> {
-  const rows = readVisitors(source);
-  const nextId =
-    rows.length === 0 ? 1 : Math.max(...rows.map((r) => r.id)) + 1;
-
-  const fullName = String(payload.full_name ?? payload.fullName ?? "Unknown Visitor");
-  const visitorType = String(payload.visitor_type ?? payload.registration_type ?? "individual");
-  const department = String(payload.department_to_visit ?? payload.department ?? "admin");
-  const cnic = String(payload.cnic_number ?? payload.cnic_passport ?? "");
-  const passport = String(payload.passport_number ?? "");
-
-  const createdAt = new Date().toISOString();
-  const base: VisitorRecord = {
-    id: nextId,
-    full_name: fullName,
-    visitor_type: visitorType,
-    department_to_visit: department,
-    cnic_number: cnic,
-    passport_number: passport,
-    created_at: createdAt,
+  const body = {
+    ...payload,
+    ...registrationMeta(),
     registration_source: source,
+    registration_status: payload.registration_status ?? "approved",
   };
-
-  /** Store full payload in localStorage for both walk-in and pre-registration so detail page can show all data. */
-  const newRow: VisitorRecord = ({ ...payload, ...base, registration_status: "approved" } as VisitorRecord);
-
-  writeVisitors(source, [newRow, ...rows], rows.length);
-  return newRow;
+  const res = await fetch(`${API}/visitors/create/?registration_source=${encodeURIComponent(source)}`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as Record<string, unknown>;
+  return mapVisitor(data);
 }
 
-/** Save a draft to the list (same storage as visitors). Status = "draft"; appears in list until submitted. */
 export async function saveDraftToStore(
   payload: Record<string, unknown>,
   source: RegistrationSource = "pre-registration"
 ): Promise<VisitorRecord> {
-  const rows = readVisitors(source);
-  const nextId =
-    rows.length === 0 ? 1 : Math.max(...rows.map((r) => r.id)) + 1;
-
-  const fullName = String(payload.full_name ?? payload.fullName ?? "Unknown Visitor");
-  const visitorType = String(payload.visitor_type ?? payload.registration_type ?? "individual");
-  const department = String(payload.department_to_visit ?? payload.department ?? "admin");
-  const cnic = String(payload.cnic_number ?? payload.cnic_passport ?? "");
-  const passport = String(payload.passport_number ?? "");
-
-  const createdAt = new Date().toISOString();
-  const base: VisitorRecord = {
-    id: nextId,
-    full_name: fullName,
-    visitor_type: visitorType,
-    department_to_visit: department,
-    cnic_number: cnic,
-    passport_number: passport,
-    created_at: createdAt,
-    registration_source: source,
-    registration_status: "draft",
-  };
-
-  const newRow: VisitorRecord = ({ ...payload, ...base, registration_status: "draft" } as VisitorRecord);
-
-  writeVisitors(source, [newRow, ...rows], rows.length);
-  return newRow;
+  return createVisitor(
+    { ...payload, registration_status: "draft" },
+    source
+  );
 }
 
-export type UpdateVisitorOptions = {
-  /** When submitting a draft use "sent"; when re-saving a draft use "draft". Omitted = "sent". */
-  registrationStatus?: RegistrationStatus;
-};
-
-/** Update an existing record (e.g. re-saving a draft or submitting/sending a draft). */
 export async function updateVisitor(
   id: number,
   payload: Record<string, unknown>,
   source: RegistrationSource = "walk-in",
-  options?: UpdateVisitorOptions
+  options?: { registrationStatus?: RegistrationStatus }
 ): Promise<VisitorRecord | null> {
-  const rows = readVisitors(source);
-  const index = rows.findIndex((r) => r.id === id);
-  if (index === -1) return null;
-
-  const existing = rows[index] as Record<string, unknown>;
-  const fullName = String(payload.full_name ?? payload.fullName ?? existing.full_name ?? "Unknown Visitor");
-  const visitorType = String(payload.visitor_type ?? payload.registration_type ?? existing.visitor_type ?? "individual");
-  const department = String(payload.department_to_visit ?? payload.department ?? existing.department_to_visit ?? "admin");
-  const cnic = String(payload.cnic_number ?? payload.cnic_passport ?? existing.cnic_number ?? "");
-  const passport = String(payload.passport_number ?? existing.passport_number ?? "");
-
-  const newStatus: RegistrationStatus = options?.registrationStatus ?? "sent";
-
-  const updated: VisitorRecord = {
-    ...existing,
+  const body: Record<string, unknown> = {
     ...payload,
-    id,
-    full_name: fullName,
-    visitor_type: visitorType,
-    department_to_visit: department,
-    cnic_number: cnic,
-    passport_number: passport,
-    created_at: String(existing.created_at ?? new Date().toISOString()),
-    registration_source: (existing.registration_source as RegistrationSource) ?? source,
-    registration_status: newStatus,
-  } as VisitorRecord;
-
-  const next = [...rows];
-  next[index] = updated;
-  writeVisitors(source, next, rows.length);
-  return updated;
+    registration_source: source,
+  };
+  if (options?.registrationStatus) {
+    body.registration_status = options.registrationStatus;
+  }
+  const res = await fetch(`${API}/visitors/${id}/update/`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as Record<string, unknown>;
+  return mapVisitor(data);
 }
 
-/** Get a single visitor by id from the given source (local only). */
 export async function getVisitor(
   id: number,
-  source: RegistrationSource = "walk-in"
+  _source: RegistrationSource = "walk-in"
 ): Promise<VisitorRecord | null> {
-  const rows = readVisitors(source);
-  return rows.find((r) => r.id === id) ?? null;
+  const res = await fetch(`${API}/visitors/${id}/read/`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(await parseError(res));
+  const data = (await res.json()) as Record<string, unknown>;
+  const record = mapVisitor(data);
+  const loc = getUserLocationFilter();
+  if (loc && record.location && record.location !== loc) return null;
+  return record;
 }
 
-/** Delete a visitor by id from the given source (local only). */
 export async function deleteVisitor(
   id: number,
-  source: RegistrationSource = "walk-in"
+  _source: RegistrationSource = "walk-in"
 ): Promise<void> {
-  const rows = readVisitors(source).filter((r) => r.id !== id);
-  writeVisitors(source, rows, undefined);
+  const res = await fetch(`${API}/visitors/${id}/delete/`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (res.status === 404) return;
+  if (!res.ok) throw new Error(await parseError(res));
 }
 
-/** Check if a CNIC already exists in walk-in or pre-registration lists (local only). */
 export async function isCnicExists(cnic: string): Promise<boolean> {
-  const normalized = String(cnic || "").trim().replace(/\D/g, "");
+  const normalized = String(cnic || "").trim();
   if (!normalized) return false;
-  const walkIn = readVisitors("walk-in");
-  const preReg = readVisitors("pre-registration");
-  const all = [...walkIn, ...preReg];
-  return all.some((r) => String(r.cnic_number || "").replace(/\D/g, "") === normalized);
+  const res = await fetch(
+    `${API}/visitors/check-cnic/?cnic=${encodeURIComponent(normalized)}`,
+    { headers: getAuthHeaders(), cache: "no-store" }
+  );
+  if (!res.ok) return false;
+  const data = (await res.json()) as { exists?: boolean };
+  return Boolean(data.exists);
 }
 
-/** User-friendly message for toast from any error (no backend). */
 export function getErrorToastMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
-  const s = String(err);
-  if (/quota|exceeded|setItem.*Storage/i.test(s)) return STORAGE_QUOTA_MESSAGE;
   return "Something went wrong. Please try again.";
 }

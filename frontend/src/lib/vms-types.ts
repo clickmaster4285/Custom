@@ -1,6 +1,6 @@
 /**
  * VMS (Vehicle Management Module) – Vehicle Registration & Vehicle Tracking.
- * Matches master schema; persistence via localStorage only.
+ * Matches master schema; persistence via VMS API (database).
  */
 
 export const VEHICLE_TYPES = [

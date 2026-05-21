@@ -9,6 +9,7 @@ export type AuthUser = {
   email: string;
   role: string;
   phone: string;
+  location?: string;
 };
 
 export function setAuthenticated() {

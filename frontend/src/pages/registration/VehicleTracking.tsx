@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/table"
 import { ROUTES } from "@/routes/config"
 import type { VehicleTrackingRecord } from "@/lib/vms-types"
-import { getVehicleTracking, setVehicleTracking, getVehicleEntries } from "@/lib/vms-storage"
+import { loadVehicleTracking, saveVehicleTracking, loadVehicleEntries } from "@/lib/vms-storage"
 
 function generateTrackingId(): string {
   return `tr-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -53,15 +53,28 @@ export default function VehicleTrackingPage() {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState(emptyTracking())
 
+  const [hydrated, setHydrated] = useState(false)
+
   useEffect(() => {
-    setRecords(getVehicleTracking())
-    const all = getVehicleEntries()
-    setEntries(all.map((e) => ({ vehicle_entry_id: e.vehicle_entry_id, vehicle_reg_no: e.vehicle_reg_no })))
+    let cancelled = false
+    ;(async () => {
+      const recs = await loadVehicleTracking()
+      const all = await loadVehicleEntries()
+      if (!cancelled) {
+        setRecords(recs)
+        setEntries(all.map((e) => ({ vehicle_entry_id: e.vehicle_entry_id, vehicle_reg_no: e.vehicle_reg_no })))
+        setHydrated(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
-    if (records.length > 0) setVehicleTracking(records)
-  }, [records])
+    if (!hydrated) return
+    void saveVehicleTracking(records)
+  }, [records, hydrated])
 
   const filteredRecords = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -124,7 +137,7 @@ export default function VehicleTrackingPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Vehicle Tracking</h1>
         <p className="text-sm text-muted-foreground">
-          Dwell time, loading area, movement log, and overstay alerts. Linked to vehicle entries (localStorage).
+          Dwell time, loading area, movement log, and overstay alerts. Linked to vehicle entries in the database.
         </p>
       </div>
 

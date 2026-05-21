@@ -1,20 +1,26 @@
 from rest_framework import serializers
-from .models import Visitor, ZoneAccessLog, SecurityAlert
+from django.utils import timezone
+
+from .models import Visitor, ZoneAccessLog, SecurityAlert, Vehicle, VisitorNotification, VmsListRecord
+from .payload_utils import (
+    merge_extra_into_response,
+    split_visitor_payload,
+    strip_large_fields_for_list,
+    visitor_created_by_label,
+)
 
 
 class VisitorSerializer(serializers.ModelSerializer):
-    """
-    Schema aligned with the pre-registration payload from the frontend.
-    All fields accept the same keys and types the frontend sends.
-    """
+    """Full visitor schema for API responses."""
+
+    created_by = serializers.SerializerMethodField()
 
     class Meta:
         model = Visitor
         fields = [
-            # Identity (response)
             "id",
             "created_at",
-            # Step 1: Personal Info
+            "updated_at",
             "visitor_type",
             "full_name",
             "gender",
@@ -25,7 +31,6 @@ class VisitorSerializer(serializers.ModelSerializer):
             "mobile_number",
             "email_address",
             "residential_address",
-            # Step 2: Visit Details
             "visit_purpose",
             "visit_description",
             "department_to_visit",
@@ -35,7 +40,6 @@ class VisitorSerializer(serializers.ModelSerializer):
             "preferred_time_slot",
             "expected_duration",
             "preferred_view_visit",
-            # Step 3: Document Upload
             "document_type",
             "document_no",
             "issuing_authority",
@@ -47,13 +51,11 @@ class VisitorSerializer(serializers.ModelSerializer):
             "letter_ref_no",
             "additional_document",
             "upload_procedure",
-            # Step 3b: Organization
             "organization_name",
             "organization_type",
             "ntn_registration_no",
             "designation",
             "office_address",
-            # Step 4a: Photo Capture
             "capture_date",
             "capture_time",
             "captured_by",
@@ -61,11 +63,9 @@ class VisitorSerializer(serializers.ModelSerializer):
             "photo_quality_score",
             "face_match_status",
             "captured_photo",
-            # Step 4: Consent
             "disclaimer_accepted",
             "terms_accepted",
             "previous_visit_reference",
-            # Walk-in / security
             "registration_type",
             "cnic_passport",
             "visit_purpose_description",
@@ -85,7 +85,6 @@ class VisitorSerializer(serializers.ModelSerializer):
             "approver_required",
             "temporary_access_granted",
             "guard_remarks",
-            # Step 5: QR Code
             "qr_code_id",
             "visitor_ref_number",
             "visit_date",
@@ -98,16 +97,25 @@ class VisitorSerializer(serializers.ModelSerializer):
             "generated_on",
             "generated_by",
             "flow_stage",
-            "updated_at",
+            "registration_source",
+            "registration_status",
+            "approval_status",
+            "approved_by",
+            "denied_by",
+            "rejection_reason",
+            "location",
+            "registered_by_user_id",
+            "registered_by_username",
+            "created_by",
+            "profile_image",
+            "guard_entry_time",
+            "guard_name",
+            "host_notified_at",
+            "extra_data",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at", "qr_code_id", "scan_count"]
         extra_kwargs = {
-            # Allow blank for all optional choice fields (walk-in sends many empty strings)
-            "visitor_type": {"allow_blank": False},
             "gender": {"allow_blank": True},
-            "nationality": {"allow_blank": False},
-            "visit_purpose": {"allow_blank": False},
-            "department_to_visit": {"allow_blank": False},
             "host_officer_designation": {"allow_blank": True},
             "preferred_time_slot": {"allow_blank": True},
             "expected_duration": {"allow_blank": True},
@@ -120,11 +128,66 @@ class VisitorSerializer(serializers.ModelSerializer):
             "entry_gate": {"allow_blank": True},
             "expiry_status": {"allow_blank": True},
             "generated_by": {"allow_blank": True},
+            "email_address": {"allow_blank": True},
+            "residential_address": {"allow_blank": True},
+            "visit_description": {"allow_blank": True},
+            "host_officer_name": {"allow_blank": True},
         }
+
+    def get_created_by(self, obj):
+        label = visitor_created_by_label(obj)
+        return label or None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data = merge_extra_into_response(data, instance)
+        if self.context.get("omit_blobs"):
+            data = strip_large_fields_for_list(data)
+        return data
+
+
+class VisitorListSerializer(VisitorSerializer):
+    """List responses without multi-megabyte image payloads."""
+
+    def to_representation(self, instance):
+        return super().to_representation(instance)
+
+
+class VisitorWriteSerializer(serializers.Serializer):
+    """Accept flexible frontend payload for create/update."""
+
+    def create(self, validated_data):
+        from .payload_utils import apply_registered_by_from_request
+
+        source = self.context.get("registration_source", "")
+        model_fields, extra = split_visitor_payload(validated_data, registration_source=source)
+        apply_registered_by_from_request(model_fields, self.context.get("request"))
+        model_fields["extra_data"] = extra
+        if model_fields.get("registration_status") == "draft":
+            model_fields["flow_stage"] = "arrived"
+        visitor = Visitor.objects.create(**model_fields)
+        return visitor
+
+    def update(self, instance, validated_data):
+        partial = bool(self.partial)
+        model_fields, extra = split_visitor_payload(validated_data, partial=partial)
+        existing_extra = dict(instance.extra_data or {})
+        existing_extra.update(extra)
+        model_fields["extra_data"] = existing_extra
+        for key, value in model_fields.items():
+            if key == "id":
+                continue
+            setattr(instance, key, value)
+        instance.save()
+        return instance
+
+    def to_internal_value(self, data):
+        if not isinstance(data, dict):
+            raise serializers.ValidationError("Expected object.")
+        return data
 
 
 class FaceCaptureSerializer(serializers.Serializer):
-    """Payload for face capture (Arc Face) step."""
     capture_date = serializers.CharField(required=False, allow_blank=True)
     capture_time = serializers.CharField(required=False, allow_blank=True)
     captured_by = serializers.CharField(required=False, allow_blank=True)
@@ -135,7 +198,6 @@ class FaceCaptureSerializer(serializers.Serializer):
 
 
 class ZoneScanSerializer(serializers.Serializer):
-    """Payload when a QR is scanned at a zone/gate."""
     qr_code_id = serializers.CharField(required=True)
     zone = serializers.CharField(required=True)
     gate = serializers.CharField(required=False, default="")
@@ -189,3 +251,64 @@ class SecurityAlertSerializer(serializers.ModelSerializer):
             "acknowledged_by",
         ]
         read_only_fields = ["id", "created_at"]
+
+
+class ApproveDenySerializer(serializers.Serializer):
+    approved_by = serializers.CharField(required=False, allow_blank=True, default="")
+    denied_by = serializers.CharField(required=False, allow_blank=True, default="")
+    rejection_reason = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class NotifyHostSerializer(serializers.Serializer):
+    recipient = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class VehicleSerializer(serializers.ModelSerializer):
+    visitor_name = serializers.CharField(source="visitor.full_name", read_only=True)
+
+    class Meta:
+        model = Vehicle
+        fields = [
+            "id",
+            "visitor",
+            "visitor_name",
+            "plate_number",
+            "vehicle_type",
+            "contractor_company",
+            "driver_name",
+            "remarks",
+            "extra_data",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+
+class VisitorNotificationSerializer(serializers.ModelSerializer):
+    visitor_name = serializers.CharField(source="visitor.full_name", read_only=True)
+
+    class Meta:
+        model = VisitorNotification
+        fields = [
+            "id",
+            "visitor",
+            "visitor_name",
+            "notification_type",
+            "recipient",
+            "message",
+            "success",
+            "sent_at",
+        ]
+        read_only_fields = ["id", "sent_at"]
+
+
+class VmsListRecordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VmsListRecord
+        fields = ["id", "module", "record_id", "data", "location", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class VmsListBulkSerializer(serializers.Serializer):
+    module = serializers.CharField(max_length=80)
+    rows = serializers.ListField(child=serializers.DictField(), allow_empty=True)
+    location = serializers.CharField(required=False, allow_blank=True, default="")

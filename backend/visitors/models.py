@@ -256,6 +256,22 @@ class Visitor(models.Model):
         db_index=True,
     )
 
+    # Registration / approval workflow (frontend VMS)
+    registration_source = models.CharField(max_length=30, blank=True, default="")
+    registration_status = models.CharField(max_length=20, blank=True, default="approved")
+    approval_status = models.CharField(max_length=20, blank=True, default="pending")
+    approved_by = models.CharField(max_length=150, blank=True, default="")
+    denied_by = models.CharField(max_length=150, blank=True, default="")
+    rejection_reason = models.TextField(blank=True, default="")
+    location = models.CharField(max_length=30, blank=True, default="")
+    registered_by_user_id = models.IntegerField(null=True, blank=True)
+    registered_by_username = models.CharField(max_length=150, blank=True, default="")
+    profile_image = models.TextField(blank=True, default="")
+    guard_entry_time = models.CharField(max_length=50, blank=True, default="")
+    guard_name = models.CharField(max_length=150, blank=True, default="")
+    host_notified_at = models.DateTimeField(null=True, blank=True)
+    extra_data = models.JSONField(default=dict, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -276,7 +292,7 @@ class Visitor(models.Model):
                 update_fields["generated_on"] = self.generated_on
                 update_fields["generated_by"] = self.generated_by
             Visitor.objects.filter(pk=self.pk).update(**update_fields)
-        if is_new and self.flow_stage == "arrived":
+        if is_new and self.flow_stage == "arrived" and self.registration_status != "draft":
             Visitor.objects.filter(pk=self.pk).update(flow_stage="registered")
             self.flow_stage = "registered"
 
@@ -364,3 +380,61 @@ class SecurityAlert(models.Model):
 
     def __str__(self):
         return f"{self.get_alert_type_display()} - {self.message[:50]}"
+
+
+class Vehicle(models.Model):
+    visitor = models.ForeignKey(
+        Visitor,
+        on_delete=models.CASCADE,
+        related_name="vehicles",
+    )
+    plate_number = models.CharField(max_length=50)
+    vehicle_type = models.CharField(max_length=50, blank=True, default="")
+    contractor_company = models.CharField(max_length=200, blank=True, default="")
+    driver_name = models.CharField(max_length=150, blank=True, default="")
+    remarks = models.TextField(blank=True, default="")
+    extra_data = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.plate_number} ({self.visitor_id})"
+
+
+class VisitorNotification(models.Model):
+    visitor = models.ForeignKey(
+        Visitor,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    notification_type = models.CharField(max_length=50, default="host_notify")
+    recipient = models.CharField(max_length=254)
+    message = models.TextField(blank=True, default="")
+    success = models.BooleanField(default=True)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-sent_at"]
+
+    def __str__(self):
+        return f"{self.notification_type} → {self.recipient}"
+
+
+class VmsListRecord(models.Model):
+    """Generic persisted rows for VMS list pages (blacklist, watchlist, escort, etc.)."""
+
+    module = models.CharField(max_length=80, db_index=True)
+    record_id = models.CharField(max_length=80)
+    data = models.JSONField(default=dict)
+    location = models.CharField(max_length=30, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        unique_together = [("module", "record_id")]
+
+    def __str__(self):
+        return f"{self.module}:{self.record_id}"

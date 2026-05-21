@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { fetchVmsListRows, saveVmsListRows, type VmsListRow } from "@/lib/vms-list-api"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,7 +32,7 @@ type RecordRow = { id: string } & Record<string, string>
 type Column = {
   key: string
   label: string
-  render?: (row: any) => React.ReactNode  // Added render function support
+  render?: (row: RecordRow) => React.ReactNode
 }
 
 type Field = {
@@ -62,7 +63,7 @@ export function VmsListPage({
   storageKey,
   columns,
   formFields,
-  initialRows,
+  initialRows: _initialRows,
   breadcrumbs,
   filterField,
 }: Props) {
@@ -71,34 +72,36 @@ export function VmsListPage({
   const [filter, setFilter] = useState("all")
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const effectiveFilterField = filterField ?? columns[0]?.key ?? ""
 
-  useEffect(() => {
-    const raw = window.localStorage.getItem(storageKey)
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as RecordRow[]
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setRows(parsed)
-          return
-        }
-      } catch {
-        // fallback to seeds below
-      }
+  const persistRows = useCallback(
+    async (next: RecordRow[]) => {
+      await saveVmsListRows(storageKey, next as VmsListRow[])
+    },
+    [storageKey]
+  )
+
+  const reload = useCallback(async () => {
+    setLoading(true)
+    setSaveError(null)
+    try {
+      const fromApi = await fetchVmsListRows(storageKey)
+      const withoutBlob = fromApi.filter((r) => r.id !== "__json__")
+      setRows(withoutBlob as RecordRow[])
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to load records")
+      setRows([])
+    } finally {
+      setLoading(false)
     }
-    const seeded = initialRows.map((r, i) => ({
-      id: `seed-${i + 1}`,
-      ...r,
-    }))
-    setRows(seeded)
-  }, [initialRows, storageKey])
+  }, [storageKey])
 
   useEffect(() => {
-    if (rows.length > 0) {
-      window.localStorage.setItem(storageKey, JSON.stringify(rows))
-    }
-  }, [rows, storageKey])
+    void reload()
+  }, [reload])
 
   const filterOptions = useMemo(() => {
     if (!effectiveFilterField) return []
@@ -130,7 +133,7 @@ export function VmsListPage({
     setOpen(true)
   }
 
-  const onAdd = () => {
+  const onAdd = async () => {
     const payload: Record<string, string> = {}
     for (const field of formFields) {
       payload[field.key] = (formData[field.key] ?? "").trim()
@@ -140,9 +143,17 @@ export function VmsListPage({
       id: `row-${Date.now()}`,
       ...payload,
     }
-    setRows((prev) => [newRow, ...prev])
+    const next = [newRow, ...rows]
+    setRows(next)
     setFormData({})
     setOpen(false)
+    try {
+      await persistRows(next)
+      setSaveError(null)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save")
+      void reload()
+    }
   }
 
   return (
@@ -172,7 +183,7 @@ export function VmsListPage({
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
             <div>
               <CardTitle>{title}</CardTitle>
-              <CardDescription>Frontend-only list view with local storage persistence.</CardDescription>
+              <CardDescription>Records stored in the database.</CardDescription>
             </div>
             <div className="flex flex-col md:flex-row gap-2">
               <Input
@@ -197,6 +208,9 @@ export function VmsListPage({
               <Button onClick={openAddForm}>Add</Button>
             </div>
           </div>
+          {saveError && (
+            <p className="text-sm text-destructive mt-2">{saveError}</p>
+          )}
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
@@ -209,7 +223,13 @@ export function VmsListPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRows.length === 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="text-center text-muted-foreground py-8">
+                      Loading…
+                    </TableCell>
+                  </TableRow>
+                ) : filteredRows.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="text-center text-muted-foreground py-8">
                       No records found.
@@ -220,7 +240,6 @@ export function VmsListPage({
                     <TableRow key={row.id}>
                       {columns.map((c) => (
                         <TableCell key={`${row.id}-${c.key}`}>
-                          {/* Use render function if provided, otherwise fallback to raw value */}
                           {c.render ? c.render(row) : (row[c.key] ?? "—")}
                         </TableCell>
                       ))}
@@ -255,7 +274,7 @@ export function VmsListPage({
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={onAdd}>Save</Button>
+              <Button onClick={() => void onAdd()}>Save</Button>
             </div>
           </div>
         </DialogContent>
