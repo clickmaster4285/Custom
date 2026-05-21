@@ -541,6 +541,33 @@ export const NAV_SECTIONS: { title: string; items: (NavItem | NavGroup)[] }[] = 
   { title: "System", items: ALL_NAV_ITEMS.slice(8, 9) },
 ]
 
+export type NavSection = { title: string; items: (NavItem | NavGroup)[] }
+
+const VISITOR_MANAGEMENT_NAV = ALL_NAV_ITEMS[1] as NavGroup
+const WAREHOUSE_MANAGEMENT_NAV = ALL_NAV_ITEMS[2] as NavGroup
+const HUMAN_RESOURCE_NAV = ALL_NAV_ITEMS[3] as NavGroup
+
+/** Role-scoped sidebar: one module only. */
+export const RECEPTIONIST_NAV_SECTIONS: NavSection[] = [
+  { title: "Visitor Management", items: [VISITOR_MANAGEMENT_NAV] },
+]
+
+export const WAREHOUSE_OFFICER_NAV_SECTIONS: NavSection[] = [
+  { title: "Warehouse Management", items: [WAREHOUSE_MANAGEMENT_NAV] },
+]
+
+export const HR_NAV_SECTIONS: NavSection[] = [
+  { title: "Human Resource", items: [HUMAN_RESOURCE_NAV] },
+]
+
+export function getNavSectionsForRole(role: string | undefined | null): NavSection[] {
+  const normalized = (role ?? "").trim().toUpperCase()
+  if (normalized === "RECEPTIONIST") return RECEPTIONIST_NAV_SECTIONS
+  if (normalized === "WAREHOUSE_OFFICER") return WAREHOUSE_OFFICER_NAV_SECTIONS
+  if (normalized === "HR") return HR_NAV_SECTIONS
+  return NAV_SECTIONS
+}
+
 /** All leaf nav items (label + href) from the full nav tree, for favorites etc. */
 export function getAllNavItems(): { label: string; href: RoutePath }[] {
   const out: { label: string; href: RoutePath }[] = []
@@ -561,7 +588,10 @@ export function getParentMenuForPath(pathname: string): string | null {
 }
 
 /** All group labels that contain this path (top to leaf), for expanding nested sidebar. Includes groups with matching overviewHref. */
-export function getAncestorMenusForPath(pathname: string): string[] {
+export function getAncestorMenusForPath(
+  pathname: string,
+  sections: NavSection[] = NAV_SECTIONS
+): string[] {
   function findInGroup(group: NavGroup, parents: string[]): string[] | null {
     if (group.overviewHref === pathname) return [...parents, group.label]
     for (const child of group.children) {
@@ -574,7 +604,7 @@ export function getAncestorMenusForPath(pathname: string): string[] {
     }
     return null
   }
-  for (const section of NAV_SECTIONS) {
+  for (const section of sections) {
     for (const item of section.items) {
       if ("children" in item) {
         const found = findInGroup(item as NavGroup, [])

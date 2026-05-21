@@ -1,0 +1,175 @@
+import { ROUTES } from "@/routes/config"
+
+export type RestrictedRole = "RECEPTIONIST" | "WAREHOUSE_OFFICER" | "HR"
+
+export function normalizeRole(role: string | undefined | null): string {
+  return (role ?? "").trim().toUpperCase()
+}
+
+export function getRestrictedRole(role: string | undefined | null): RestrictedRole | null {
+  const normalized = normalizeRole(role)
+  if (normalized === "RECEPTIONIST" || normalized === "WAREHOUSE_OFFICER" || normalized === "HR") {
+    return normalized
+  }
+  return null
+}
+
+export function isReceptionistRole(role: string | undefined | null): boolean {
+  return normalizeRole(role) === "RECEPTIONIST"
+}
+
+export function isWarehouseOfficerRole(role: string | undefined | null): boolean {
+  return normalizeRole(role) === "WAREHOUSE_OFFICER"
+}
+
+export function isHrRole(role: string | undefined | null): boolean {
+  return normalizeRole(role) === "HR"
+}
+
+type PathRule = { exact: string[]; patterns: RegExp[] }
+
+const ROLE_PATH_RULES: Record<RestrictedRole, PathRule> = {
+  RECEPTIONIST: {
+    exact: [
+      ROUTES.VISITOR_MANAGEMENT_OVERVIEW,
+      ROUTES.PRE_REGISTRATION,
+      ROUTES.WALK_IN_REGISTRATION,
+      ROUTES.STREAMED_UPLOAD,
+      ROUTES.PHOTO_CAPTURE,
+      ROUTES.QR_CODE_GENERATION,
+      ROUTES.APPOINTMENT_SCHEDULING,
+      ROUTES.TIME_SLOT_BOOKING,
+      ROUTES.HOST_SELECTION,
+      ROUTES.VISIT_PURPOSE,
+      ROUTES.CALENDAR_VIEW,
+      ROUTES.SECURITY_SCREENING,
+      ROUTES.WATCHLIST_SCREENING,
+      ROUTES.BLACKLIST_MANAGEMENT,
+      ROUTES.FLAGGED_VISITOR_ALERTS,
+      ROUTES.ACCESS_CONTROL,
+      ROUTES.ZONE_RESTRICTIONS,
+      ROUTES.GATE_INTEGRATION,
+      ROUTES.ESCORT_REQUIREMENT,
+      ROUTES.HOST_DEPARTMENT_DASHBOARD,
+      ROUTES.VISITOR_NOTIFICATIONS,
+      ROUTES.UPCOMING_VISITS,
+      ROUTES.VISITOR_HISTORY,
+      ROUTES.GUARD_RECEPTION_PANEL,
+      ROUTES.VEHICLE_CONTRACTOR_MANAGEMENT,
+      ROUTES.VEHICLE_REGISTRATION,
+      ROUTES.VEHICLE_TRACKING,
+      ROUTES.CONTRACTOR_PASSES,
+      ROUTES.CARGO_DELIVERY_LOGS,
+    ],
+    patterns: [/^\/visitors\/[^/]+$/],
+  },
+  WAREHOUSE_OFFICER: {
+    exact: [
+      ROUTES.OPERATIONS_DASHBOARD,
+      ROUTES.DETENTION_MEMO,
+      ROUTES.DEPOSIT_ACCOUNT_REGISTER,
+      ROUTES.NEW_SEIZURE_ENTRY,
+      ROUTES.GOODS_RECEIPT_HANDOVER,
+      ROUTES.AI_ITEM_CATALOGING,
+      ROUTES.SEIZURE_REGISTER,
+      ROUTES.WAREHOUSE_SETUP,
+      ROUTES.ZONE_LOCATION_MANAGEMENT,
+      ROUTES.STORAGE_ALLOCATION,
+      ROUTES.INVENTORY_TRACKING,
+      ROUTES.STOCK_RECONCILIATION,
+      ROUTES.RELEASE_INVENTORY,
+      ROUTES.CAMERA_INTEGRATION,
+      ROUTES.GOODS_RECEIPT,
+      ROUTES.STOCK_MANAGEMENT,
+      ROUTES.CYCLE_COUNTING,
+      ROUTES.INVENTORY_VALUATION,
+      ROUTES.INTER_COLLECTORATE_TRANSFER,
+      ROUTES.INTERNAL_MOVEMENT,
+      ROUTES.HANDOVER_REQUESTS,
+      ROUTES.DOUBLE_AUTHENTICATION,
+      ROUTES.TRANSFER_TRACKING,
+      ROUTES.PERISHABLE_REGISTER,
+      ROUTES.EXPIRY_TRACKING,
+      ROUTES.PRIORITY_DISPOSAL_QUEUE,
+      ROUTES.DESTRUCTION_ORDERS,
+      ROUTES.LOT_CREATION,
+      ROUTES.ITEM_VALUATION,
+      ROUTES.STANDARD_REPORTS,
+      ROUTES.CUSTOM_REPORT_BUILDER,
+      ROUTES.EXPORT_CENTER,
+      ROUTES.HS_CODES_FILE,
+      ROUTES.SEIZED_INVENTORY,
+    ],
+    patterns: [
+      /^\/deposit-account-register\/[^/]+$/,
+      /^\/detention-memo\/create$/,
+      /^\/detention-memo\/[^/]+$/,
+      /^\/seized-inventory\/[^/]+$/,
+      /^\/goods-receipt\/[^/]+$/,
+      /^\/stock-management\/[^/]+$/,
+      /^\/cycle-counting-audit\/[^/]+$/,
+      /^\/inventory-valuation\/[^/]+$/,
+    ],
+  },
+  HR: {
+    exact: [
+      ROUTES.EMPLOYEES,
+      ROUTES.ADD_STAFF,
+      ROUTES.ATTENDANCE,
+      ROUTES.LEAVE_MANAGEMENT,
+      ROUTES.PAYROLL,
+      ROUTES.RECRUITMENT,
+    ],
+    patterns: [/^\/employees\/[^/]+$/, /^\/employees\/[^/]+\/edit$/],
+  },
+}
+
+const ROLE_PATH_SETS: Record<RestrictedRole, Set<string>> = Object.fromEntries(
+  Object.entries(ROLE_PATH_RULES).map(([role, rule]) => [role, new Set(rule.exact)])
+) as Record<RestrictedRole, Set<string>>
+
+function normalizePathname(pathname: string): string {
+  return pathname.split("?")[0].replace(/\/$/, "") || "/"
+}
+
+export function isPathAllowedForRestrictedRole(
+  pathname: string,
+  restrictedRole: RestrictedRole
+): boolean {
+  const path = normalizePathname(pathname)
+  const { exact, patterns } = ROLE_PATH_RULES[restrictedRole]
+  if (ROLE_PATH_SETS[restrictedRole].has(path)) return true
+  return patterns.some((pattern) => pattern.test(path))
+}
+
+/** Full-access roles (admin, etc.) may open any route; restricted roles are limited to their module. */
+export function isPathAllowedForRole(pathname: string, role: string | undefined | null): boolean {
+  const restricted = getRestrictedRole(role)
+  if (!restricted) return true
+  return isPathAllowedForRestrictedRole(pathname, restricted)
+}
+
+/** @deprecated Use isPathAllowedForRole */
+export function isReceptionistAllowedPath(pathname: string): boolean {
+  return isPathAllowedForRestrictedRole(pathname, "RECEPTIONIST")
+}
+
+export function getHomeRouteForRole(role: string | undefined | null): string {
+  const restricted = getRestrictedRole(role)
+  if (restricted === "RECEPTIONIST") return ROUTES.VISITOR_MANAGEMENT_OVERVIEW
+  if (restricted === "WAREHOUSE_OFFICER") return ROUTES.OPERATIONS_DASHBOARD
+  if (restricted === "HR") return ROUTES.EMPLOYEES
+  return ROUTES.DASHBOARD
+}
+
+export function getRoleDisplayLabel(role: string | undefined | null): string {
+  const normalized = normalizeRole(role)
+  if (normalized === "RECEPTIONIST") return "Receptionist"
+  if (normalized === "WAREHOUSE_OFFICER") return "Warehouse Officer"
+  if (normalized === "HR") return "Human Resource"
+  if (!normalized) return "User"
+  return normalized
+    .split("_")
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(" ")
+}

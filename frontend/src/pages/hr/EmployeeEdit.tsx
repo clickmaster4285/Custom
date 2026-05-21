@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { fetchStaffById, updateStaff, type StaffRecord } from "@/lib/staff-api"
+import { fetchStaffById, updateStaff, isDispositionStaffId, type StaffRecord } from "@/lib/staff-api"
 import { ROUTES } from "@/routes/config"
 import { useToast } from "@/hooks/use-toast"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
@@ -110,6 +110,19 @@ export default function EmployeeEditPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  if (Number.isInteger(staffId) && isDispositionStaffId(staffId)) {
+    return (
+      <div className="w-full px-4 sm:px-6 py-8">
+        <p className="text-muted-foreground mb-4">
+          Disposition list records are read-only and cannot be edited here.
+        </p>
+        <Button variant="outline" asChild>
+          <Link to={ROUTES.EMPLOYEES}>Back to Employees</Link>
+        </Button>
+      </div>
+    )
   }
 
   if (isLoading || !id) {
