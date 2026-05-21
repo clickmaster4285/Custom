@@ -15,7 +15,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { setAuthenticatedWithToken } from "@/lib/auth"
 import { login } from "@/lib/auth-api"
-import { ROUTES } from "@/routes/config"
+import { getHomeRouteForRole } from "@/lib/role-access"
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -32,7 +32,7 @@ export default function LoginPage() {
     try {
       const { token, user } = await login(username.trim(), password)
       setAuthenticatedWithToken(token, user)
-      navigate(ROUTES.DASHBOARD, { replace: true })
+      navigate(getHomeRouteForRole(user.role), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid username or password.")
     } finally {

@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from "react"
 import { useLocation, useNavigate, Link, NavLink } from "react-router-dom"
 import { ChevronDown, ChevronRight, Star, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { NAV_SECTIONS, getAncestorMenusForPath, type NavGroup } from "@/routes/config"
+import { getStoredUser } from "@/lib/auth"
+import { getNavSectionsForRole, getAncestorMenusForPath, type NavGroup } from "@/routes/config"
 import { getNodeKey, hasActiveDescendant, isNavGroup, type SidebarNode } from "@/components/dashboard/sidebar.helpers"
 import { renderMenuIcon } from "@/components/dashboard/sidebar.icons"
 
@@ -135,12 +136,16 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileOpenChange }: SidebarProps) {
   const pathname = useLocation().pathname
   const navigate = useNavigate()
-  const [expandedItems, setExpandedItems] = useState<string[]>(() => getAncestorMenusForPath(pathname))
+  const role = getStoredUser()?.role
+  const navSections = getNavSectionsForRole(role)
+  const [expandedItems, setExpandedItems] = useState<string[]>(() =>
+    getAncestorMenusForPath(pathname, getNavSectionsForRole(role))
+  )
   const [favorites, setFavorites] = useState<FavoriteItem[]>(loadFavorites)
 
   useEffect(() => {
-    setExpandedItems(getAncestorMenusForPath(pathname))
-  }, [pathname])
+    setExpandedItems(getAncestorMenusForPath(pathname, getNavSectionsForRole(role)))
+  }, [pathname, role])
 
   useEffect(() => {
     onMobileOpenChange?.(false)
@@ -269,7 +274,7 @@ export function Sidebar({ mobileOpen = false, onMobileOpenChange }: SidebarProps
           </div>
         )}
 
-        {NAV_SECTIONS.map((section) => (
+        {navSections.map((section) => (
           <div key={section.title} className="mb-3">
             {section.title && (
               <div className="sidebar-section-heading px-3 py-2">

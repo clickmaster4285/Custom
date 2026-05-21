@@ -57,8 +57,39 @@ class LoginResponseSerializer(serializers.Serializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "password", "role", "phone"]
-        extra_kwargs = {"password": {"write_only": True}}
+        fields = ["id", "username", "email", "password", "role", "phone", "is_active"]
+        extra_kwargs = {
+            "password": {"write_only": True, "required": False},
+        }
+
+    def validate_username(self, value):
+        username = (value or "").strip()
+        if not username:
+            raise serializers.ValidationError("Username is required.")
+        qs = User.objects.filter(username__iexact=username, is_deleted=False)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("This username is already taken.")
+        return username
+
+    def validate_password(self, value):
+        if not value:
+            return value
+        if len(value) < 6:
+            raise serializers.ValidationError("Password must be at least 6 characters.")
+        return value
+
+    def validate(self, attrs):
+        if self.instance is None and not attrs.get("password"):
+            raise serializers.ValidationError({"password": "Password is required."})
+        if "phone" in attrs:
+            phone = (attrs.get("phone") or "").strip()
+            if self.instance is None and not phone:
+                attrs["phone"] = "0000000000"
+            else:
+                attrs["phone"] = phone or (self.instance.phone if self.instance else "0000000000")
+        return attrs
 
     def create(self, validated_data):
         password = validated_data.pop("password")
@@ -66,6 +97,15 @@ class UserCreateSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 
 # -----------------------------

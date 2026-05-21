@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react"
-import { Users, Shield, UserPlus } from "lucide-react"
+import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { Users, Shield, UserPlus, Loader2, Eye, EyeOff } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -28,92 +29,206 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { getStoredToken } from "@/lib/api"
+import {
+  createUser,
+  updateUser,
+  fetchUsers,
+  ROLE_OPTIONS,
+  roleLabel,
+  type ApiUser,
+} from "@/lib/users-api"
 
-const STORAGE_KEY = "wms_user_accounts"
-
-type UserRow = { user: string; email: string; role: string; status: string }
-
-const defaultUsers: UserRow[] = [
-  { user: "admin", email: "admin@customs.gov.pk", role: "System Administrator", status: "Active" },
-  { user: "sarah.martin", email: "sarah@customs.gov.pk", role: "Operations Manager", status: "Active" },
-  { user: "ahmed.khan", email: "ahmed@customs.gov.pk", role: "Operations Officer", status: "Active" },
-  { user: "fatima.ali", email: "fatima@customs.gov.pk", role: "Human Resource Manager", status: "Active" },
-  { user: "ali.ahmed", email: "ali@customs.gov.pk", role: "Warehouse Manager", status: "Active" },
-  { user: "sara.khan", email: "sara@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
-  { user: "muhammad.ali", email: "muhammad@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
-  { user: "ahmed.ali", email: "ahmed@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
-  { user: "ali.ahmed", email: "ali@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
-  { user: "muhammad.ali", email: "muhammad@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
-  { user: "ahmed.ali", email: "ahmed@customs.gov.pk", role: "Warehouse Officer", status: "Active" },
-]
-
-function loadRows(): UserRow[] {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as UserRow[]
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
-    }
-  } catch {}
-  return defaultUsers
+type UserForm = {
+  user: string
+  email: string
+  password: string
+  phone: string
+  role: string
+  is_active: boolean
 }
 
-function saveRows(rows: UserRow[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
+const emptyForm: UserForm = {
+  user: "",
+  email: "",
+  password: "",
+  phone: "",
+  role: "ADMIN",
+  is_active: true,
 }
-
-const ROLES = [
-  { value: "Admin", label: "Admin" },
-  { value: "Operation Manager", label: "Operation Manager" },
-  { value: "Inspector", label: "Inspector" },
-  { value: "Collector", label: "Collector" },
-  { value: "Deputy Collector", label: "Deputy Collector" },
-  { value: "Assistant Collector", label: "Assistant Collector" },
-  { value: "Receptionist", label: "Receptionist" },
-  { value: "Human Resource", label: "Human Resource" },
-  { value: "Warehouse Officer", label: "Warehouse Officer" },
-  { value: "Detection Officer", label: "Detection Officer" },
-  { value: "FIR Officer", label: "FIR Officer" },
-  { value: "Investigation Officer", label: "Investigation Officer" },
-  { value: "Seizing Officer", label: "Seizing Officer" },
-]
 
 export default function UserRoleManagementPage() {
-  const [users, setUsers] = useState<UserRow[]>([])
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ user: "", email: "", role: "Admin", status: "Active" })
+  const [editingUserId, setEditingUserId] = useState<number | null>(null)
+  const [form, setForm] = useState<UserForm>(emptyForm)
   const [search, setSearch] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  useEffect(() => {
-    setUsers(loadRows())
-  }, [])
+  const isEditing = editingUserId !== null
 
-  useEffect(() => {
-    if (users.length > 0) saveRows(users)
-  }, [users])
+  const hasAuth = Boolean(getStoredToken())
+
+  const {
+    data: users = [],
+    isLoading,
+    error: loadError,
+  } = useQuery({
+    queryKey: ["users", "list"],
+    queryFn: fetchUsers,
+    enabled: hasAuth,
+  })
 
   const openAddForm = () => {
-    setForm({ user: "", email: "", role: "Admin", status: "Active" })
+    if (!hasAuth) {
+      toast({
+        title: "Sign in required",
+        description: "Log in as Admin or HR to create users in the database.",
+        variant: "destructive",
+      })
+      return
+    }
+    setEditingUserId(null)
+    setShowPassword(false)
+    setForm(emptyForm)
     setOpen(true)
   }
 
-  const onSave = () => {
-    if (!form.user.trim() || !form.email.trim()) return
-    if (users.some((u) => u.user === form.user.trim())) return
-    setUsers((prev) => [
-      { user: form.user.trim(), email: form.email.trim(), role: form.role, status: form.status },
-      ...prev,
-    ])
-    setForm({ user: "", email: "", role: "Admin", status: "Active" })
+  const openEditForm = (user: ApiUser) => {
+    if (!hasAuth) {
+      toast({
+        title: "Sign in required",
+        description: "Log in as Admin or HR to edit users.",
+        variant: "destructive",
+      })
+      return
+    }
+    setEditingUserId(user.id)
+    setShowPassword(false)
+    setForm({
+      user: user.username,
+      email: user.email,
+      password: "",
+      phone: user.phone === "0000000000" ? "" : user.phone,
+      role: user.role,
+      is_active: user.is_active,
+    })
+    setOpen(true)
+  }
+
+  const closeDialog = () => {
     setOpen(false)
+    setEditingUserId(null)
+    setShowPassword(false)
+    setForm(emptyForm)
+  }
+
+  const onSave = async () => {
+    const username = form.user.trim()
+    const email = form.email.trim()
+    const password = form.password
+
+    if (!username || !email) {
+      toast({
+        title: "Missing fields",
+        description: "Username and email are required.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!isEditing) {
+      if (!password || password.length < 6) {
+        toast({
+          title: "Invalid password",
+          description: "Password is required and must be at least 6 characters.",
+          variant: "destructive",
+        })
+        return
+      }
+      if (users.some((u) => u.username === username)) {
+        toast({
+          title: "Username taken",
+          description: "Choose a different username.",
+          variant: "destructive",
+        })
+        return
+      }
+    } else {
+      if (password && password.length < 6) {
+        toast({
+          title: "Invalid password",
+          description: "New password must be at least 6 characters, or leave blank to keep current.",
+          variant: "destructive",
+        })
+        return
+      }
+      const taken = users.some(
+        (u) => u.id !== editingUserId && u.username.toLowerCase() === username.toLowerCase()
+      )
+      if (taken) {
+        toast({
+          title: "Username taken",
+          description: "Choose a different username.",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
+    setSaving(true)
+    try {
+      if (isEditing && editingUserId !== null) {
+        await updateUser(editingUserId, {
+          username,
+          email,
+          role: form.role,
+          phone: form.phone.trim() || undefined,
+          is_active: form.is_active,
+          ...(password ? { password } : {}),
+        })
+        toast({
+          title: "User updated",
+          description: `${username} was saved to the database.`,
+        })
+      } else {
+        await createUser({
+          username,
+          email,
+          password,
+          role: form.role,
+          phone: form.phone.trim() || undefined,
+        })
+        toast({
+          title: "User created",
+          description: `${username} was saved to the database.`,
+        })
+      }
+      void queryClient.invalidateQueries({ queryKey: ["users"] })
+      closeDialog()
+    } catch (err) {
+      toast({
+        title: isEditing ? "Could not update user" : "Could not create user",
+        description: err instanceof Error ? err.message : "Request failed",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const filteredUsers = users.filter(
     (u) =>
       !search.trim() ||
-      u.user.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
+      u.username.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      roleLabel(u.role).toLowerCase().includes(search.toLowerCase())
   )
+
+  const activeCount = users.filter((u) => u.is_active).length
 
   return (
     <ModulePageLayout
@@ -131,8 +246,10 @@ export default function UserRoleManagementPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Active accounts</p>
+              <div className="text-2xl font-bold">{hasAuth ? users.length : "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {hasAuth ? `${activeCount} active in database` : "Log in to load users"}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -143,20 +260,20 @@ export default function UserRoleManagementPage() {
               <Shield className="h-4 w-4 text-[#3b82f6]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{ROLES.length}</div>
+              <div className="text-2xl font-bold">{ROLE_OPTIONS.length}</div>
               <p className="text-xs text-muted-foreground mt-1">Defined roles</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Last Login
+                Storage
               </CardTitle>
               <UserPlus className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Today</div>
-              <p className="text-xs text-muted-foreground mt-1">42 users active</p>
+              <div className="text-2xl font-bold">{hasAuth ? "API" : "—"}</div>
+              <p className="text-xs text-muted-foreground mt-1">PostgreSQL / Django</p>
             </CardContent>
           </Card>
         </div>
@@ -173,6 +290,16 @@ export default function UserRoleManagementPage() {
             </Button>
           </CardHeader>
           <CardContent className="w-full min-w-0">
+            {!hasAuth && (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-4">
+                Sign in with an Admin or HR account to view and create users in the database.
+              </p>
+            )}
+            {loadError && (
+              <p className="text-sm text-destructive mb-4">
+                {loadError instanceof Error ? loadError.message : "Failed to load users"}
+              </p>
+            )}
             <Tabs defaultValue="users" className="w-full">
               <TabsList>
                 <TabsTrigger value="users">Users</TabsTrigger>
@@ -185,6 +312,12 @@ export default function UserRoleManagementPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
+                {isLoading ? (
+                  <p className="text-sm text-muted-foreground py-8 flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading users…
+                  </p>
+                ) : (
                 <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
                 <Table className="min-w-[760px]">
                   <TableHeader>
@@ -197,26 +330,42 @@ export default function UserRoleManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((row) => (
-                      <TableRow key={row.user}>
-                        <TableCell className="font-medium">{row.user}</TableCell>
+                    {filteredUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          {hasAuth ? "No users found." : "Sign in to see users."}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                    filteredUsers.map((row: ApiUser) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium">{row.username}</TableCell>
                         <TableCell className="text-muted-foreground">{row.email}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{row.role}</Badge>
+                          <Badge variant="outline">{roleLabel(row.role)}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="default">{row.status}</Badge>
+                          <Badge variant={row.is_active ? "default" : "secondary"}>
+                            {row.is_active ? "Active" : "Inactive"}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" className="text-[#3b82f6]">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-[#3b82f6]"
+                            onClick={() => openEditForm(row)}
+                          >
                             Edit
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                    )}
                   </TableBody>
                 </Table>
                 </div>
+                )}
               </TabsContent>
               <TabsContent value="roles" className="mt-6">
                 <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
@@ -231,24 +380,26 @@ export default function UserRoleManagementPage() {
                   </TableHeader>
                   <TableBody>
                     {[
-                      { name: "Admin", desc: "Full system access", users: 2 },
-                      { name: "Operation Manager", desc: "Operations oversight", users: 0 },
-                      { name: "Inspector", desc: "Inspection and field ops", users: 0 },
-                      { name: "Collector", desc: "Collectorate level access", users: 0 },
-                      { name: "Deputy Collector", desc: "Deputy collectorate duties", users: 0 },
-                      { name: "Assistant Collector", desc: "Assistant collectorate duties", users: 0 },
-                      { name: "Receptionist", desc: "Reception and front desk", users: 0 },
-                      { name: "Human Resource", desc: "HR module and personnel", users: 0 },
-                      { name: "Warehouse Officer", desc: "Warehouse and inventory", users: 0 },
-                      { name: "Detection Officer", desc: "Detection and enforcement", users: 0 },
-                      { name: "FIR Officer", desc: "FIR registration and records", users: 0 },
-                      { name: "Investigation Officer", desc: "Case investigation workflow", users: 0 },
-                      { name: "Seizing Officer", desc: "Seizure and custody operations", users: 0 },
+                      { name: "Admin", desc: "Full system access", role: "ADMIN" },
+                      { name: "Operation Manager", desc: "Operations oversight", role: "OPERATION_MANAGER" },
+                      { name: "Inspector", desc: "Inspection and field ops", role: "INSPECTOR" },
+                      { name: "Collector", desc: "Collectorate level access", role: "COLLECTOR" },
+                      { name: "Deputy Collector", desc: "Deputy collectorate duties", role: "DEPUTY_COLLECTOR" },
+                      { name: "Assistant Collector", desc: "Assistant collectorate duties", role: "ASSISTANT_COLLECTOR" },
+                      { name: "Receptionist", desc: "Reception and front desk", role: "RECEPTIONIST" },
+                      { name: "Human Resource", desc: "HR module and personnel", role: "HR" },
+                      { name: "Warehouse Officer", desc: "Warehouse and inventory", role: "WAREHOUSE_OFFICER" },
+                      { name: "Detection Officer", desc: "Detection and enforcement", role: "DETECTION_OFFICER" },
+                      { name: "FIR Officer", desc: "FIR registration and records", role: "FIR_OFFICER" },
+                      { name: "Investigation Officer", desc: "Case investigation workflow", role: "INVESTIGATION_OFFICER" },
+                      { name: "Seizing Officer", desc: "Seizure and custody operations", role: "SEIZING_OFFICER" },
                     ].map((row) => (
-                      <TableRow key={row.name}>
+                      <TableRow key={row.role}>
                         <TableCell className="font-medium">{row.name}</TableCell>
                         <TableCell className="text-muted-foreground">{row.desc}</TableCell>
-                        <TableCell>{row.users}</TableCell>
+                        <TableCell>
+                          {users.filter((u) => u.role === row.role).length}
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" className="text-[#3b82f6]">
                             Permissions
@@ -265,28 +416,78 @@ export default function UserRoleManagementPage() {
         </Card>
       </div>
 
-      <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setForm({ user: "", email: "", role: "Admin", status: "Active" }) }}>
+      <Dialog
+        open={open}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) closeDialog()
+          else setOpen(true)
+        }}
+      >
         <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add User</DialogTitle>
-            <p className="text-sm text-muted-foreground">User account (dummy data saved locally).</p>
+            <DialogTitle>{isEditing ? "Edit User" : "Add User"}</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {isEditing
+                ? "Update account details including username. Leave password blank to keep the current password."
+                : "Creates a login account with a hashed password stored in the database."}
+            </p>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label>Username *</Label>
+              <Label htmlFor="add-user-username">Username *</Label>
               <Input
+                id="add-user-username"
                 value={form.user}
                 onChange={(e) => setForm((p) => ({ ...p, user: e.target.value }))}
                 placeholder="e.g. john.doe"
+                autoComplete="username"
               />
             </div>
             <div className="space-y-2">
-              <Label>Email *</Label>
+              <Label htmlFor="add-user-email">Email *</Label>
               <Input
+                id="add-user-email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 placeholder="e.g. john@customs.gov.pk"
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-user-password">
+                {isEditing ? "New password" : "Password *"}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="add-user-password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                  placeholder={isEditing ? "Leave blank to keep current" : "At least 6 characters"}
+                  autoComplete="new-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-user-phone">Phone</Label>
+              <Input
+                id="add-user-phone"
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                placeholder="e.g. 0300-1234567"
+                autoComplete="tel"
               />
             </div>
             <div className="space-y-2">
@@ -296,15 +497,45 @@ export default function UserRoleManagementPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLES.map((r) => (
+                  {ROLE_OPTIONS.map((r) => (
                     <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            {isEditing && (
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={form.is_active ? "active" : "inactive"}
+                  onValueChange={(v) => setForm((p) => ({ ...p, is_active: v === "active" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
-              <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
-              <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
+              <Button variant="outline" onClick={closeDialog} className="w-full sm:w-auto" disabled={saving}>
+                Cancel
+              </Button>
+              <Button onClick={() => void onSave()} className="w-full sm:w-auto" disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving…
+                  </>
+                ) : isEditing ? (
+                  "Update"
+                ) : (
+                  "Save"
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>

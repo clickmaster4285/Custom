@@ -3,7 +3,8 @@ import { useLocation, useNavigate, Outlet } from "react-router-dom"
 import { Shield } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import { Toaster } from "@/components/ui/toaster"
-import { AUTH_SESSION_KEY } from "@/lib/auth"
+import { AUTH_SESSION_KEY, getStoredUser } from "@/lib/auth"
+import { getHomeRouteForRole, isPathAllowedForRole } from "@/lib/role-access"
 import { ROUTES, isLoginRoute } from "@/routes/config"
 
 export function AuthGuard() {
@@ -14,6 +15,8 @@ export function AuthGuard() {
   useEffect(() => {
     const auth = typeof window !== "undefined" ? sessionStorage.getItem(AUTH_SESSION_KEY) === "true" : false
     const isLoginPage = isLoginRoute(location.pathname)
+    const user = getStoredUser()
+    const homeRoute = getHomeRouteForRole(user?.role)
 
     if (!isLoginPage && !auth) {
       navigate(ROUTES.LOGIN, { replace: true })
@@ -21,7 +24,12 @@ export function AuthGuard() {
       return
     }
     if (isLoginPage && auth) {
-      navigate(ROUTES.DASHBOARD, { replace: true })
+      navigate(homeRoute, { replace: true })
+      setStatus("redirect")
+      return
+    }
+    if (auth && !isPathAllowedForRole(location.pathname, user?.role)) {
+      navigate(homeRoute, { replace: true })
       setStatus("redirect")
       return
     }

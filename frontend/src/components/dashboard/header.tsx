@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { clearAuth, getStoredUser } from "@/lib/auth"
+import { getRoleDisplayLabel } from "@/lib/role-access"
 import { ROUTES } from "@/routes/config"
 
 interface HeaderProps {
@@ -27,7 +28,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   const displayName = user?.username?.trim() || "User"
-  const role = "Admin Panel"
+  const role = getRoleDisplayLabel(user?.role)
   const initials = displayName
     .split(" ")
     .map((n) => n[0])

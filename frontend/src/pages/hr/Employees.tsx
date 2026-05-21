@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Users, UserPlus, Building2, Mail, Search, Eye, Edit, Trash2 } from "lucide-react"
+import { Users, UserPlus, Building2, Mail, Search, Eye, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,9 +16,25 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { API_BASE_URL } from "@/lib/api"
-import { fetchStaff, deleteStaff, type StaffRecord } from "@/lib/staff-api"
+import {
+  fetchEmployeesDirectory,
+  deleteStaff,
+  isDispositionStaffId,
+  type StaffRecord,
+} from "@/lib/staff-api"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { ROUTES, getEmployeeDetailPath } from "@/routes/config"
 import { useToast } from "@/hooks/use-toast"
+
+const PAGE_SIZE_OPTIONS = [20, 50, 100] as const
+const DEFAULT_PAGE_SIZE = 20
 
 function staffImageUrl(profileImage: string | null | undefined, id?: number): string {
   if (profileImage) {
@@ -35,6 +51,13 @@ export default function EmployeesPage() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE)
+
+  const handlePageSizeChange = (value: string) => {
+    setPageSize(Number(value))
+    setPage(1)
+  }
 
   const {
     data: staff = [],
@@ -42,8 +65,8 @@ export default function EmployeesPage() {
     error: queryError,
     refetch,
   } = useQuery({
-    queryKey: ["staff", "list"],
-    queryFn: fetchStaff,
+    queryKey: ["staff", "directory"],
+    queryFn: fetchEmployeesDirectory,
   })
 
   const error = queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null
@@ -53,6 +76,14 @@ export default function EmployeesPage() {
   }
 
   const handleDeleteEmployee = async (id: number) => {
+    if (isDispositionStaffId(id)) {
+      toast({
+        title: "Cannot delete",
+        description: "Disposition list records are read-only. Remove staff from the database section only.",
+        variant: "destructive",
+      })
+      return
+    }
     if (!confirm("Are you sure you want to delete this employee?")) return
     try {
       await deleteStaff(id)
@@ -68,18 +99,48 @@ export default function EmployeesPage() {
     }
   }
 
-  const filtered = staff.filter(
-    (s) =>
-      s.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      (s.personal_number?.toString() || "").toLowerCase().includes(search.toLowerCase()) ||
-      (s.user?.toString() || "").toLowerCase().includes(search.toLowerCase()) ||
-      s.department?.toLowerCase().includes(search.toLowerCase()) ||
-      s.designation?.toLowerCase().includes(search.toLowerCase()) ||
-      s.cnic?.includes(search) ||
-      s.phone?.includes(search) ||
-      s.transferred_from?.toLowerCase().includes(search.toLowerCase()) ||
-      s.transferred_to?.toLowerCase().includes(search.toLowerCase())
+  const dbCount = staff.filter((s) => s.record_source !== "disposition").length
+  const dispositionCount = staff.filter((s) => s.record_source === "disposition").length
+
+  const filtered = useMemo(
+    () =>
+      staff.filter(
+        (s) =>
+          !search.trim() ||
+          s.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+          s.father_name?.toLowerCase().includes(search.toLowerCase()) ||
+          (s.personal_number?.toString() || "").toLowerCase().includes(search.toLowerCase()) ||
+          (s.user?.toString() || "").toLowerCase().includes(search.toLowerCase()) ||
+          s.department?.toLowerCase().includes(search.toLowerCase()) ||
+          s.designation?.toLowerCase().includes(search.toLowerCase()) ||
+          s.cnic?.includes(search) ||
+          s.phone?.includes(search) ||
+          s.transferred_from?.toLowerCase().includes(search.toLowerCase()) ||
+          s.transferred_to?.toLowerCase().includes(search.toLowerCase())
+      ),
+    [staff, search]
   )
+
+  useEffect(() => {
+    setPage(1)
+  }, [search])
+
+  const count = filtered.length
+  const totalPages = Math.max(1, Math.ceil(count / pageSize))
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
+
+  const pagedStaff = useMemo(
+    () => filtered.slice((page - 1) * pageSize, page * pageSize),
+    [filtered, page, pageSize]
+  )
+
+  const hasNext = page < totalPages
+  const hasPrev = page > 1
+  const from = count === 0 ? 0 : (page - 1) * pageSize + 1
+  const to = Math.min(page * pageSize, count)
 
   return (
     <ModulePageLayout
@@ -98,33 +159,33 @@ export default function EmployeesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{staff.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Active</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {dbCount} database · {dispositionCount} disposition
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Departments
+                Database records
               </CardTitle>
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {[...new Set(staff.map((s) => s.department).filter(Boolean))].length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Departments</p>
+              <div className="text-2xl font-bold">{dbCount}</div>
+              <p className="text-xs text-muted-foreground mt-1">From API / saved staff</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Staff
+                Disposition list
               </CardTitle>
               <UserPlus className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{staff.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Total</p>
+              <div className="text-2xl font-bold">{dispositionCount}</div>
+              <p className="text-xs text-muted-foreground mt-1">Peshawar enforcement</p>
             </CardContent>
           </Card>
           <Card>
@@ -145,16 +206,21 @@ export default function EmployeesPage() {
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <CardTitle className="text-xl font-semibold">Employee Directory</CardTitle>
-              <CardDescription>Search and manage employee records</CardDescription>
+              <CardDescription>
+                Database staff and Peshawar disposition list ({dbCount} + {dispositionCount} records)
+              </CardDescription>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
-                  placeholder="Search by name, CNIC, designation..."
+                  placeholder="Search by name, father name, designation..."
                   className="w-full pl-9 sm:w-80"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                    setPage(1)
+                  }}
                 />
               </div>
               <Button 
@@ -173,13 +239,16 @@ export default function EmployeesPage() {
             {loading ? (
               <p className="text-sm text-muted-foreground py-8">Loading staff…</p>
             ) : (
+            <>
             <div className="w-full max-w-full overflow-x-auto rounded-md border pb-2">
-              <Table className="min-w-[1400px]">
+              <Table className="min-w-[1600px]">
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-12 text-center">S.No.</TableHead>
+                    <TableHead>Source</TableHead>
                     <TableHead>Personal No.</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Father&apos;s Name</TableHead>
                     <TableHead>Designation</TableHead>
                     <TableHead className="text-center">BPS</TableHead>
                     <TableHead>CNIC</TableHead>
@@ -193,18 +262,28 @@ export default function EmployeesPage() {
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
                         No staff found. Click "Add Staff" to create a new record.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filtered.map((row, index) => (
+                    pagedStaff.map((row, index) => {
+                      const isDisposition = row.record_source === "disposition"
+                      const rowNumber = (page - 1) * pageSize + index + 1
+                      return (
                       <TableRow 
                         key={row.id} 
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleViewEmployee(row)}
                       >
-                        <TableCell className="text-center font-medium">{index + 1}</TableCell>
+                        <TableCell className="text-center font-medium">
+                          {isDisposition ? row.personal_number : rowNumber}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isDisposition ? "secondary" : "default"} className="text-[10px] whitespace-nowrap">
+                            {isDisposition ? "Disposition" : "Database"}
+                          </Badge>
+                        </TableCell>
                         <TableCell>{row.personal_number || row.user || row.employee_id || "—"}</TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
@@ -217,6 +296,7 @@ export default function EmployeesPage() {
                               <span className="truncate max-w-[150px]">{row.full_name || row.user}</span>
                           </div>
                         </TableCell>
+                        <TableCell className="max-w-[140px] truncate">{row.father_name || "—"}</TableCell>
                         <TableCell className="max-w-[150px] truncate">{row.designation || "—"}</TableCell>
                         <TableCell className="text-center">{row.bps || "—"}</TableCell>
                         <TableCell className="whitespace-nowrap">{row.cnic || "—"}</TableCell>
@@ -237,36 +317,89 @@ export default function EmployeesPage() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-green-600"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                navigate(`/employees/${row.id}/edit`)
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-red-600"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeleteEmployee(row.id)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {!isDisposition && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-green-600"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  navigate(`/employees/${row.id}/edit`)
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {!isDisposition && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-red-600"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteEmployee(row.id)
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                    )})
                   )}
                 </TableBody>
               </Table>
             </div>
+            {count > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-4 mt-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {from}–{to} of {count}
+                    {search.trim() ? ` (filtered from ${staff.length})` : ""}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page</span>
+                    <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+                      <SelectTrigger className="w-[72px]" size="sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((size) => (
+                          <SelectItem key={size} value={String(size)}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={!hasPrev}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={!hasNext}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            </>
             )}
           </CardContent>
         </Card>
