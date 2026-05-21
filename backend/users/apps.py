@@ -23,6 +23,7 @@ def create_initial_admin(sender, **kwargs):
             password=password,
             role="ADMIN",
             phone=phone,
+            location=os.getenv("INITIAL_ADMIN_LOCATION", "PESHAWAR"),
         )
     except (OperationalError, IntegrityError):
         pass

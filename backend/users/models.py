@@ -22,8 +22,23 @@ class User(AbstractUser):
         ("INVESTIGATION_OFFICER", "Investigation Officer"),
         ("SEIZING_OFFICER", "Seizing Officer"),
     ]
+
+    LOCATION_CHOICES = [
+        ("PESHAWAR", "Peshawar (Head Office)"),
+        ("KOHAT", "Kohat"),
+        ("NOSHERA", "Noshera"),
+        ("MARDAN", "Mardan"),
+        ("DI_KHAN", "DI Khan"),
+    ]
+
     role = models.CharField(max_length=30, choices=ROLE_CHOICES)
     phone = models.CharField(max_length=20)
+    location = models.CharField(
+        max_length=20,
+        choices=LOCATION_CHOICES,
+        blank=True,
+        default="",
+    )
     is_deleted = models.BooleanField(default=False)
 
     def __str__(self):

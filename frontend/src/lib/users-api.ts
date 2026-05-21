@@ -1,4 +1,5 @@
 import { API_BASE_URL, getAuthHeaders, getStoredToken } from "@/lib/api";
+import { locationLabel, LOCATION_OPTIONS } from "@/lib/locations";
 
 export type ApiUser = {
   id: number;
@@ -6,6 +7,7 @@ export type ApiUser = {
   email: string;
   role: string;
   phone: string;
+  location?: string;
   is_active: boolean;
 };
 
@@ -15,6 +17,7 @@ export type CreateUserPayload = {
   password: string;
   role: string;
   phone?: string;
+  location?: string;
 };
 
 export type UpdateUserPayload = {
@@ -23,8 +26,11 @@ export type UpdateUserPayload = {
   password?: string;
   role?: string;
   phone?: string;
+  location?: string;
   is_active?: boolean;
 };
+
+export { LOCATION_OPTIONS, locationLabel };
 
 const USERS_ENDPOINT = `${API_BASE_URL}/api/users/`;
 
@@ -90,6 +96,7 @@ export async function createUser(payload: CreateUserPayload): Promise<ApiUser> {
       password: payload.password,
       role: payload.role,
       phone: (payload.phone || "0000000000").trim(),
+      location: payload.location || "",
     }),
   });
   if (!res.ok) throw new Error(await parseApiError(res));
@@ -102,6 +109,7 @@ export async function updateUser(id: number, payload: UpdateUserPayload): Promis
   if (payload.email !== undefined) body.email = payload.email.trim();
   if (payload.role !== undefined) body.role = payload.role;
   if (payload.phone !== undefined) body.phone = payload.phone.trim() || "0000000000";
+  if (payload.location !== undefined) body.location = payload.location;
   if (payload.is_active !== undefined) body.is_active = payload.is_active;
   if (payload.password && payload.password.length >= 6) {
     body.password = payload.password;

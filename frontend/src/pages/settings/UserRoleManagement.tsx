@@ -36,6 +36,8 @@ import {
   updateUser,
   fetchUsers,
   ROLE_OPTIONS,
+  LOCATION_OPTIONS,
+  locationLabel,
   roleLabel,
   type ApiUser,
 } from "@/lib/users-api"
@@ -46,6 +48,7 @@ type UserForm = {
   password: string
   phone: string
   role: string
+  location: string
   is_active: boolean
 }
 
@@ -55,6 +58,7 @@ const emptyForm: UserForm = {
   password: "",
   phone: "",
   role: "ADMIN",
+  location: "PESHAWAR",
   is_active: true,
 }
 
@@ -114,6 +118,7 @@ export default function UserRoleManagementPage() {
       password: "",
       phone: user.phone === "0000000000" ? "" : user.phone,
       role: user.role,
+      location: user.location || "PESHAWAR",
       is_active: user.is_active,
     })
     setOpen(true)
@@ -187,6 +192,7 @@ export default function UserRoleManagementPage() {
           email,
           role: form.role,
           phone: form.phone.trim() || undefined,
+          location: form.location,
           is_active: form.is_active,
           ...(password ? { password } : {}),
         })
@@ -201,6 +207,7 @@ export default function UserRoleManagementPage() {
           password,
           role: form.role,
           phone: form.phone.trim() || undefined,
+          location: form.location,
         })
         toast({
           title: "User created",
@@ -325,6 +332,7 @@ export default function UserRoleManagementPage() {
                       <TableHead>Username</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
+                      <TableHead>Location</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -332,7 +340,7 @@ export default function UserRoleManagementPage() {
                   <TableBody>
                     {filteredUsers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                           {hasAuth ? "No users found." : "Sign in to see users."}
                         </TableCell>
                       </TableRow>
@@ -343,6 +351,9 @@ export default function UserRoleManagementPage() {
                         <TableCell className="text-muted-foreground">{row.email}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{roleLabel(row.role)}</Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {locationLabel(row.location)}
                         </TableCell>
                         <TableCell>
                           <Badge variant={row.is_active ? "default" : "secondary"}>
@@ -493,12 +504,30 @@ export default function UserRoleManagementPage() {
             <div className="space-y-2">
               <Label>Role</Label>
               <Select value={form.role} onValueChange={(v) => setForm((p) => ({ ...p, role: v }))}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {ROLE_OPTIONS.map((r) => (
                     <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Location *</Label>
+              <Select
+                value={form.location}
+                onValueChange={(v) => setForm((p) => ({ ...p, location: v }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOCATION_OPTIONS.map((loc) => (
+                    <SelectItem key={loc.value} value={loc.value}>
+                      {loc.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -510,7 +539,7 @@ export default function UserRoleManagementPage() {
                   value={form.is_active ? "active" : "inactive"}
                   onValueChange={(v) => setForm((p) => ({ ...p, is_active: v === "active" }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

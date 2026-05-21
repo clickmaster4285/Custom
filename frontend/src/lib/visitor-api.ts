@@ -1,3 +1,6 @@
+import { filterByUserLocation, getUserLocationFilter } from "@/lib/location-access";
+import { getStoredUser } from "@/lib/auth";
+
 const VISITOR_WALKIN_KEY = "vms_visitors_walkin";
 const VISITOR_PREREG_KEY = "vms_visitors_prereg";
 
@@ -13,6 +16,10 @@ export type VisitorRecord = {
   cnic_number: string;
   passport_number: string;
   created_at: string;
+  /** Customs station where this registration was created (location code). */
+  location?: string;
+  registered_by_user_id?: number;
+  registered_by_username?: string;
   registration_source?: RegistrationSource;
   /** Draft = saved to list but not submitted; approved/sent = submitted */
   registration_status?: RegistrationStatus;
@@ -63,9 +70,19 @@ function writeVisitors(source: RegistrationSource, rows: VisitorRecord[], previo
   }
 }
 
+function registrationMeta(): Pick<VisitorRecord, "location" | "registered_by_user_id" | "registered_by_username"> {
+  const user = getStoredUser();
+  const location = user?.location || getUserLocationFilter() || undefined;
+  return {
+    location,
+    registered_by_user_id: user?.id,
+    registered_by_username: user?.username,
+  };
+}
+
 /** Fetch visitors for a specific source. Use "walk-in" or "pre-registration" so lists stay separate. */
 export async function fetchVisitors(source: RegistrationSource = "pre-registration"): Promise<VisitorRecord[]> {
-  return readVisitors(source);
+  return filterByUserLocation(readVisitors(source));
 }
 
 /** Create a visitor for a specific source. Walk-in and pre-registration are stored separately. */
@@ -94,6 +111,7 @@ export async function createVisitor(
     passport_number: passport,
     created_at: createdAt,
     registration_source: source,
+    ...registrationMeta(),
   };
 
   /** Store full payload in localStorage for both walk-in and pre-registration so detail page can show all data. */
@@ -129,6 +147,7 @@ export async function saveDraftToStore(
     created_at: createdAt,
     registration_source: source,
     registration_status: "draft",
+    ...registrationMeta(),
   };
 
   const newRow: VisitorRecord = ({ ...payload, ...base, registration_status: "draft" } as VisitorRecord);
@@ -154,6 +173,8 @@ export async function updateVisitor(
   if (index === -1) return null;
 
   const existing = rows[index] as Record<string, unknown>;
+  const loc = getUserLocationFilter();
+  if (loc && existing.location && existing.location !== loc) return null;
   const fullName = String(payload.full_name ?? payload.fullName ?? existing.full_name ?? "Unknown Visitor");
   const visitorType = String(payload.visitor_type ?? payload.registration_type ?? existing.visitor_type ?? "individual");
   const department = String(payload.department_to_visit ?? payload.department ?? existing.department_to_visit ?? "admin");
@@ -188,7 +209,11 @@ export async function getVisitor(
   source: RegistrationSource = "walk-in"
 ): Promise<VisitorRecord | null> {
   const rows = readVisitors(source);
-  return rows.find((r) => r.id === id) ?? null;
+  const record = rows.find((r) => r.id === id) ?? null;
+  if (!record) return null;
+  const loc = getUserLocationFilter();
+  if (loc && record.location && record.location !== loc) return null;
+  return record;
 }
 
 /** Delete a visitor by id from the given source (local only). */
@@ -196,6 +221,8 @@ export async function deleteVisitor(
   id: number,
   source: RegistrationSource = "walk-in"
 ): Promise<void> {
+  const existing = await getVisitor(id, source);
+  if (!existing) return;
   const rows = readVisitors(source).filter((r) => r.id !== id);
   writeVisitors(source, rows, undefined);
 }
@@ -204,8 +231,8 @@ export async function deleteVisitor(
 export async function isCnicExists(cnic: string): Promise<boolean> {
   const normalized = String(cnic || "").trim().replace(/\D/g, "");
   if (!normalized) return false;
-  const walkIn = readVisitors("walk-in");
-  const preReg = readVisitors("pre-registration");
+  const walkIn = filterByUserLocation(readVisitors("walk-in"));
+  const preReg = filterByUserLocation(readVisitors("pre-registration"));
   const all = [...walkIn, ...preReg];
   return all.some((r) => String(r.cnic_number || "").replace(/\D/g, "") === normalized);
 }
