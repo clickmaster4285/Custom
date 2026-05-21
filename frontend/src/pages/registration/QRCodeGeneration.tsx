@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
+import { fetchVmsJsonBlob, saveVmsJsonBlob } from "@/lib/vms-list-api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Printer, QrCode } from "lucide-react"
 
@@ -30,6 +31,8 @@ export interface QRScanPayload {
   entryGate: string
   generatedOn: string
 }
+
+const QR_CODES_MODULE = "vms_qr_codes"
 
 const defaultForm = () => ({
   name: "",
@@ -52,14 +55,26 @@ export default function QRCodeGenerationPage() {
   const [savedQRCodes, setSavedQRCodes] = useState<Record<string, unknown>[]>([])
   const [qrDataUrl, setQrDataUrl] = useState<string>("")
 
+  const [qrHydrated, setQrHydrated] = useState(false)
+
   useEffect(() => {
-    const stored = localStorage.getItem("qrCodes")
-    if (stored) try { setSavedQRCodes(JSON.parse(stored)) } catch { /* ignore */ }
+    let cancelled = false
+    ;(async () => {
+      const stored = await fetchVmsJsonBlob<Record<string, unknown>[]>(QR_CODES_MODULE, [])
+      if (!cancelled) {
+        setSavedQRCodes(Array.isArray(stored) ? stored : [])
+        setQrHydrated(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
-    localStorage.setItem("qrCodes", JSON.stringify(savedQRCodes))
-  }, [savedQRCodes])
+    if (!qrHydrated) return
+    void saveVmsJsonBlob(QR_CODES_MODULE, savedQRCodes)
+  }, [savedQRCodes, qrHydrated])
 
   // Use stable placeholder when qrCodeId empty so useEffect deps don't change every tick (Date.now() caused infinite loop)
   const payload: QRScanPayload = {

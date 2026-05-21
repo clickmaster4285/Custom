@@ -8,7 +8,7 @@ import { WalkInStep3VisitDetails } from "@/components/walk-in/step3-visit-detail
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
-import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, getErrorToastMessage, saveDraftToStore, updateVisitor, type VisitorRecord } from "@/lib/visitor-api"
+import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, getErrorToastMessage, getVisitorCreatedBy, saveDraftToStore, updateVisitor, type VisitorRecord } from "@/lib/visitor-api"
 import { getVisitorPhotoUrl } from "@/lib/image-match"
 import { PrintQROnSave } from "@/components/visitor/print-qr-on-save"
 import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, Printer, UserPlus, Trash2 } from "lucide-react"
@@ -52,6 +52,7 @@ type RegistrationEntry = {
   contact: string;
   visitPurpose: string;
   host: string;
+  createdBy: string;
 };
 
 function formatTime(value: string) {
@@ -97,6 +98,7 @@ function mapVisitorToRegistration(visitor: VisitorRecord & Record<string, unknow
     contact,
     visitPurpose: String(visitPurpose || "").trim() || "—",
     host: String(host || "").trim() || "—",
+    createdBy: getVisitorCreatedBy(visitor),
   };
 }
 
@@ -209,8 +211,6 @@ const initialFormData = {
   temporaryAccessGranted: "",
   guardRemarks: "",
 }
-
-const WALKIN_DRAFT_KEY = "vms_walkin_draft"
 
 export default function WalkInRegistrationPage() {
   const { toast } = useToast()
@@ -336,7 +336,12 @@ export default function WalkInRegistrationPage() {
     })
   }, [showForm, editingDraftId])
 
-  const saveDraft = async () => {
+  useEffect(() => {
+    if (!showForm) return
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+  }, [showForm, currentStep])
+
+  const persistDraft = async (closeForm = false) => {
     try {
       const payload = buildPayload()
       ;(payload as Record<string, unknown>).draft_form_data = formData
@@ -347,16 +352,29 @@ export default function WalkInRegistrationPage() {
           return
         }
         await queryClient.invalidateQueries({ queryKey: ["visitors", "walk-in"] })
-        toast({ title: "Draft updated", description: "Draft has been saved to the list." })
+        toast({
+          title: closeForm ? "Draft updated" : "Progress saved",
+          description: closeForm
+            ? "Draft has been saved to the list."
+            : "Your changes on this step have been saved.",
+        })
       } else {
-        await saveDraftToStore(payload as Record<string, unknown>, "walk-in")
+        const created = await saveDraftToStore(payload as Record<string, unknown>, "walk-in")
+        setEditingDraftId(created.id)
         await queryClient.invalidateQueries({ queryKey: ["visitors", "walk-in"] })
-        toast({ title: "Draft saved", description: "Draft has been saved to the list. You can continue or submit later." })
+        toast({
+          title: "Draft saved",
+          description: closeForm
+            ? "Draft has been saved to the list. You can continue or submit later."
+            : "Draft created. Continue with the remaining steps.",
+        })
       }
-      setEditingDraftId(null)
-      setShowForm(false)
-      setCurrentStep(1)
-      setFormData({ ...initialFormData })
+      if (closeForm) {
+        setEditingDraftId(null)
+        setShowForm(false)
+        setCurrentStep(1)
+        setFormData({ ...initialFormData })
+      }
     } catch (err) {
       toast({
         title: "Could not save draft",
@@ -365,6 +383,8 @@ export default function WalkInRegistrationPage() {
       })
     }
   }
+
+  const saveDraft = () => persistDraft(true)
 
   const validateStep = (step: number) => {
     switch (step) {
@@ -442,9 +462,6 @@ export default function WalkInRegistrationPage() {
       })
       setFormData({ ...initialFormData })
       setEditingDraftId(null)
-      try {
-        window.localStorage.removeItem(WALKIN_DRAFT_KEY)
-      } catch {}
     },
     onError: (mutationError) => {
       toast({
@@ -489,9 +506,6 @@ export default function WalkInRegistrationPage() {
         })
         setFormData({ ...initialFormData })
         setEditingDraftId(null)
-        try {
-          window.localStorage.removeItem(WALKIN_DRAFT_KEY)
-        } catch {}
       } else {
         createVisitorMutation.mutate(payload)
       }
@@ -591,6 +605,7 @@ export default function WalkInRegistrationPage() {
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Visit Purpose</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Host</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                        <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Created by</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Date</th>
                         <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Time</th>
                         <th className="text-right px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-18">Action</th>
@@ -599,19 +614,19 @@ export default function WalkInRegistrationPage() {
                     <tbody>
                       {isLoading ? (
                         <tr className="border-b border-border last:border-0">
-                          <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                          <td colSpan={12} className="px-4 py-6 text-center text-sm text-muted-foreground">
                             Loading registrations…
                           </td>
                         </tr>
                       ) : isError ? (
                         <tr className="border-b border-border last:border-0">
-                          <td colSpan={11} className="px-4 py-6 text-center text-sm text-destructive">
+                          <td colSpan={12} className="px-4 py-6 text-center text-sm text-destructive">
                             {error instanceof Error ? error.message : "Failed to load registrations."}
                           </td>
                         </tr>
                       ) : registrations.length === 0 ? (
                         <tr className="border-b border-border last:border-0">
-                          <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                          <td colSpan={12} className="px-4 py-6 text-center text-sm text-muted-foreground">
                             No registrations found.
                           </td>
                         </tr>
@@ -653,6 +668,9 @@ export default function WalkInRegistrationPage() {
                               <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(reg.status)}`}>
                                 {reg.status}
                               </span>
+                            </td>
+                            <td className="px-4 py-3 hidden lg:table-cell">
+                              <span className="text-sm text-muted-foreground">{reg.createdBy}</span>
                             </td>
                             <td className="px-4 py-3 hidden sm:table-cell">
                               <span className="text-sm text-muted-foreground">{reg.date}</span>
@@ -841,9 +859,6 @@ export default function WalkInRegistrationPage() {
                     onCancel={handleCancelForm}
                     onReset={() => {
                       setFormData({ ...initialFormData })
-                      try {
-                        window.localStorage.removeItem(WALKIN_DRAFT_KEY)
-                      } catch {}
                     }}
                     onSaveAndContinue={nextStep}
                     onSaveToDraft={saveDraft}
@@ -866,6 +881,7 @@ export default function WalkInRegistrationPage() {
                     onCancel={handleCancelForm}
                     onReset={() => setFormData({ ...initialFormData })}
                     onPrevious={prevStep}
+                    onSaveToDraft={() => persistDraft(false)}
                     onSaveAndContinue={nextStep}
                   />
                 )}
@@ -890,6 +906,7 @@ export default function WalkInRegistrationPage() {
                     onCancel={handleCancelForm}
                     onReset={() => setFormData({ ...initialFormData })}
                     onPrevious={prevStep}
+                    onSaveToDraft={() => persistDraft(false)}
                     onSaveAndContinue={nextStep}
                   />
                 )}

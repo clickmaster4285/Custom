@@ -1,78 +1,282 @@
+from datetime import date, timedelta
+
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .models import Visitor, ZoneAccessLog, SecurityAlert
+from .models import (
+    Visitor,
+    ZoneAccessLog,
+    SecurityAlert,
+    Vehicle,
+    VisitorNotification,
+    VmsListRecord,
+)
 from .serializers import (
     VisitorSerializer,
+    VisitorWriteSerializer,
     FaceCaptureSerializer,
     ZoneScanSerializer,
-    ZoneAccessLogSerializer,
     SecurityAlertSerializer,
+    ApproveDenySerializer,
+    NotifyHostSerializer,
+    VehicleSerializer,
+    VisitorNotificationSerializer,
+    VmsListRecordSerializer,
+    VmsListBulkSerializer,
 )
+from .payload_utils import merge_extra_into_response
 
 
 def get_visitor_queryset():
     return Visitor.objects.all().order_by("-created_at")
 
 
+def filter_visitors_by_request(queryset, request):
+    source = request.query_params.get("registration_source", "").strip()
+    if source:
+        queryset = queryset.filter(registration_source=source)
+    status_param = request.query_params.get("registration_status", "").strip()
+    if status_param:
+        queryset = queryset.filter(registration_status=status_param)
+    approval = request.query_params.get("approval_status", "").strip()
+    if approval:
+        queryset = queryset.filter(approval_status=approval)
+    location = request.query_params.get("location", "").strip()
+    if location:
+        queryset = queryset.filter(location=location)
+    search = request.query_params.get("search", "").strip()
+    if search:
+        queryset = queryset.filter(
+            Q(full_name__icontains=search)
+            | Q(cnic_number__icontains=search)
+            | Q(passport_number__icontains=search)
+            | Q(qr_code_id__icontains=search)
+        )
+    return queryset
+
+
+def serialize_visitor_list(queryset):
+    from .serializers import VisitorListSerializer
+
+    ser = VisitorListSerializer(queryset, many=True, context={"omit_blobs": True})
+    return ser.data
+
+
 # ---------- Visitor CRUD ----------
 
 
 class VisitorListAPIView(generics.ListAPIView):
-    """Read: list all visitors. GET /api/visitors/list/"""
-    queryset = get_visitor_queryset()
+    """GET /api/visitors/list/?registration_source=walk-in|pre-registration"""
+
     serializer_class = VisitorSerializer
     permission_classes = [permissions.AllowAny]
 
+    def get_queryset(self):
+        return filter_visitors_by_request(get_visitor_queryset(), self.request)
 
-class VisitorCreateAPIView(generics.CreateAPIView):
-    """Create: add a new visitor. POST /api/visitors/create/"""
-    queryset = Visitor.objects.all()
-    serializer_class = VisitorSerializer
+    def get_serializer_class(self):
+        from .serializers import VisitorListSerializer
+
+        return VisitorListSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["omit_blobs"] = True
+        return context
+
+
+class VisitorCreateAPIView(APIView):
+    """POST /api/visitors/create/ — body may include registration_source query or field."""
+
     permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        source = (
+            request.data.get("registration_source")
+            or request.query_params.get("registration_source")
+            or ""
+        )
+        write_ser = VisitorWriteSerializer(
+            data=request.data,
+            context={"registration_source": str(source), "request": request},
+        )
+        if not write_ser.is_valid():
+            return Response(write_ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        visitor = write_ser.save()
+        return Response(VisitorSerializer(visitor).data, status=status.HTTP_201_CREATED)
 
 
 class VisitorReadAPIView(generics.RetrieveAPIView):
-    """Read: get a single visitor by id. GET /api/visitors/<id>/read/"""
     queryset = Visitor.objects.all()
     serializer_class = VisitorSerializer
     permission_classes = [permissions.AllowAny]
 
 
-class VisitorUpdateAPIView(generics.UpdateAPIView):
-    """Update: update a visitor. PUT or PATCH /api/visitors/<id>/update/"""
-    queryset = Visitor.objects.all()
-    serializer_class = VisitorSerializer
+class VisitorUpdateAPIView(APIView):
     permission_classes = [permissions.AllowAny]
+
+    def put(self, request, pk):
+        return self._update(request, pk, partial=False)
+
+    def patch(self, request, pk):
+        return self._update(request, pk, partial=True)
+
+    def _update(self, request, pk, partial):
+        try:
+            visitor = Visitor.objects.get(pk=pk)
+        except Visitor.DoesNotExist:
+            return Response({"detail": "Visitor not found."}, status=status.HTTP_404_NOT_FOUND)
+        write_ser = VisitorWriteSerializer(
+            visitor,
+            data=request.data,
+            partial=partial,
+            context={"request": request},
+        )
+        if not write_ser.is_valid():
+            return Response(write_ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        visitor = write_ser.save()
+        return Response(VisitorSerializer(visitor).data)
 
 
 class VisitorDeleteAPIView(generics.DestroyAPIView):
-    """Delete: remove a visitor. DELETE /api/visitors/<id>/delete/"""
     queryset = Visitor.objects.all()
     serializer_class = VisitorSerializer
     permission_classes = [permissions.AllowAny]
 
 
-# ---------- Flow: Face Capture (Arc Face) ----------
+class VisitorCnicCheckAPIView(APIView):
+    """GET /api/visitors/check-cnic/?cnic=..."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        cnic = str(request.query_params.get("cnic", "")).strip().replace(" ", "").replace("-", "")
+        if not cnic:
+            return Response({"exists": False})
+        digits = "".join(c for c in cnic if c.isdigit())
+        exists = Visitor.objects.filter(
+            Q(cnic_number__icontains=digits) | Q(cnic_passport__icontains=digits)
+        ).exists()
+        return Response({"exists": exists})
 
 
-class VisitorFaceCaptureAPIView(APIView):
-    """
-    Update visitor with face capture data and set flow_stage to face_captured.
-    POST /api/visitors/<id>/face-capture/
-    """
+# ---------- Active & Approval ----------
+
+
+class ActiveVisitorsAPIView(APIView):
+    """GET /api/visitors/active/"""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        qs = Visitor.objects.filter(
+            flow_stage="zone_checked_in",
+            expiry_status="active",
+        ).order_by("-updated_at")
+        qs = filter_visitors_by_request(qs, request)
+        return Response(serialize_visitor_list(qs))
+
+
+class PendingApprovalsAPIView(APIView):
+    """GET /api/approval/pending/"""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        qs = Visitor.objects.filter(approval_status="pending").order_by("-created_at")
+        qs = filter_visitors_by_request(qs, request)
+        return Response(serialize_visitor_list(qs))
+
+
+class VisitorApproveAPIView(APIView):
+    """POST /api/visitors/<id>/approve/"""
+
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, pk):
         try:
             visitor = Visitor.objects.get(pk=pk)
         except Visitor.DoesNotExist:
+            return Response({"detail": "Visitor not found."}, status=status.HTTP_404_NOT_FOUND)
+        ser = ApproveDenySerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        visitor.approval_status = "approved"
+        visitor.approved_by = ser.validated_data.get("approved_by") or "system"
+        visitor.registration_status = "approved"
+        if visitor.flow_stage == "arrived":
+            visitor.flow_stage = "registered"
+        visitor.save()
+        return Response(VisitorSerializer(visitor).data)
+
+
+class VisitorDenyAPIView(APIView):
+    """POST /api/visitors/<id>/deny/"""
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, pk):
+        try:
+            visitor = Visitor.objects.get(pk=pk)
+        except Visitor.DoesNotExist:
+            return Response({"detail": "Visitor not found."}, status=status.HTTP_404_NOT_FOUND)
+        ser = ApproveDenySerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        visitor.approval_status = "denied"
+        visitor.denied_by = ser.validated_data.get("denied_by") or "system"
+        visitor.rejection_reason = ser.validated_data.get("rejection_reason") or ""
+        visitor.expiry_status = "revoked"
+        visitor.save()
+        return Response(VisitorSerializer(visitor).data)
+
+
+class VisitorNotifyHostAPIView(APIView):
+    """POST /api/visitors/<id>/notify-host/"""
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, pk):
+        try:
+            visitor = Visitor.objects.get(pk=pk)
+        except Visitor.DoesNotExist:
+            return Response({"detail": "Visitor not found."}, status=status.HTTP_404_NOT_FOUND)
+        ser = NotifyHostSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        recipient = ser.validated_data.get("recipient") or visitor.host_email or visitor.host_contact_number
+        if not recipient:
             return Response(
-                {"detail": "Visitor not found."},
-                status=status.HTTP_404_NOT_FOUND,
+                {"detail": "No host email or phone on file."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
+        now = timezone.now()
+        VisitorNotification.objects.create(
+            visitor=visitor,
+            notification_type="host_notify",
+            recipient=recipient,
+            message=f"Visitor {visitor.full_name} is scheduled / on site.",
+            success=True,
+        )
+        visitor.host_notified_at = now
+        visitor.save(update_fields=["host_notified_at", "updated_at"])
+        return Response(
+            {"host_notified_at": now.isoformat(), "recipient": recipient},
+            status=status.HTTP_200_OK,
+        )
+
+
+# ---------- Face Capture ----------
+
+
+class VisitorFaceCaptureAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, pk):
+        try:
+            visitor = Visitor.objects.get(pk=pk)
+        except Visitor.DoesNotExist:
+            return Response({"detail": "Visitor not found."}, status=status.HTTP_404_NOT_FOUND)
         ser = FaceCaptureSerializer(data=request.data, partial=True)
         if not ser.is_valid():
             return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -83,14 +287,10 @@ class VisitorFaceCaptureAPIView(APIView):
         return Response(VisitorSerializer(visitor).data)
 
 
-# ---------- Flow: Zone Access Check (QR Scan) ----------
+# ---------- Zone Scan ----------
 
 
 class ZoneScanAPIView(APIView):
-    """
-    When a QR is scanned at a zone/gate: validate access, log the scan,
-    optionally create a security alert. POST /api/zone-access/scan/
-    """
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -123,12 +323,22 @@ class ZoneScanAPIView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        now = timezone.now()
         allowed = True
         msg = "Access granted."
 
-        # Check expiry status
-        if visitor.expiry_status == "expired" or visitor.expiry_status == "revoked":
+        if visitor.approval_status == "denied":
+            allowed = False
+            msg = "Visitor approval was denied."
+            SecurityAlert.objects.create(
+                visitor=visitor,
+                alert_type="other",
+                severity="high",
+                message=msg,
+                zone=zone,
+                gate=gate,
+            )
+
+        if allowed and visitor.expiry_status in ("expired", "revoked"):
             allowed = False
             msg = f"QR code is {visitor.expiry_status}."
             SecurityAlert.objects.create(
@@ -140,7 +350,6 @@ class ZoneScanAPIView(APIView):
                 gate=gate,
             )
 
-        # Check zone: visitor.access_zone must allow this zone (single choice: zone-a, zone-b, zone-c, or all)
         if allowed and visitor.access_zone and visitor.access_zone != "all":
             if zone != visitor.access_zone:
                 allowed = False
@@ -154,7 +363,25 @@ class ZoneScanAPIView(APIView):
                     gate=gate,
                 )
 
-        # Log the scan
+        if allowed and scan_type == "entry":
+            recent_entry = ZoneAccessLog.objects.filter(
+                visitor=visitor,
+                scan_type="entry",
+                allowed=True,
+                scanned_at__gte=timezone.now() - timedelta(minutes=5),
+            ).exists()
+            if recent_entry and visitor.flow_stage == "zone_checked_in":
+                allowed = False
+                msg = "Duplicate entry scan detected."
+                SecurityAlert.objects.create(
+                    visitor=visitor,
+                    alert_type="duplicate_entry",
+                    severity="medium",
+                    message=msg,
+                    zone=zone,
+                    gate=gate,
+                )
+
         ZoneAccessLog.objects.create(
             visitor=visitor,
             zone=zone,
@@ -185,17 +412,15 @@ class ZoneScanAPIView(APIView):
         )
 
 
-# ---------- Security: Alerts & Dashboard ----------
+# ---------- Security ----------
 
 
 class SecurityAlertListAPIView(generics.ListAPIView):
-    """List recent security alerts. GET /api/security/alerts/"""
     permission_classes = [permissions.AllowAny]
     serializer_class = SecurityAlertSerializer
 
     def get_queryset(self):
         qs = SecurityAlert.objects.all().select_related("visitor")
-        # Optional query params: ?acknowledged=false, ?severity=high
         acknowledged = self.request.query_params.get("acknowledged")
         if acknowledged is not None:
             if acknowledged.lower() in ("false", "0", "no"):
@@ -205,22 +430,33 @@ class SecurityAlertListAPIView(generics.ListAPIView):
         severity = self.request.query_params.get("severity")
         if severity:
             qs = qs.filter(severity=severity)
-        return qs[:100]  # limit to last 100
+        return qs[:100]
+
+
+class SecurityAlertAcknowledgeAPIView(APIView):
+    """POST /api/security/alerts/<id>/acknowledge/"""
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, pk):
+        try:
+            alert = SecurityAlert.objects.get(pk=pk)
+        except SecurityAlert.DoesNotExist:
+            return Response({"detail": "Alert not found."}, status=status.HTTP_404_NOT_FOUND)
+        alert.acknowledged = True
+        alert.acknowledged_at = timezone.now()
+        alert.acknowledged_by = request.data.get("acknowledged_by") or "operator"
+        alert.save()
+        return Response(SecurityAlertSerializer(alert).data)
 
 
 class SecurityDashboardAPIView(APIView):
-    """
-    Dashboard stats for security: today's visitors, in building, alerts count.
-    GET /api/security/dashboard/
-    """
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         today = timezone.now().date()
         visitors_today = Visitor.objects.filter(created_at__date=today).count()
-        in_building = Visitor.objects.filter(
-            flow_stage="zone_checked_in",
-        ).count()
+        in_building = Visitor.objects.filter(flow_stage="zone_checked_in").count()
         alerts_unack = SecurityAlert.objects.filter(acknowledged=False).count()
         alerts_today = SecurityAlert.objects.filter(created_at__date=today).count()
         recent_alerts = SecurityAlert.objects.filter(acknowledged=False)[:10]
@@ -234,3 +470,146 @@ class SecurityDashboardAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+# ---------- Vehicles ----------
+
+
+class VehicleListAPIView(generics.ListAPIView):
+    serializer_class = VehicleSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = Vehicle.objects.select_related("visitor").all()
+        visitor_id = self.request.query_params.get("visitor_id")
+        if visitor_id:
+            qs = qs.filter(visitor_id=visitor_id)
+        return qs
+
+
+class VehicleCreateAPIView(generics.CreateAPIView):
+    serializer_class = VehicleSerializer
+    permission_classes = [permissions.AllowAny]
+    queryset = Vehicle.objects.all()
+
+
+# ---------- Notifications ----------
+
+
+class NotificationListAPIView(generics.ListAPIView):
+    serializer_class = VisitorNotificationSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = VisitorNotification.objects.select_related("visitor").all()
+        visitor_id = self.request.query_params.get("visitor_id")
+        if visitor_id:
+            qs = qs.filter(visitor_id=visitor_id)
+        return qs
+
+
+# ---------- VMS Analytics ----------
+
+
+class VmsAnalyticsAPIView(APIView):
+    """GET /api/vms/analytics/?from=YYYY-MM-DD&to=YYYY-MM-DD"""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        today = timezone.now().date()
+        from_str = request.query_params.get("from") or str(today)
+        to_str = request.query_params.get("to") or str(today)
+        try:
+            from_date = date.fromisoformat(from_str[:10])
+            to_date = date.fromisoformat(to_str[:10])
+        except ValueError:
+            from_date = today
+            to_date = today
+
+        visitors_registered = Visitor.objects.filter(
+            created_at__date__gte=from_date,
+            created_at__date__lte=to_date,
+        ).count()
+        in_building_now = Visitor.objects.filter(flow_stage="zone_checked_in").count()
+        zone_scans = ZoneAccessLog.objects.filter(
+            scanned_at__date__gte=from_date,
+            scanned_at__date__lte=to_date,
+        ).count()
+        alerts_in_range = SecurityAlert.objects.filter(
+            created_at__date__gte=from_date,
+            created_at__date__lte=to_date,
+        ).count()
+        alerts_unacknowledged = SecurityAlert.objects.filter(acknowledged=False).count()
+        pending_approvals = Visitor.objects.filter(approval_status="pending").count()
+        approved_in_range = Visitor.objects.filter(
+            approval_status="approved",
+            updated_at__date__gte=from_date,
+            updated_at__date__lte=to_date,
+        ).count()
+        denied_in_range = Visitor.objects.filter(
+            approval_status="denied",
+            updated_at__date__gte=from_date,
+            updated_at__date__lte=to_date,
+        ).count()
+
+        return Response(
+            {
+                "from_date": str(from_date),
+                "to_date": str(to_date),
+                "visitors_registered": visitors_registered,
+                "in_building_now": in_building_now,
+                "zone_scans_in_range": zone_scans,
+                "alerts_in_range": alerts_in_range,
+                "alerts_unacknowledged": alerts_unacknowledged,
+                "pending_approvals": pending_approvals,
+                "approved_in_range": approved_in_range,
+                "denied_in_range": denied_in_range,
+            }
+        )
+
+
+# ---------- VMS List storage (blacklist, watchlist, etc.) ----------
+
+
+class VmsListRecordsAPIView(APIView):
+    """
+    GET /api/vms/lists/?module=vms_blacklist_management_rows
+    PUT /api/vms/lists/  body: { module, rows: [{ id, ...fields }] }
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        module = request.query_params.get("module", "").strip()
+        if not module:
+            return Response({"detail": "module query param required."}, status=400)
+        records = VmsListRecord.objects.filter(module=module)
+        location = request.query_params.get("location", "").strip()
+        if location:
+            records = records.filter(location=location)
+        rows = [{"id": r.record_id, **(r.data or {})} for r in records]
+        return Response(rows)
+
+    def put(self, request):
+        ser = VmsListBulkSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        module = ser.validated_data["module"]
+        rows = ser.validated_data["rows"]
+        location = ser.validated_data.get("location") or ""
+        VmsListRecord.objects.filter(module=module).delete()
+        bulk = []
+        for row in rows:
+            record_id = str(row.get("id") or f"row-{timezone.now().timestamp()}")
+            data = {k: v for k, v in row.items() if k != "id"}
+            bulk.append(
+                VmsListRecord(
+                    module=module,
+                    record_id=record_id,
+                    data=data,
+                    location=location or str(row.get("location") or ""),
+                )
+            )
+        if bulk:
+            VmsListRecord.objects.bulk_create(bulk)
+        return Response({"module": module, "count": len(bulk)})

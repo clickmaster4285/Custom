@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { setAuthenticatedWithToken } from "@/lib/auth"
 import { login } from "@/lib/auth-api"
 import { getHomeRouteForRole } from "@/lib/role-access"
+import { clearLegacyVmsLocalStorage } from "@/lib/vms-list-api"
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -31,6 +32,7 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       const { token, user } = await login(username.trim(), password)
+      clearLegacyVmsLocalStorage()
       setAuthenticatedWithToken(token, user)
       navigate(getHomeRouteForRole(user.role), { replace: true })
     } catch (err) {

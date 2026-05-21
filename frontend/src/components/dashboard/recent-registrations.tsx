@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MoreHorizontal } from "lucide-react"
-import { fetchVisitors, type VisitorRecord } from "@/lib/visitor-api"
+import { fetchVisitors, getVisitorCreatedBy, type VisitorRecord } from "@/lib/visitor-api"
 
 interface Registration {
   id: number
@@ -12,6 +12,7 @@ interface Registration {
   department: string
   status: "Checked In" | "Approved" | "Pending Docs" | "Checked In"
   time: string
+  createdBy: string
 }
 
 function formatTime(value: string) {
@@ -89,6 +90,9 @@ export function RecentRegistrations() {
                 Status
               </th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Created by
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Time
               </th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -105,13 +109,13 @@ export function RecentRegistrations() {
               </tr>
             ) : isError ? (
               <tr className="border-b border-border last:border-0">
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-destructive">
+                <td colSpan={7} className="px-4 py-6 text-center text-sm text-destructive">
                   {error instanceof Error ? error.message : "Failed to load registrations."}
                 </td>
               </tr>
             ) : registrations.length === 0 ? (
               <tr className="border-b border-border last:border-0">
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="px-4 py-6 text-center text-sm text-muted-foreground">
                   No registrations found.
                 </td>
               </tr>
@@ -139,6 +143,9 @@ export function RecentRegistrations() {
                     >
                       {registration.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm text-muted-foreground">{registration.createdBy}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-sm text-muted-foreground">{registration.time}</span>

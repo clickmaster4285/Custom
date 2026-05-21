@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge"
 import { ROUTES } from "@/routes/config"
 import type { Gate, GateType, DeviceType } from "@/lib/gate-types"
 import { GATE_TYPES, DEVICE_TYPES } from "@/lib/gate-types"
-import { getGates, setGates, getZones, setZones, ensureDefaultZones } from "@/lib/gate-storage"
+import { loadGates, saveGates, loadZones, ensureDefaultZones } from "@/lib/gate-storage"
 
 function generateGateId(): string {
   return `gate-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -56,17 +56,30 @@ export default function GateIntegrationPage() {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState(emptyGate())
 
+  const [hydrated, setHydrated] = useState(false)
+
   useEffect(() => {
-    ensureDefaultZones()
-    setGatesState(getGates())
-    setZonesState(getZones())
+    let cancelled = false
+    ;(async () => {
+      const z = await ensureDefaultZones()
+      const g = await loadGates()
+      if (!cancelled) {
+        setZonesState(z.map((zone) => ({ zone_id: zone.zone_id, zone_name: zone.zone_name })))
+        setGatesState(g)
+        setHydrated(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
-    if (gates.length > 0) setGates(gates)
-  }, [gates])
+    if (!hydrated) return
+    void saveGates(gates)
+  }, [gates, hydrated])
 
-  const zoneOptions = useMemo(() => getZones(), [zones])
+  const zoneOptions = useMemo(() => zones, [zones])
 
   const filteredGates = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -123,7 +136,7 @@ export default function GateIntegrationPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Gate Integration</h1>
         <p className="text-sm text-muted-foreground">
-          Integration with turnstiles, doors, or barriers. All fields from Gate Registry schema (localStorage).
+          Integration with turnstiles, doors, or barriers. Gate registry stored in the database.
         </p>
       </div>
 

@@ -6,11 +6,16 @@ import { Toaster } from "@/components/ui/toaster"
 import { AUTH_SESSION_KEY, getStoredUser } from "@/lib/auth"
 import { getHomeRouteForRole, isPathAllowedForRole } from "@/lib/role-access"
 import { ROUTES, isLoginRoute } from "@/routes/config"
+import { clearLegacyVmsLocalStorage } from "@/lib/vms-list-api"
 
 export function AuthGuard() {
   const location = useLocation()
   const navigate = useNavigate()
   const [status, setStatus] = useState<"checking" | "allowed" | "redirect">("checking")
+
+  useEffect(() => {
+    clearLegacyVmsLocalStorage()
+  }, [])
 
   useEffect(() => {
     const auth = typeof window !== "undefined" ? sessionStorage.getItem(AUTH_SESSION_KEY) === "true" : false

@@ -1,7 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
+import { fetchVisitors } from "@/lib/visitor-api"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -105,8 +106,6 @@ interface Person {
 }
 
 const STORAGE_KEY = "customs-people-database"
-const PREREG_KEY = "vms_visitors_prereg"
-const WALKIN_KEY = "vms_visitors_walkin"
 
 type VisitorRecordLoose = Record<string, unknown> & { id?: number }
 
@@ -208,19 +207,33 @@ export default function PeopleDatabaseDetailPage() {
     }
   })
 
-  const [visitorRecords] = useState<{ prereg: VisitorRecordLoose[]; walkin: VisitorRecordLoose[] }>(() => {
-    if (typeof window === "undefined") return { prereg: [], walkin: [] }
-    const read = (key: string) => {
+  const [visitorRecords, setVisitorRecords] = useState<{
+    prereg: VisitorRecordLoose[]
+    walkin: VisitorRecordLoose[]
+  }>({ prereg: [], walkin: [] })
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
       try {
-        const raw = window.localStorage.getItem(key)
-        const parsed = raw ? (JSON.parse(raw) as unknown) : []
-        return Array.isArray(parsed) ? (parsed as VisitorRecordLoose[]) : []
+        const [prereg, walkin] = await Promise.all([
+          fetchVisitors("pre-registration"),
+          fetchVisitors("walk-in"),
+        ])
+        if (!cancelled) {
+          setVisitorRecords({
+            prereg: prereg as VisitorRecordLoose[],
+            walkin: walkin as VisitorRecordLoose[],
+          })
+        }
       } catch {
-        return []
+        if (!cancelled) setVisitorRecords({ prereg: [], walkin: [] })
       }
+    })()
+    return () => {
+      cancelled = true
     }
-    return { prereg: read(PREREG_KEY), walkin: read(WALKIN_KEY) }
-  })
+  }, [])
 
   const person = useMemo(() => {
     const needle = String(id ?? "")

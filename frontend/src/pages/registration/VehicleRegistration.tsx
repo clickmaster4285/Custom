@@ -30,11 +30,11 @@ import { ROUTES } from "@/routes/config"
 import type { VehicleEntry, VehicleStatus, VehicleType } from "@/lib/vms-types"
 import { VEHICLE_TYPES, VEHICLE_STATUSES } from "@/lib/vms-types"
 import {
-  getVehicleEntries,
-  setVehicleEntries,
+  loadVehicleEntries,
+  saveVehicleEntries,
   getGateIdsForVehicle,
-  getGateName,
 } from "@/lib/vms-storage"
+import { loadGates } from "@/lib/gate-storage"
 import { format } from "date-fns"
 
 function generateId(): string {
@@ -67,15 +67,32 @@ export default function VehicleRegistrationPage() {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState(emptyEntry())
 
+  const [hydrated, setHydrated] = useState(false)
+  const [gateOptions, setGateOptions] = useState<string[]>([])
+  const [gateNameById, setGateNameById] = useState<Record<string, string>>({})
+
   useEffect(() => {
-    setEntries(getVehicleEntries())
+    let cancelled = false
+    ;(async () => {
+      const list = await loadVehicleEntries()
+      const gates = await getGateIdsForVehicle()
+      const allGates = await loadGates()
+      if (!cancelled) {
+        setEntries(list)
+        setGateOptions(gates)
+        setGateNameById(Object.fromEntries(allGates.map((g) => [g.gate_id, g.gate_name])))
+        setHydrated(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
-    if (entries.length > 0) setVehicleEntries(entries)
-  }, [entries])
-
-  const gateOptions = useMemo(() => getGateIdsForVehicle(), [entries])
+    if (!hydrated) return
+    void saveVehicleEntries(entries)
+  }, [entries, hydrated])
 
   const filteredEntries = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -162,7 +179,7 @@ export default function VehicleRegistrationPage() {
           Vehicle Registration
         </h1>
         <p className="text-sm text-muted-foreground">
-          Capture vehicle number, driver details, ANPR image, and entry/exit. Data stored in localStorage.
+          Capture vehicle number, driver details, ANPR image, and entry/exit. Data stored in the database.
         </p>
       </div>
 
@@ -248,7 +265,7 @@ export default function VehicleRegistrationPage() {
                           : "—"}
                       </TableCell>
                       <TableCell title={row.entry_gate_id}>
-                        {getGateName(row.entry_gate_id) || row.entry_gate_id || "—"}
+                        {gateNameById[row.entry_gate_id] || row.entry_gate_id || "—"}
                       </TableCell>
                       <TableCell>{row.status ?? "—"}</TableCell>
                       <TableCell>
@@ -468,7 +485,7 @@ export default function VehicleRegistrationPage() {
                     <SelectContent>
                       {gateOptions.map((id) => (
                         <SelectItem key={id} value={id}>
-                          {getGateName(id)} ({id})
+                          {gateNameById[id] || id} ({id})
                         </SelectItem>
                       ))}
                     </SelectContent>

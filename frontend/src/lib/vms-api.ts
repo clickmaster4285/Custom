@@ -1,8 +1,13 @@
 /**
  * VMS API client: approval, zone scan, vehicles, notifications, analytics, security.
  */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
-const API = `${API_BASE_URL}/api`
+import { API_BASE_URL, getAuthHeaders } from "@/lib/api";
+
+const API = `${API_BASE_URL}/api`;
+
+function authInit(): RequestInit {
+  return { headers: getAuthHeaders(), cache: "no-store" };
+}
 
 function getErrorMessage(response: Response, body: unknown): string {
   if (response.status === 400 && body && typeof body === "object" && !Array.isArray(body)) {
@@ -28,7 +33,7 @@ export type ActiveVisitor = {
 }
 
 export async function fetchActiveVisitors(): Promise<ActiveVisitor[]> {
-  const res = await fetch(`${API}/visitors/active/`, { cache: "no-store" })
+  const res = await fetch(`${API}/visitors/active/`, authInit())
   if (!res.ok) {
     let msg = `Failed to load active visitors (${res.status})`
     try {
@@ -55,7 +60,7 @@ export type PendingVisitor = {
 }
 
 export async function fetchPendingApprovals(): Promise<PendingVisitor[]> {
-  const res = await fetch(`${API}/approval/pending/`, { cache: "no-store" })
+  const res = await fetch(`${API}/approval/pending/`, authInit())
   if (!res.ok) {
     let msg = `Failed to load pending approvals (${res.status})`
     try {
@@ -72,7 +77,7 @@ export async function fetchPendingApprovals(): Promise<PendingVisitor[]> {
 export async function approveVisitor(id: number, approvedBy: string): Promise<PendingVisitor> {
   const res = await fetch(`${API}/visitors/${id}/approve/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    ...authInit(),
     body: JSON.stringify({ approved_by: approvedBy }),
   })
   if (!res.ok) {
@@ -94,7 +99,7 @@ export async function denyVisitor(
 ): Promise<PendingVisitor> {
   const res = await fetch(`${API}/visitors/${id}/deny/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    ...authInit(),
     body: JSON.stringify(payload),
   })
   if (!res.ok) {
@@ -130,7 +135,7 @@ export type ZoneScanResult = {
 export async function zoneScan(payload: ZoneScanPayload): Promise<ZoneScanResult> {
   const res = await fetch(`${API}/zone-access/scan/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    ...authInit(),
     body: JSON.stringify(payload),
   })
   if (!res.ok) {
@@ -161,7 +166,7 @@ export type VehicleRecord = {
 
 export async function fetchVehicles(visitorId?: number): Promise<VehicleRecord[]> {
   const url = visitorId ? `${API}/vehicles/?visitor_id=${visitorId}` : `${API}/vehicles/`
-  const res = await fetch(url, { cache: "no-store" })
+  const res = await fetch(url, authInit())
   if (!res.ok) throw new Error(`Failed to load vehicles (${res.status})`)
   return res.json()
 }
@@ -206,7 +211,7 @@ export type NotificationRecord = {
 
 export async function fetchNotifications(visitorId?: number): Promise<NotificationRecord[]> {
   const url = visitorId ? `${API}/notifications/?visitor_id=${visitorId}` : `${API}/notifications/`
-  const res = await fetch(url, { cache: "no-store" })
+  const res = await fetch(url, authInit())
   if (!res.ok) throw new Error(`Failed to load notifications (${res.status})`)
   return res.json()
 }
@@ -214,7 +219,7 @@ export async function fetchNotifications(visitorId?: number): Promise<Notificati
 export async function notifyHost(visitorId: number, recipient?: string): Promise<{ host_notified_at: string; recipient: string }> {
   const res = await fetch(`${API}/visitors/${visitorId}/notify-host/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    ...authInit(),
     body: JSON.stringify({ recipient: recipient || "" }),
   })
   if (!res.ok) {
@@ -254,7 +259,7 @@ export async function fetchSecurityAlerts(params?: {
   if (params?.acknowledged !== undefined) sp.set("acknowledged", String(params.acknowledged))
   if (params?.severity) sp.set("severity", params.severity)
   const finalUrl = sp.toString() ? `${API}/security/alerts/?${sp.toString()}` : `${API}/security/alerts/`
-  const res = await fetch(finalUrl, { cache: "no-store" })
+  const res = await fetch(finalUrl, authInit())
   if (!res.ok) throw new Error(`Failed to load alerts (${res.status})`)
   return res.json()
 }
@@ -268,7 +273,7 @@ export type SecurityDashboard = {
 }
 
 export async function fetchSecurityDashboard(): Promise<SecurityDashboard> {
-  const res = await fetch(`${API}/security/dashboard/`, { cache: "no-store" })
+  const res = await fetch(`${API}/security/dashboard/`, authInit())
   if (!res.ok) throw new Error(`Failed to load dashboard (${res.status})`)
   return res.json()
 }
@@ -292,7 +297,7 @@ export async function fetchVmsAnalytics(fromDate?: string, toDate?: string): Pro
   if (fromDate) sp.set("from", fromDate)
   if (toDate) sp.set("to", toDate)
   const finalUrl = sp.toString() ? `${API}/vms/analytics/?${sp.toString()}` : `${API}/vms/analytics/`
-  const res = await fetch(finalUrl, { cache: "no-store" })
+  const res = await fetch(finalUrl, authInit())
   if (!res.ok) throw new Error(`Failed to load analytics (${res.status})`)
   return res.json()
 }

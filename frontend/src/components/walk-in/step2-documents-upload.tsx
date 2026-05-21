@@ -65,6 +65,7 @@ interface WalkInStep2DocumentsUploadProps {
   onCancel?: () => void
   onReset?: () => void
   onPrevious?: () => void
+  onSaveToDraft?: () => void
   onSaveAndContinue?: () => void
 }
 
@@ -77,10 +78,15 @@ export function WalkInStep2DocumentsUpload({
   onCancel,
   onReset,
   onPrevious,
+  onSaveToDraft,
   onSaveAndContinue,
 }: WalkInStep2DocumentsUploadProps) {
   const { toast } = useToast()
   const [supportingFiles, setSupportingFiles] = useState<UploadedFile[]>([])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+  }, [])
   const photoInputRef = useRef<HTMLInputElement>(null)
   const idInputRef = useRef<HTMLInputElement>(null)
   const supportingInputRef = useRef<HTMLInputElement>(null)
@@ -608,6 +614,15 @@ export function WalkInStep2DocumentsUpload({
               className="rounded-md bg-[#3366FF] px-4 py-2.5 text-base font-normal text-white transition-colors hover:bg-[#2952CC]"
             >
               Previous
+            </button>
+          )}
+          {onSaveToDraft && (
+            <button
+              type="button"
+              onClick={onSaveToDraft}
+              className="rounded-md border border-[#CCCCCC] bg-white px-4 py-2.5 text-base font-normal text-[#3366CC] transition-colors hover:bg-gray-50"
+            >
+              Save to draft
             </button>
           )}
           {onSaveAndContinue && (

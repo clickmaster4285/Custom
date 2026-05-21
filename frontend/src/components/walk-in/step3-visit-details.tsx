@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -102,6 +103,10 @@ export function WalkInStep3VisitDetails({
   onSaveAndContinue,
 }: WalkInStep3VisitDetailsProps) {
   const { toast } = useToast()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+  }, [])
 
   const handleCheckAvailability = () => {
     if (!formik.values.hostFullName) {

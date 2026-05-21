@@ -8,7 +8,7 @@ import { WalkInStep3VisitDetails } from "@/components/walk-in/step3-visit-detail
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
-import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, getErrorToastMessage, saveDraftToStore, updateVisitor, type VisitorRecord } from "@/lib/visitor-api"
+import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, getErrorToastMessage, getVisitorCreatedBy, saveDraftToStore, updateVisitor, type VisitorRecord } from "@/lib/visitor-api"
 import { getVisitorPhotoUrl } from "@/lib/image-match"
 import { PrintQROnSave } from "@/components/visitor/print-qr-on-save"
 import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, UserPlus, Trash2, Printer } from "lucide-react"
@@ -52,6 +52,7 @@ type RegistrationEntry = {
   contact: string
   visitPurpose: string
   host: string
+  createdBy: string
 }
 
 function formatTime(value: string) {
@@ -97,6 +98,7 @@ function mapVisitorToRegistration(visitor: VisitorRecord & Record<string, unknow
     contact,
     visitPurpose: String(visitPurpose || "").trim() || "—",
     host: String(host || "").trim() || "—",
+    createdBy: getVisitorCreatedBy(visitor),
   }
 }
 
@@ -210,8 +212,6 @@ const initialFormData = {
   guardRemarks: "",
 }
 
-const PREREG_DRAFT_KEY = "vms_prereg_draft"
-
 export default function PreRegistrationPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -241,22 +241,6 @@ export default function PreRegistrationPage() {
   }
 
   useEffect(() => {
-    if (!showForm || editingDraftId != null) return
-    try {
-      const raw = window.localStorage.getItem(PREREG_DRAFT_KEY)
-      if (!raw) return
-      const draft = JSON.parse(raw) as { formData?: Record<string, unknown>; currentStep?: number }
-      if (draft?.formData && typeof draft.currentStep === "number") {
-        setFormData({ ...initialFormData, ...draft.formData } as typeof formData)
-        setCurrentStep(Math.min(4, Math.max(1, draft.currentStep)))
-        toast({ title: "Draft restored", description: "Your saved draft has been restored." })
-      }
-    } catch {
-      // ignore invalid draft
-    }
-  }, [showForm, editingDraftId])
-
-  useEffect(() => {
     if (!showForm || !editingDraftId) return
     getVisitor(editingDraftId, "pre-registration").then((v: VisitorRecord | null) => {
       if (!v) return
@@ -268,9 +252,12 @@ export default function PreRegistrationPage() {
     })
   }, [showForm, editingDraftId])
 
-  const saveDraft = async () => {
-    try {
-      const payload: Record<string, unknown> = {
+  useEffect(() => {
+    if (!showForm) return
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+  }, [showForm, currentStep])
+
+  const buildPayload = (): Record<string, unknown> => ({
         visitor_type: formData.visitorType || "individual",
         full_name: formData.fullName || "Unknown Visitor",
         gender: formData.gender,
@@ -350,7 +337,11 @@ export default function PreRegistrationPage() {
         scan_count: formData.scanCount,
         generated_on: formData.generatedOn,
         generated_by: formData.generatedBy,
-      }
+  })
+
+  const persistDraft = async (closeForm = false) => {
+    try {
+      const payload = buildPayload()
       ;(payload as Record<string, unknown>).draft_form_data = formData
       if (editingDraftId != null) {
         const updated = await updateVisitor(editingDraftId, payload, "pre-registration", { registrationStatus: "draft" })
@@ -359,16 +350,29 @@ export default function PreRegistrationPage() {
           return
         }
         await queryClient.invalidateQueries({ queryKey: ["visitors", "pre-registration"] })
-        toast({ title: "Draft updated", description: "Draft has been saved to the list." })
+        toast({
+          title: closeForm ? "Draft updated" : "Progress saved",
+          description: closeForm
+            ? "Draft has been saved to the list."
+            : "Your changes on this step have been saved.",
+        })
       } else {
-        await saveDraftToStore(payload, "pre-registration")
+        const created = await saveDraftToStore(payload, "pre-registration")
+        setEditingDraftId(created.id)
         await queryClient.invalidateQueries({ queryKey: ["visitors", "pre-registration"] })
-        toast({ title: "Draft saved", description: "Draft has been saved to the list. You can continue or submit later." })
+        toast({
+          title: "Draft saved",
+          description: closeForm
+            ? "Draft has been saved to the list. You can continue or submit later."
+            : "Draft created. Continue with the remaining steps.",
+        })
       }
-      setEditingDraftId(null)
-      setShowForm(false)
-      setCurrentStep(1)
-      setFormData({ ...initialFormData })
+      if (closeForm) {
+        setEditingDraftId(null)
+        setShowForm(false)
+        setCurrentStep(1)
+        setFormData({ ...initialFormData })
+      }
     } catch (err) {
       toast({
         title: "Could not save draft",
@@ -377,6 +381,8 @@ export default function PreRegistrationPage() {
       })
     }
   }
+
+  const saveDraft = () => persistDraft(true)
 
   const validateStep = (step: number) => {
     switch (step) {
@@ -445,7 +451,6 @@ export default function PreRegistrationPage() {
       setFormData({ ...initialFormData })
       setEditingDraftId(null)
       try {
-        window.localStorage.removeItem(PREREG_DRAFT_KEY)
       } catch {}
     },
     onError: (mutationError) => {
@@ -459,97 +464,7 @@ export default function PreRegistrationPage() {
 
   const handleSubmit = async () => {
     try {
-      const payload: Record<string, unknown> = {
-        // Identity & basic
-        visitor_type: formData.visitorType || "individual",
-        full_name: formData.fullName || "Unknown Visitor",
-        gender: formData.gender,
-        cnic_number: formData.cnicNumber || formData.cnicPassport,
-        passport_number: formData.passportNumber,
-        nationality: formData.nationality,
-        date_of_birth: formData.dateOfBirth,
-        mobile_number: formData.mobileNumber,
-        email_address: formData.emailAddress,
-        residential_address: formData.residentialAddress,
-        // Organization
-        organization_name: formData.organizationName,
-        organization_type: formData.organizationType,
-        ntn_registration_no: formData.ntnRegistrationNo,
-        designation: formData.designation,
-        office_address: formData.officeAddress,
-        // Vehicle & license
-        vehicle_type: formData.vehicleType,
-        vehicle_number: formData.vehicleNumber,
-        vehicle_registration_no: formData.vehicleRegistrationNo,
-        license_no: formData.licenseNo,
-        license_issue_date: formData.licenseIssueDate,
-        license_expiry_date: formData.licenseExpiryDate,
-        vehicle_images: formData.vehicleImages ?? [],
-        vehicle_image: (formData.vehicleImages?.length ? formData.vehicleImages[0] : undefined) ?? "",
-        // Photos (all) and primary captured
-        visitor_photos: formData.visitorPhotos ?? [],
-        photo_capture: formData.photoCapture,
-        captured_photo: (formData.visitorPhotos?.length ? formData.visitorPhotos[0] : formData.photoCapture) ?? "",
-        // Minors
-        visitor_minors: formData.visitorMinors ?? [],
-        // Visit & host
-        visit_purpose: formData.visitPurpose,
-        visit_purpose_description: formData.visitPurposeDescription,
-        visit_type: formData.visitType,
-        department_to_visit: formData.department || formData.departmentForSlot || "admin",
-        host_officer_name: formData.hostFullName || formData.hostName,
-        host_name: formData.hostName,
-        host_id: formData.hostId,
-        host_officer_designation: formData.hostDesignation,
-        host_department: formData.hostDepartment,
-        host_email: formData.hostEmail,
-        host_contact_number: formData.hostContactNumber,
-        preferred_visit_date: formData.preferredDate,
-        preferred_time_slot: formData.preferredTimeSlot,
-        department_for_slot: formData.departmentForSlot,
-        slot_duration: formData.slotDuration,
-        priority_level: formData.priorityLevel,
-        visit_date: formData.visitDate,
-        location: formData.location,
-        // Documents
-        document_type: formData.documentType,
-        document_no: formData.documentNo,
-        issuing_authority: formData.issuingAuthority,
-        expiry_date: formData.expiryDate,
-        front_image: formData.frontImage,
-        back_image: formData.backImage,
-        application_letter: formData.applicationLetter,
-        letter_ref_no: formData.letterRefNo,
-        additional_document: formData.additionalDocument,
-        authorization_letter: formData.authorizationLetter,
-        noc_document: formData.nocDocument,
-        support_doc_type: formData.supportDocType,
-        upload_procedure: formData.uploadProcedure,
-        // Access & pass
-        time_validity_start: formData.timeValidityStart,
-        time_validity_end: formData.timeValidityEnd,
-        access_zone: formData.accessZone,
-        entry_gate: formData.entryGate,
-        qr_code_id: formData.qrCodeId,
-        visitor_ref_number: formData.visitorRefNumber,
-        reference_number: formData.referenceNumber,
-        // Security & screening
-        security_level: formData.securityLevel,
-        max_visit_duration: formData.maxVisitDuration,
-        allowed_departments: formData.allowedDepartments,
-        allowed_zones: formData.allowedZones,
-        additional_remarks: formData.additionalRemarks,
-        escort_mandatory: formData.escortMandatory,
-        watchlist_check_status: formData.watchlistCheckStatus,
-        guard_remarks: formData.guardRemarks,
-        approver_required: formData.approverRequired,
-        temporary_access_granted: formData.temporaryAccessGranted,
-        // Metadata
-        expiry_status: formData.expiryStatus,
-        scan_count: formData.scanCount,
-        generated_on: formData.generatedOn,
-        generated_by: formData.generatedBy,
-      }
+      const payload = buildPayload()
       if (editingDraftId != null) {
         ;(payload as Record<string, unknown>).draft_form_data = formData
         const updated = await updateVisitor(editingDraftId, payload, "pre-registration", { registrationStatus: "sent" })
@@ -582,7 +497,6 @@ export default function PreRegistrationPage() {
         setFormData({ ...initialFormData })
         setEditingDraftId(null)
         try {
-          window.localStorage.removeItem(PREREG_DRAFT_KEY)
         } catch {}
       } else {
         createVisitorMutation.mutate(payload)
@@ -681,6 +595,7 @@ export default function PreRegistrationPage() {
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Visit Purpose</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Host</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Created by</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Date</th>
                     <th className="text-left px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Time</th>
                     <th className="text-right px-4 py-3.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-18">Action</th>
@@ -689,17 +604,17 @@ export default function PreRegistrationPage() {
                 <tbody>
                   {isLoading ? (
                     <tr className="border-b border-border last:border-0">
-                      <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">Loading registrations…</td>
+                      <td colSpan={12} className="px-4 py-6 text-center text-sm text-muted-foreground">Loading registrations…</td>
                     </tr>
                   ) : isError ? (
                     <tr className="border-b border-border last:border-0">
-                      <td colSpan={11} className="px-4 py-6 text-center text-sm text-destructive">
+                      <td colSpan={12} className="px-4 py-6 text-center text-sm text-destructive">
                         {error instanceof Error ? error.message : "Failed to load registrations."}
                       </td>
                     </tr>
                   ) : registrations.length === 0 ? (
                     <tr className="border-b border-border last:border-0">
-                      <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">No registrations found.</td>
+                      <td colSpan={12} className="px-4 py-6 text-center text-sm text-muted-foreground">No registrations found.</td>
                     </tr>
                   ) : (
                     registrations.map((reg) => (
@@ -739,6 +654,9 @@ export default function PreRegistrationPage() {
                           <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(reg.status)}`}>
                             {reg.status}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <span className="text-sm text-muted-foreground">{reg.createdBy}</span>
                         </td>
                         <td className="px-4 py-3 hidden sm:table-cell">
                           <span className="text-sm text-muted-foreground">{reg.date}</span>
@@ -925,7 +843,6 @@ export default function PreRegistrationPage() {
                 onReset={() => {
                   setFormData({ ...initialFormData })
                   try {
-                    window.localStorage.removeItem(PREREG_DRAFT_KEY)
                   } catch {}
                 }}
                 onSaveAndContinue={nextStep}
@@ -949,6 +866,7 @@ export default function PreRegistrationPage() {
                 onCancel={handleCancelForm}
                 onReset={() => setFormData({ ...initialFormData })}
                 onPrevious={prevStep}
+                onSaveToDraft={() => persistDraft(false)}
                 onSaveAndContinue={nextStep}
               />
             )}
@@ -973,6 +891,7 @@ export default function PreRegistrationPage() {
                 onCancel={handleCancelForm}
                 onReset={() => setFormData({ ...initialFormData })}
                 onPrevious={prevStep}
+                onSaveToDraft={() => persistDraft(false)}
                 onSaveAndContinue={nextStep}
               />
             )}
