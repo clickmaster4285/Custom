@@ -146,6 +146,9 @@ export const ROUTES = {
   // Settings
   GENERAL_SETTINGS: "/general-settings",
   USER_ROLE_MANAGEMENT: "/user-role-management",
+  ADD_USER: "/settings/users/add",
+  USER_DETAIL: "/settings/users/:id",
+  EDIT_USER: "/settings/users/:id/edit",
   INTEGRATIONS: "/integrations",
   NOTIFICATIONS: "/notifications",
   SECURITY_ACCESS: "/security-access",
@@ -181,6 +184,16 @@ export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
 /** Build path to employee detail page */
 export function getEmployeeDetailPath(id: number): string {
   return `/employees/${id}`
+}
+
+/** Build path to user detail page */
+export function getUserDetailPath(id: number): string {
+  return `/settings/users/${id}`
+}
+
+/** Build path to edit user page */
+export function getUserEditPath(id: number): string {
+  return `/settings/users/${id}/edit`
 }
 
 export function getVehicleDatabaseDetailPath(id: string): string {
@@ -560,8 +573,16 @@ export const HR_NAV_SECTIONS: NavSection[] = [
   { title: "Human Resource", items: [HUMAN_RESOURCE_NAV] },
 ]
 
+export const GUARD_NAV_SECTIONS: NavSection[] = [
+  {
+    title: "Gate",
+    items: [{ label: "Guard & Reception Panel", href: ROUTES.GUARD_RECEPTION_PANEL }],
+  },
+]
+
 export function getNavSectionsForRole(role: string | undefined | null): NavSection[] {
   const normalized = (role ?? "").trim().toUpperCase()
+  if (normalized === "GUARD") return GUARD_NAV_SECTIONS
   if (normalized === "RECEPTIONIST") return RECEPTIONIST_NAV_SECTIONS
   if (normalized === "WAREHOUSE_OFFICER") return WAREHOUSE_OFFICER_NAV_SECTIONS
   if (normalized === "HR") return HR_NAV_SECTIONS

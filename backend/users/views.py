@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from rest_framework.serializers import ValidationError
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 from .models import (
@@ -72,13 +73,40 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrHR]
     serializer_class = UserCreateSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
-    search_fields = ["username", "email", "role"]
+    search_fields = ["username", "email", "role", "full_name", "cnic", "employee_id"]
     filterset_fields = ["role", "is_active", "location"]
 
-    def get_serializer_class(self):
-        if self.action == "create":
-            return UserCreateSerializer
-        return UserCreateSerializer  # You can create a UserDetailSerializer if needed
+    def perform_create(self, serializer):
+        user = serializer.save()
+        create_activity_log(
+            self.request.user,
+            self.request,
+            f"Created user: {user.username} (ID: {user.id})",
+        )
+
+    def perform_update(self, serializer):
+        user = serializer.save()
+        create_activity_log(
+            self.request.user,
+            self.request,
+            f"Updated user: {user.username} (ID: {user.id})",
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.role == "ADMIN":
+            raise PermissionDenied("Admin accounts cannot be deleted.")
+        if instance.pk == request.user.pk:
+            raise PermissionDenied("You cannot delete your own account.")
+        instance.is_deleted = True
+        instance.is_active = False
+        instance.save(update_fields=["is_deleted", "is_active"])
+        create_activity_log(
+            request.user,
+            request,
+            f"Deleted user: {instance.username} (ID: {instance.id})",
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=["get"])
     def unlinked(self, request):

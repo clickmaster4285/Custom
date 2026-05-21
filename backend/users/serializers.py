@@ -49,19 +49,72 @@ class LoginResponseSerializer(serializers.Serializer):
             "role": user.role,
             "phone": user.phone,
             "location": user.location or "",
+            "full_name": user.full_name or "",
+            "cnic": user.cnic or "",
+            "office_phone_1": user.office_phone_1 or "",
+            "office_phone_2": user.office_phone_2 or "",
+            "fax_no": user.fax_no or "",
+            "cell_no": user.cell_no or user.phone or "",
+            "address": user.address or "",
+            "designation": user.designation or "",
+            "employee_id": user.employee_id or "",
+            "posting_date": user.posting_date.isoformat() if user.posting_date else None,
+            "collectorate": user.collectorate or "",
+            "effective_date": user.effective_date.isoformat() if user.effective_date else None,
+            "we_boc_role": user.we_boc_role or "",
+            "is_active": user.is_active,
         }
 
 
 # -----------------------------
 # User Serializer (for creating users)
 # -----------------------------
+USER_PROFILE_FIELDS = [
+    "full_name",
+    "cnic",
+    "office_phone_1",
+    "office_phone_2",
+    "fax_no",
+    "cell_no",
+    "address",
+    "designation",
+    "employee_id",
+    "posting_date",
+    "collectorate",
+    "effective_date",
+    "we_boc_role",
+]
+
+
 class UserCreateSerializer(serializers.ModelSerializer):
+    date_joined = serializers.DateTimeField(read_only=True)
+    last_login = serializers.DateTimeField(read_only=True)
+    can_delete = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["id", "username", "email", "password", "role", "phone", "location", "is_active"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "password",
+            "role",
+            "phone",
+            "location",
+            "is_active",
+            "date_joined",
+            "last_login",
+            "can_delete",
+            *USER_PROFILE_FIELDS,
+        ]
         extra_kwargs = {
             "password": {"write_only": True, "required": False},
+            "posting_date": {"required": False, "allow_null": True},
+            "effective_date": {"required": False, "allow_null": True},
         }
+
+    def get_can_delete(self, obj):
+        return obj.role != "ADMIN"
 
     def validate_username(self, value):
         username = (value or "").strip()
@@ -84,12 +137,20 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if self.instance is None and not attrs.get("password"):
             raise serializers.ValidationError({"password": "Password is required."})
-        if "phone" in attrs:
-            phone = (attrs.get("phone") or "").strip()
-            if self.instance is None and not phone:
-                attrs["phone"] = "0000000000"
-            else:
-                attrs["phone"] = phone or (self.instance.phone if self.instance else "0000000000")
+        cell = (attrs.get("cell_no") or "").strip()
+        phone = (attrs.get("phone") or "").strip()
+        if cell and not phone:
+            attrs["phone"] = cell
+        elif phone:
+            attrs["phone"] = phone
+            if cell:
+                attrs["cell_no"] = cell
+        elif self.instance is None:
+            attrs["phone"] = "0000000000"
+        else:
+            attrs["phone"] = phone or (self.instance.phone if self.instance else "0000000000")
+        if not (attrs.get("full_name") or "").strip() and self.instance is None:
+            raise serializers.ValidationError({"full_name": "Name is required."})
         return attrs
 
     def create(self, validated_data):

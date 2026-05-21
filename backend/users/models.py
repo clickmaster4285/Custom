@@ -15,6 +15,7 @@ class User(AbstractUser):
         ("DEPUTY_COLLECTOR", "Deputy Collector"),
         ("ASSISTANT_COLLECTOR", "Assistant Collector"),
         ("RECEPTIONIST", "Receptionist"),
+        ("GUARD", "Guard"),
         ("HR", "Human Resource"),
         ("WAREHOUSE_OFFICER", "Warehouse Officer"),
         ("DETECTION_OFFICER", "Detection Officer"),
@@ -39,6 +40,20 @@ class User(AbstractUser):
         blank=True,
         default="",
     )
+    # Extended profile (user management form)
+    full_name = models.CharField(max_length=200, blank=True, default="")
+    cnic = models.CharField(max_length=20, blank=True, default="")
+    office_phone_1 = models.CharField(max_length=30, blank=True, default="")
+    office_phone_2 = models.CharField(max_length=30, blank=True, default="")
+    fax_no = models.CharField(max_length=30, blank=True, default="")
+    cell_no = models.CharField(max_length=30, blank=True, default="")
+    address = models.TextField(blank=True, default="")
+    designation = models.CharField(max_length=150, blank=True, default="")
+    employee_id = models.CharField(max_length=50, blank=True, default="")
+    posting_date = models.DateField(null=True, blank=True)
+    collectorate = models.CharField(max_length=150, blank=True, default="")
+    effective_date = models.DateField(null=True, blank=True)
+    we_boc_role = models.CharField(max_length=150, blank=True, default="")
     is_deleted = models.BooleanField(default=False)
 
     def __str__(self):

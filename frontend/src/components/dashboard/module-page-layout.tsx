@@ -18,14 +18,14 @@ export interface BreadcrumbItemType {
 interface ModulePageLayoutProps {
   title: string
   description: string
-  breadcrumbs: BreadcrumbItemType[]
+  breadcrumbs?: BreadcrumbItemType[]
   children: React.ReactNode
 }
 
 export function ModulePageLayout({
   title,
   description,
-  breadcrumbs,
+  breadcrumbs = [],
   children,
 }: ModulePageLayoutProps) {
   return (

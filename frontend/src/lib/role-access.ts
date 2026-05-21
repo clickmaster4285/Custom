@@ -1,6 +1,6 @@
 import { ROUTES } from "@/routes/config"
 
-export type RestrictedRole = "RECEPTIONIST" | "WAREHOUSE_OFFICER" | "HR"
+export type RestrictedRole = "RECEPTIONIST" | "GUARD" | "WAREHOUSE_OFFICER" | "HR"
 
 export function normalizeRole(role: string | undefined | null): string {
   return (role ?? "").trim().toUpperCase()
@@ -8,7 +8,12 @@ export function normalizeRole(role: string | undefined | null): string {
 
 export function getRestrictedRole(role: string | undefined | null): RestrictedRole | null {
   const normalized = normalizeRole(role)
-  if (normalized === "RECEPTIONIST" || normalized === "WAREHOUSE_OFFICER" || normalized === "HR") {
+  if (
+    normalized === "RECEPTIONIST" ||
+    normalized === "GUARD" ||
+    normalized === "WAREHOUSE_OFFICER" ||
+    normalized === "HR"
+  ) {
     return normalized
   }
   return null
@@ -16,6 +21,10 @@ export function getRestrictedRole(role: string | undefined | null): RestrictedRo
 
 export function isReceptionistRole(role: string | undefined | null): boolean {
   return normalizeRole(role) === "RECEPTIONIST"
+}
+
+export function isGuardRole(role: string | undefined | null): boolean {
+  return normalizeRole(role) === "GUARD"
 }
 
 export function isWarehouseOfficerRole(role: string | undefined | null): boolean {
@@ -29,6 +38,10 @@ export function isHrRole(role: string | undefined | null): boolean {
 type PathRule = { exact: string[]; patterns: RegExp[] }
 
 const ROLE_PATH_RULES: Record<RestrictedRole, PathRule> = {
+  GUARD: {
+    exact: [ROUTES.GUARD_RECEPTION_PANEL],
+    patterns: [],
+  },
   RECEPTIONIST: {
     exact: [
       ROUTES.VISITOR_MANAGEMENT_OVERVIEW,
@@ -156,6 +169,7 @@ export function isReceptionistAllowedPath(pathname: string): boolean {
 
 export function getHomeRouteForRole(role: string | undefined | null): string {
   const restricted = getRestrictedRole(role)
+  if (restricted === "GUARD") return ROUTES.GUARD_RECEPTION_PANEL
   if (restricted === "RECEPTIONIST") return ROUTES.VISITOR_MANAGEMENT_OVERVIEW
   if (restricted === "WAREHOUSE_OFFICER") return ROUTES.OPERATIONS_DASHBOARD
   if (restricted === "HR") return ROUTES.EMPLOYEES
@@ -171,6 +185,7 @@ export function isDashboardHomePath(pathname: string): boolean {
 export function getRoleDisplayLabel(role: string | undefined | null): string {
   const normalized = normalizeRole(role)
   if (normalized === "RECEPTIONIST") return "Receptionist"
+  if (normalized === "GUARD") return "Guard"
   if (normalized === "WAREHOUSE_OFFICER") return "Warehouse Officer"
   if (normalized === "HR") return "Human Resource"
   if (!normalized) return "User"
