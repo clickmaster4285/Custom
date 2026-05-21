@@ -115,6 +115,8 @@ export const PAGES = {
   Payroll: lazy(() => import("@/pages/hr/Payroll").then((m) => ({ default: m.default }))),
   GeneralSettings: lazy(() => import("@/pages/settings/GeneralSettings").then((m) => ({ default: m.default }))),
   UserRoleManagement: lazy(() => import("@/pages/settings/UserRoleManagement").then((m) => ({ default: m.default }))),
+  UserForm: lazy(() => import("@/pages/settings/UserFormPage").then((m) => ({ default: m.default }))),
+  UserDetail: lazy(() => import("@/pages/settings/UserDetailPage").then((m) => ({ default: m.default }))),
   Integrations: lazy(() => import("@/pages/settings/Integrations").then((m) => ({ default: m.default }))),
   Notifications: lazy(() => import("@/pages/settings/Notifications").then((m) => ({ default: m.default }))),
   SecurityAccess: lazy(() => import("@/pages/settings/SecurityAccess").then((m) => ({ default: m.default }))),

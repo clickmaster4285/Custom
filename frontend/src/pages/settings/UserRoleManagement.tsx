@@ -1,11 +1,21 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Users, Shield, UserPlus, Loader2, Eye, EyeOff } from "lucide-react"
+import { Users, Shield, UserPlus, Loader2, Eye, Pencil, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Table,
   TableBody,
@@ -16,63 +26,26 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { getStoredToken } from "@/lib/api"
 import {
-  createUser,
-  updateUser,
+  canDeleteUser,
+  deleteUser,
   fetchUsers,
   ROLE_OPTIONS,
-  LOCATION_OPTIONS,
   locationLabel,
   roleLabel,
   type ApiUser,
 } from "@/lib/users-api"
-
-type UserForm = {
-  user: string
-  email: string
-  password: string
-  phone: string
-  role: string
-  location: string
-  is_active: boolean
-}
-
-const emptyForm: UserForm = {
-  user: "",
-  email: "",
-  password: "",
-  phone: "",
-  role: "ADMIN",
-  location: "PESHAWAR",
-  is_active: true,
-}
+import { ROUTES, getUserDetailPath, getUserEditPath } from "@/routes/config"
 
 export default function UserRoleManagementPage() {
   const { toast } = useToast()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [open, setOpen] = useState(false)
-  const [editingUserId, setEditingUserId] = useState<number | null>(null)
-  const [form, setForm] = useState<UserForm>(emptyForm)
   const [search, setSearch] = useState("")
-  const [saving, setSaving] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-
-  const isEditing = editingUserId !== null
+  const [deleteTarget, setDeleteTarget] = useState<ApiUser | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const hasAuth = Boolean(getStoredToken())
 
@@ -95,10 +68,7 @@ export default function UserRoleManagementPage() {
       })
       return
     }
-    setEditingUserId(null)
-    setShowPassword(false)
-    setForm(emptyForm)
-    setOpen(true)
+    navigate(ROUTES.ADD_USER)
   }
 
   const openEditForm = (user: ApiUser) => {
@@ -110,140 +80,54 @@ export default function UserRoleManagementPage() {
       })
       return
     }
-    setEditingUserId(user.id)
-    setShowPassword(false)
-    setForm({
-      user: user.username,
-      email: user.email,
-      password: "",
-      phone: user.phone === "0000000000" ? "" : user.phone,
-      role: user.role,
-      location: user.location || "PESHAWAR",
-      is_active: user.is_active,
-    })
-    setOpen(true)
+    navigate(getUserEditPath(user.id))
   }
 
-  const closeDialog = () => {
-    setOpen(false)
-    setEditingUserId(null)
-    setShowPassword(false)
-    setForm(emptyForm)
+  const openView = (user: ApiUser) => {
+    if (!hasAuth) return
+    navigate(getUserDetailPath(user.id))
   }
 
-  const onSave = async () => {
-    const username = form.user.trim()
-    const email = form.email.trim()
-    const password = form.password
-
-    if (!username || !email) {
-      toast({
-        title: "Missing fields",
-        description: "Username and email are required.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!isEditing) {
-      if (!password || password.length < 6) {
-        toast({
-          title: "Invalid password",
-          description: "Password is required and must be at least 6 characters.",
-          variant: "destructive",
-        })
-        return
-      }
-      if (users.some((u) => u.username === username)) {
-        toast({
-          title: "Username taken",
-          description: "Choose a different username.",
-          variant: "destructive",
-        })
-        return
-      }
-    } else {
-      if (password && password.length < 6) {
-        toast({
-          title: "Invalid password",
-          description: "New password must be at least 6 characters, or leave blank to keep current.",
-          variant: "destructive",
-        })
-        return
-      }
-      const taken = users.some(
-        (u) => u.id !== editingUserId && u.username.toLowerCase() === username.toLowerCase()
-      )
-      if (taken) {
-        toast({
-          title: "Username taken",
-          description: "Choose a different username.",
-          variant: "destructive",
-        })
-        return
-      }
-    }
-
-    setSaving(true)
+  const confirmDelete = async () => {
+    if (!deleteTarget || !canDeleteUser(deleteTarget)) return
+    setDeleting(true)
     try {
-      if (isEditing && editingUserId !== null) {
-        await updateUser(editingUserId, {
-          username,
-          email,
-          role: form.role,
-          phone: form.phone.trim() || undefined,
-          location: form.location,
-          is_active: form.is_active,
-          ...(password ? { password } : {}),
-        })
-        toast({
-          title: "User updated",
-          description: `${username} was saved to the database.`,
-        })
-      } else {
-        await createUser({
-          username,
-          email,
-          password,
-          role: form.role,
-          phone: form.phone.trim() || undefined,
-          location: form.location,
-        })
-        toast({
-          title: "User created",
-          description: `${username} was saved to the database.`,
-        })
-      }
-      void queryClient.invalidateQueries({ queryKey: ["users"] })
-      closeDialog()
-    } catch (err) {
+      await deleteUser(deleteTarget.id)
+      await queryClient.invalidateQueries({ queryKey: ["users"] })
+      toast({ title: "User deleted", description: deleteTarget.username })
+      setDeleteTarget(null)
+    } catch (e) {
       toast({
-        title: isEditing ? "Could not update user" : "Could not create user",
-        description: err instanceof Error ? err.message : "Request failed",
+        title: "Delete failed",
+        description: e instanceof Error ? e.message : "Unknown error",
         variant: "destructive",
       })
     } finally {
-      setSaving(false)
+      setDeleting(false)
     }
   }
 
-  const filteredUsers = users.filter(
-    (u) =>
-      !search.trim() ||
-      u.username.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      roleLabel(u.role).toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredUsers = users.filter((u) => {
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return (
+      u.username.toLowerCase().includes(q) ||
+      (u.full_name ?? "").toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      roleLabel(u.role).toLowerCase().includes(q) ||
+      locationLabel(u.location).toLowerCase().includes(q)
+    )
+  })
 
   const activeCount = users.filter((u) => u.is_active).length
 
   return (
     <ModulePageLayout
       title="User & Role Management"
-      description="Manage system users, roles, and permissions."
-      breadcrumbs={[{ label: "System configuration" }, { label: "User & Role Management" }]}
+      description="Manage system users, roles, and permissions"
+      breadcrumbs={[{ label: "Administration" }, { label: "Users & Roles" }]}
     >
-      <div className="grid gap-6">
+      <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -326,9 +210,10 @@ export default function UserRoleManagementPage() {
                   </p>
                 ) : (
                 <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
-                <Table className="min-w-[760px]">
+                <Table className="min-w-[1000px]">
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Name</TableHead>
                       <TableHead>Username</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
@@ -340,14 +225,17 @@ export default function UserRoleManagementPage() {
                   <TableBody>
                     {filteredUsers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                           {hasAuth ? "No users found." : "Sign in to see users."}
                         </TableCell>
                       </TableRow>
                     ) : (
                     filteredUsers.map((row: ApiUser) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-medium">{row.username}</TableCell>
+                        <TableCell className="font-medium">
+                          {row.full_name?.trim() || "—"}
+                        </TableCell>
+                        <TableCell>{row.username}</TableCell>
                         <TableCell className="text-muted-foreground">{row.email}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{roleLabel(row.role)}</Badge>
@@ -361,14 +249,47 @@ export default function UserRoleManagementPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-[#3b82f6]"
-                            onClick={() => openEditForm(row)}
-                          >
-                            Edit
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[#3b82f6]"
+                              onClick={() => openView(row)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[#3b82f6]"
+                              onClick={() => openEditForm(row)}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            {canDeleteUser(row) ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => setDeleteTarget(row)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled
+                                title="Admin accounts cannot be deleted"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -398,6 +319,7 @@ export default function UserRoleManagementPage() {
                       { name: "Deputy Collector", desc: "Deputy collectorate duties", role: "DEPUTY_COLLECTOR" },
                       { name: "Assistant Collector", desc: "Assistant collectorate duties", role: "ASSISTANT_COLLECTOR" },
                       { name: "Receptionist", desc: "Reception and front desk", role: "RECEPTIONIST" },
+                      { name: "Guard", desc: "Gate check-in and reception panel only", role: "GUARD" },
                       { name: "Human Resource", desc: "HR module and personnel", role: "HR" },
                       { name: "Warehouse Officer", desc: "Warehouse and inventory", role: "WAREHOUSE_OFFICER" },
                       { name: "Detection Officer", desc: "Detection and enforcement", role: "DETECTION_OFFICER" },
@@ -427,148 +349,31 @@ export default function UserRoleManagementPage() {
         </Card>
       </div>
 
-      <Dialog
-        open={open}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) closeDialog()
-          else setOpen(true)
-        }}
-      >
-        <DialogContent className="w-[95vw] sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? "Edit User" : "Add User"}</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              {isEditing
-                ? "Update account details including username. Leave password blank to keep the current password."
-                : "Creates a login account with a hashed password stored in the database."}
-            </p>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="add-user-username">Username *</Label>
-              <Input
-                id="add-user-username"
-                value={form.user}
-                onChange={(e) => setForm((p) => ({ ...p, user: e.target.value }))}
-                placeholder="e.g. john.doe"
-                autoComplete="username"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-user-email">Email *</Label>
-              <Input
-                id="add-user-email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                placeholder="e.g. john@customs.gov.pk"
-                autoComplete="email"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-user-password">
-                {isEditing ? "New password" : "Password *"}
-              </Label>
-              <div className="relative">
-                <Input
-                  id="add-user-password"
-                  type={showPassword ? "text" : "password"}
-                  value={form.password}
-                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                  placeholder={isEditing ? "Leave blank to keep current" : "At least 6 characters"}
-                  autoComplete="new-password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  tabIndex={-1}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-user-phone">Phone</Label>
-              <Input
-                id="add-user-phone"
-                type="tel"
-                value={form.phone}
-                onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-                placeholder="e.g. 0300-1234567"
-                autoComplete="tel"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select value={form.role} onValueChange={(v) => setForm((p) => ({ ...p, role: v }))}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Location *</Label>
-              <Select
-                value={form.location}
-                onValueChange={(v) => setForm((p) => ({ ...p, location: v }))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LOCATION_OPTIONS.map((loc) => (
-                    <SelectItem key={loc.value} value={loc.value}>
-                      {loc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {isEditing && (
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={form.is_active ? "active" : "inactive"}
-                  onValueChange={(v) => setForm((p) => ({ ...p, is_active: v === "active" }))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="flex flex-col-reverse justify-end gap-2 pt-2 sm:flex-row">
-              <Button variant="outline" onClick={closeDialog} className="w-full sm:w-auto" disabled={saving}>
-                Cancel
-              </Button>
-              <Button onClick={() => void onSave()} className="w-full sm:w-auto" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving…
-                  </>
-                ) : isEditing ? (
-                  "Update"
-                ) : (
-                  "Save"
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove access for{" "}
+              <strong>{deleteTarget?.full_name?.trim() || deleteTarget?.username}</strong>? Admin
+              accounts cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault()
+                void confirmDelete()
+              }}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ModulePageLayout>
   )
 }

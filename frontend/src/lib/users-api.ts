@@ -9,9 +9,46 @@ export type ApiUser = {
   phone: string;
   location?: string;
   is_active: boolean;
+  full_name?: string;
+  cnic?: string;
+  office_phone_1?: string;
+  office_phone_2?: string;
+  fax_no?: string;
+  cell_no?: string;
+  address?: string;
+  designation?: string;
+  employee_id?: string;
+  posting_date?: string | null;
+  collectorate?: string;
+  effective_date?: string | null;
+  we_boc_role?: string;
+  date_joined?: string | null;
+  last_login?: string | null;
+  can_delete?: boolean;
 };
 
-export type CreateUserPayload = {
+export function canDeleteUser(user: Pick<ApiUser, "role" | "can_delete">): boolean {
+  if (user.can_delete === false) return false;
+  return user.role !== "ADMIN";
+}
+
+export type UserProfilePayload = {
+  full_name?: string;
+  cnic?: string;
+  office_phone_1?: string;
+  office_phone_2?: string;
+  fax_no?: string;
+  cell_no?: string;
+  address?: string;
+  designation?: string;
+  employee_id?: string;
+  posting_date?: string | null;
+  collectorate?: string;
+  effective_date?: string | null;
+  we_boc_role?: string;
+};
+
+export type CreateUserPayload = UserProfilePayload & {
   username: string;
   email: string;
   password: string;
@@ -20,7 +57,7 @@ export type CreateUserPayload = {
   location?: string;
 };
 
-export type UpdateUserPayload = {
+export type UpdateUserPayload = UserProfilePayload & {
   username?: string;
   email?: string;
   password?: string;
@@ -54,6 +91,45 @@ async function parseApiError(res: Response): Promise<string> {
   }
 }
 
+function buildUserBody(payload: CreateUserPayload | UpdateUserPayload): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  const keys: (keyof UserProfilePayload | keyof CreateUserPayload)[] = [
+    "username",
+    "email",
+    "password",
+    "role",
+    "phone",
+    "location",
+    "is_active",
+    "full_name",
+    "cnic",
+    "office_phone_1",
+    "office_phone_2",
+    "fax_no",
+    "cell_no",
+    "address",
+    "designation",
+    "employee_id",
+    "posting_date",
+    "collectorate",
+    "effective_date",
+    "we_boc_role",
+  ];
+  for (const key of keys) {
+    if (key in payload && (payload as Record<string, unknown>)[key] !== undefined) {
+      const val = (payload as Record<string, unknown>)[key];
+      if (typeof val === "string") {
+        body[key] = val.trim();
+      } else {
+        body[key] = val;
+      }
+    }
+  }
+  if ("posting_date" in body && body.posting_date === "") body.posting_date = null;
+  if ("effective_date" in body && body.effective_date === "") body.effective_date = null;
+  return body;
+}
+
 export function roleLabel(role: string): string {
   const found = ROLE_OPTIONS.find((r) => r.value === role);
   return found?.label ?? role.replace(/_/g, " ");
@@ -67,12 +143,38 @@ export const ROLE_OPTIONS = [
   { value: "DEPUTY_COLLECTOR", label: "Deputy Collector" },
   { value: "ASSISTANT_COLLECTOR", label: "Assistant Collector" },
   { value: "RECEPTIONIST", label: "Receptionist" },
+  { value: "GUARD", label: "Guard" },
   { value: "HR", label: "Human Resource" },
   { value: "WAREHOUSE_OFFICER", label: "Warehouse Officer" },
   { value: "DETECTION_OFFICER", label: "Detection Officer" },
   { value: "FIR_OFFICER", label: "FIR Officer" },
   { value: "INVESTIGATION_OFFICER", label: "Investigation Officer" },
   { value: "SEIZING_OFFICER", label: "Seizing Officer" },
+] as const;
+
+export const COLLECTORATE_OPTIONS = [
+  { value: "Peshawar", label: "Peshawar" },
+  { value: "Kohat", label: "Kohat" },
+  { value: "Nowshera", label: "Nowshera" },
+  { value: "Mardan", label: "Mardan" },
+  { value: "Bannu", label: "Bannu" },
+  { value: "Dera Ismail Khan", label: "Dera Ismail Khan" },
+  { value: "Swat", label: "Swat" },
+  { value: "Abbottabad", label: "Abbottabad" },
+  { value: "Mansehra", label: "Mansehra" },
+  { value: "Other", label: "Other" },
+] as const;
+
+export const WEBOC_ROLE_OPTIONS = [
+  { value: "System Administrator", label: "System Administrator" },
+  { value: "Collector", label: "Collector" },
+  { value: "Deputy Collector", label: "Deputy Collector" },
+  { value: "Assistant Collector", label: "Assistant Collector" },
+  { value: "Appraiser", label: "Appraiser" },
+  { value: "Examiner", label: "Examiner" },
+  { value: "Data Entry Operator", label: "Data Entry Operator" },
+  { value: "Viewer", label: "Viewer" },
+  { value: "Other", label: "Other" },
 ] as const;
 
 export async function fetchUsers(): Promise<ApiUser[]> {
@@ -86,33 +188,68 @@ export async function fetchUsers(): Promise<ApiUser[]> {
   return rows as ApiUser[];
 }
 
+export async function fetchUserById(id: number): Promise<ApiUser> {
+  const res = await fetch(`${USERS_ENDPOINT}${id}/`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error(await parseApiError(res));
+  return (await res.json()) as ApiUser;
+}
+
 export async function createUser(payload: CreateUserPayload): Promise<ApiUser> {
+  const body = buildUserBody(payload);
+  body.username = payload.username.trim();
+  body.email = payload.email.trim();
+  body.password = payload.password;
+  body.role = payload.role;
+  if (!body.phone && body.cell_no) {
+    body.phone = body.cell_no;
+  } else if (!body.phone) {
+    body.phone = "0000000000";
+  }
+  body.location = payload.location || "";
+
   const res = await fetch(USERS_ENDPOINT, {
     method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify({
-      username: payload.username.trim(),
-      email: payload.email.trim(),
-      password: payload.password,
-      role: payload.role,
-      phone: (payload.phone || "0000000000").trim(),
-      location: payload.location || "",
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await parseApiError(res));
   return (await res.json()) as ApiUser;
 }
 
+export async function deleteUser(id: number): Promise<void> {
+  const res = await fetch(`${USERS_ENDPOINT}${id}/`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseApiError(res));
+}
+
+export function formatUserDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  const d = value.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return value;
+  const [y, m, day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
+
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return value;
+  }
+}
+
 export async function updateUser(id: number, payload: UpdateUserPayload): Promise<ApiUser> {
-  const body: Record<string, unknown> = {};
-  if (payload.username !== undefined) body.username = payload.username.trim();
-  if (payload.email !== undefined) body.email = payload.email.trim();
-  if (payload.role !== undefined) body.role = payload.role;
-  if (payload.phone !== undefined) body.phone = payload.phone.trim() || "0000000000";
-  if (payload.location !== undefined) body.location = payload.location;
-  if (payload.is_active !== undefined) body.is_active = payload.is_active;
+  const body = buildUserBody(payload);
   if (payload.password && payload.password.length >= 6) {
     body.password = payload.password;
+  } else {
+    delete body.password;
+  }
+  if (payload.phone !== undefined) {
+    body.phone = payload.phone.trim() || (body.cell_no as string) || "0000000000";
   }
 
   const res = await fetch(`${USERS_ENDPOINT}${id}/`, {

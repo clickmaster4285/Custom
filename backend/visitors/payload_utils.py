@@ -326,7 +326,8 @@ def _sanitize_char_fields(model_fields: dict[str, Any]) -> None:
         if _is_blob_string(s):
             _store_blob_on_visitor(model_fields, s)
             if name == "full_name":
-                model_fields[name] = "Unknown Visitor"
+                # Do not overwrite with a generic label; keep empty for resolve_visitor_display_name
+                model_fields[name] = ""
             else:
                 model_fields[name] = ""
         else:
@@ -362,32 +363,68 @@ def strip_large_fields_for_list(data: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def normalize_payload(data: dict[str, Any]) -> dict[str, Any]:
+def _payload_has_key(out: dict[str, Any], *keys: str) -> bool:
+    return any(k in out for k in keys)
+
+
+def resolve_visitor_display_name(visitor: Visitor) -> str:
+    """Best label for UI when full_name is missing or was reset to Unknown Visitor."""
+    stored = (visitor.full_name or "").strip()
+    if stored and stored != "Unknown Visitor":
+        return stored
+
+    extra = visitor.extra_data if isinstance(visitor.extra_data, dict) else {}
+    draft = extra.get("draft_form_data") if isinstance(extra.get("draft_form_data"), dict) else {}
+
+    for src in (extra, draft):
+        for key in ("fullName", "full_name", "name"):
+            val = src.get(key)
+            if isinstance(val, str):
+                label = val.strip()
+                if label and label != "Unknown Visitor":
+                    return label
+
+    cnic = (visitor.cnic_number or visitor.cnic_passport or "").strip()
+    if cnic:
+        return cnic
+
+    qr = (visitor.qr_code_id or "").strip()
+    if qr:
+        return qr
+
+    return stored or f"Visitor #{visitor.pk}"
+
+
+def normalize_payload(data: dict[str, Any], *, partial: bool = False) -> dict[str, Any]:
     """Flatten camelCase keys and coerce values for Visitor model."""
     out: dict[str, Any] = {}
     for key, value in data.items():
         nk = _normalize_key(key)
         out[nk] = value
 
-    if out.get("full_name") in (None, ""):
+    if not partial and out.get("full_name") in (None, ""):
         out["full_name"] = "Unknown Visitor"
 
-    vt_choices = [c[0] for c in Visitor.VISITOR_TYPE_CHOICES]
-    out["visitor_type"] = _coerce_choice(
-        out.get("visitor_type") or out.get("registration_type"),
-        vt_choices,
-        "general",
-        VISITOR_TYPE_MAP,
-    )
+    if not partial or _payload_has_key(out, "visitor_type", "registration_type"):
+        vt_choices = [c[0] for c in Visitor.VISITOR_TYPE_CHOICES]
+        out["visitor_type"] = _coerce_choice(
+            out.get("visitor_type") or out.get("registration_type"),
+            vt_choices,
+            "general",
+            VISITOR_TYPE_MAP,
+        )
 
-    nat_choices = [c[0] for c in Visitor.NATIONALITY_CHOICES]
-    out["nationality"] = _coerce_choice(out.get("nationality"), nat_choices, "pakistan", NATIONALITY_MAP)
+    if not partial or "nationality" in out:
+        nat_choices = [c[0] for c in Visitor.NATIONALITY_CHOICES]
+        out["nationality"] = _coerce_choice(out.get("nationality"), nat_choices, "pakistan", NATIONALITY_MAP)
 
-    vp_choices = [c[0] for c in Visitor.VISIT_PURPOSE_CHOICES]
-    out["visit_purpose"] = _coerce_choice(out.get("visit_purpose"), vp_choices, "other", VISIT_PURPOSE_MAP)
+    if not partial or "visit_purpose" in out:
+        vp_choices = [c[0] for c in Visitor.VISIT_PURPOSE_CHOICES]
+        out["visit_purpose"] = _coerce_choice(out.get("visit_purpose"), vp_choices, "other", VISIT_PURPOSE_MAP)
 
-    dept_choices = [c[0] for c in Visitor.DEPARTMENT_CHOICES]
-    out["department_to_visit"] = _coerce_choice(out.get("department_to_visit"), dept_choices, "admin")
+    if not partial or _payload_has_key(out, "department_to_visit", "department"):
+        dept_choices = [c[0] for c in Visitor.DEPARTMENT_CHOICES]
+        out["department_to_visit"] = _coerce_choice(out.get("department_to_visit"), dept_choices, "admin")
 
     if out.get("cnic_number") in (None, "") and out.get("cnic_passport"):
         out["cnic_number"] = out["cnic_passport"]
@@ -398,10 +435,11 @@ def normalize_payload(data: dict[str, Any]) -> dict[str, Any]:
     if out.get("captured_photo") in (None, "") and out.get("photo_capture"):
         out["captured_photo"] = out["photo_capture"]
 
-    if out.get("preferred_visit_date") in (None, ""):
-        pd = _parse_date(out.get("preferred_date") or out.get("visit_date"))
-        if pd:
-            out["preferred_visit_date"] = pd
+    if not partial or _payload_has_key(out, "preferred_visit_date", "preferred_date", "visit_date"):
+        if out.get("preferred_visit_date") in (None, ""):
+            pd = _parse_date(out.get("preferred_date") or out.get("visit_date"))
+            if pd:
+                out["preferred_visit_date"] = pd
 
     _sanitize_date_fields(out)
 
@@ -423,7 +461,7 @@ def split_visitor_payload(
     partial: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return (model_fields, extra_data) from a normalized payload."""
-    normalized = normalize_payload(data)
+    normalized = normalize_payload(data, partial=partial)
     if registration_source:
         normalized["registration_source"] = registration_source
 
@@ -501,4 +539,5 @@ def merge_extra_into_response(base: dict[str, Any], visitor: Visitor) -> dict[st
     if visitor.created_at:
         base["created_at"] = visitor.created_at.isoformat()
     base["created_by"] = visitor_created_by_label(visitor)
+    base["full_name"] = resolve_visitor_display_name(visitor)
     return base

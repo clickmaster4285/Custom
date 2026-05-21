@@ -135,6 +135,9 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   // Settings
   { path: toChildPath(ROUTES.GENERAL_SETTINGS), page: "GeneralSettings" },
   { path: toChildPath(ROUTES.USER_ROLE_MANAGEMENT), page: "UserRoleManagement" },
+  { path: toChildPath(ROUTES.ADD_USER), page: "UserForm" },
+  { path: "settings/users/:id", page: "UserDetail" },
+  { path: "settings/users/:id/edit", page: "UserForm" },
   { path: toChildPath(ROUTES.INTEGRATIONS), page: "Integrations" },
   { path: toChildPath(ROUTES.NOTIFICATIONS), page: "Notifications" },
   { path: toChildPath(ROUTES.SECURITY_ACCESS), page: "SecurityAccess" },
