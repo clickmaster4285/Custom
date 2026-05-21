@@ -162,6 +162,12 @@ export function getHomeRouteForRole(role: string | undefined | null): string {
   return ROUTES.DASHBOARD
 }
 
+/** Dashboard index path; restricted roles cannot access it and are sent to their module home. */
+export function isDashboardHomePath(pathname: string): boolean {
+  const path = pathname.split("?")[0].replace(/\/$/, "") || "/"
+  return path === "" || path === "/"
+}
+
 export function getRoleDisplayLabel(role: string | undefined | null): string {
   const normalized = normalizeRole(role)
   if (normalized === "RECEPTIONIST") return "Receptionist"
