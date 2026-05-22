@@ -2,6 +2,7 @@
  * VMS API client: approval, zone scan, vehicles, notifications, analytics, security.
  */
 import { API_BASE_URL, getAuthHeaders } from "@/lib/api";
+import { getUserLocationFilter } from "@/lib/location-access";
 
 const API = `${API_BASE_URL}/api`;
 
@@ -299,5 +300,45 @@ export async function fetchVmsAnalytics(fromDate?: string, toDate?: string): Pro
   const finalUrl = sp.toString() ? `${API}/vms/analytics/?${sp.toString()}` : `${API}/vms/analytics/`
   const res = await fetch(finalUrl, authInit())
   if (!res.ok) throw new Error(`Failed to load analytics (${res.status})`)
+  return res.json()
+}
+
+// ----- VMS Overview dashboard -----
+export type VmsOverviewVisitorRow = {
+  id: number
+  reg_id: string
+  date: string
+  visitor_name: string
+  organization: string
+  vehicle_id: string
+  status: string
+  host_name: string
+  date_time: string
+  priority: string
+  approval_status: string
+  registration_source: string
+}
+
+export type VmsOverview = {
+  expected_today: number
+  checked_in: number
+  pending_docs: number
+  pending_approval: number
+  blacklisted_visitors: number
+  blacklisted_vehicles: number
+  rejected_requests: number
+  active_passes: number
+  visitors_registered_today: number
+  recent_registrations: VmsOverviewVisitorRow[]
+  registered_visitors: VmsOverviewVisitorRow[]
+}
+
+export async function fetchVmsOverview(): Promise<VmsOverview> {
+  const sp = new URLSearchParams()
+  const loc = getUserLocationFilter()
+  if (loc) sp.set("location", loc)
+  const url = sp.toString() ? `${API}/vms/overview/?${sp}` : `${API}/vms/overview/`
+  const res = await fetch(url, authInit())
+  if (!res.ok) throw new Error(`Failed to load visitor overview (${res.status})`)
   return res.json()
 }

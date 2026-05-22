@@ -30,70 +30,23 @@ import {
 } from "@/components/ui/select"
 
 import { DEFAULT_LIVE_STREAM_URL } from "@/lib/live-stream-url"
+import {
+  loadIntegrationCameras,
+  saveIntegrationCameras,
+  resolveCameraVideoSrc,
+  type IntegrationCamera,
+  type CameraType,
+  type CameraStatus,
+} from "@/lib/camera-integration"
 
-const STORAGE_KEY = "wms_camera_integration"
-
-type CameraType = "PTZ" | "Fixed" | "Thermal" | "360°"
-type CameraStatus = "Online" | "Offline"
-
-type CameraRow = {
-  id: string
-  name: string
-  location: string
-  wh: string
-  zone: string
-  cameraType: CameraType
-  status: CameraStatus
-  streamUrl: string
-  resolution: string
-  frameRate: string
-  recording: boolean
-  storagePath: string
-  aiModelApplied: string
-  active: boolean
-}
-
-function ensureCameraShape(r: Record<string, unknown>): CameraRow {
-  return {
-    id: String(r.id ?? ""),
-    name: String(r.name ?? r.location ?? ""),
-    location: String(r.location ?? ""),
-    wh: String(r.wh ?? "Peshawar"),
-    zone: String(r.zone ?? "Z-A01"),
-    cameraType: (r.cameraType as CameraType) ?? "Fixed",
-    status: (r.status as CameraStatus) ?? "Online",
-    streamUrl: String(r.streamUrl ?? DEFAULT_LIVE_STREAM_URL),
-    resolution: String(r.resolution ?? "1920x1080"),
-    frameRate: String(r.frameRate ?? "30"),
-    recording: Boolean(r.recording ?? true),
-    storagePath: String(r.storagePath ?? ""),
-    aiModelApplied: String(r.aiModelApplied ?? ""),
-    active: r.active !== false,
-  }
-}
-
-const defaultCameras: CameraRow[] = [
-  { id: "CAM-WH001-01", name: "Main Gate", location: "Main Gate", wh: "Peshawar", zone: "Z-A01", cameraType: "Fixed", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-01", aiModelApplied: "Object Detection", active: true },
-  { id: "CAM-WH001-02", name: "Receiving Dock", location: "Receiving Dock", wh: "Peshawar", zone: "Z-A01", cameraType: "PTZ", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-02", aiModelApplied: "ANPR", active: true },
-  { id: "CAM-WH001-03", name: "Bulk Storage A", location: "Bulk Storage A", wh: "Peshawar", zone: "Z-B02", cameraType: "Fixed", status: "Offline", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1280x720", frameRate: "25", recording: false, storagePath: "/recordings/wh001-03", aiModelApplied: "", active: false },
-  { id: "CAM-WH001-04", name: "Picking Zone", location: "Picking Zone", wh: "Peshawar", zone: "Z-C03", cameraType: "Fixed", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-04", aiModelApplied: "Object Detection", active: true },
-  { id: "CAM-WH001-05", name: "Staging Area", location: "Staging Area", wh: "Peshawar", zone: "Z-C03", cameraType: "360°", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-05", aiModelApplied: "Anomaly Detection", active: true },
-  { id: "CAM-WH001-06", name: "Loading Dock", location: "Loading Dock", wh: "Peshawar", zone: "Z-A01", cameraType: "Fixed", status: "Online", streamUrl: DEFAULT_LIVE_STREAM_URL, resolution: "1920x1080", frameRate: "30", recording: true, storagePath: "/recordings/wh001-06", aiModelApplied: "ANPR", active: true },
-]
+type CameraRow = IntegrationCamera
 
 function loadCameras(): CameraRow[] {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as Record<string, unknown>[]
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(ensureCameraShape)
-    }
-  } catch {}
-  return defaultCameras
+  return loadIntegrationCameras()
 }
 
 function saveCameras(rows: CameraRow[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
+  saveIntegrationCameras(rows)
 }
 
 type FormState = Omit<CameraRow, "id">
@@ -233,11 +186,13 @@ export default function CameraIntegrationPage() {
                     className="rounded-lg border border-border overflow-hidden bg-black/90 flex flex-col"
                   >
                     <div className="relative aspect-video">
-                      {getStreamUrl(cam) === DEFAULT_LIVE_STREAM_URL ? (
-                        <div className="w-full h-full aspect-video bg-muted flex items-center justify-center text-muted-foreground text-sm">Live stream</div>
+                      {!resolveCameraVideoSrc(getStreamUrl(cam)) ? (
+                        <div className="w-full h-full aspect-video bg-muted flex items-center justify-center text-muted-foreground text-sm px-2 text-center">
+                          Set an MP4 or HTTP video URL in Stream URL (RTSP plays on server proxy only).
+                        </div>
                       ) : (
                         <video
-                          src={getStreamUrl(cam)}
+                          src={resolveCameraVideoSrc(getStreamUrl(cam))!}
                           className="w-full h-full object-contain"
                           preload="metadata"
                           muted
@@ -520,12 +475,14 @@ export default function CameraIntegrationPage() {
           </DialogHeader>
           <div className="relative aspect-video w-full">
             {liveCamera && (
-              getStreamUrl(liveCamera) === DEFAULT_LIVE_STREAM_URL ? (
-                <div key={liveCamera.id} className="w-full h-full aspect-video bg-muted flex items-center justify-center text-muted-foreground text-sm">Live stream</div>
+              !resolveCameraVideoSrc(getStreamUrl(liveCamera)) ? (
+                <div key={liveCamera.id} className="w-full h-full aspect-video bg-muted flex items-center justify-center text-muted-foreground text-sm px-4 text-center">
+                  No playable video URL for this camera.
+                </div>
               ) : (
                 <video
                   key={liveCamera.id}
-                  src={getStreamUrl(liveCamera)}
+                  src={resolveCameraVideoSrc(getStreamUrl(liveCamera))!}
                   className="w-full h-full object-contain"
                   autoPlay
                   muted={false}

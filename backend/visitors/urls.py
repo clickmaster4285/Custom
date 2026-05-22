@@ -20,6 +20,7 @@ from .views import (
     VehicleCreateAPIView,
     NotificationListAPIView,
     VmsAnalyticsAPIView,
+    VmsOverviewAPIView,
     VmsListRecordsAPIView,
 )
 
@@ -51,5 +52,6 @@ urlpatterns = [
     path("notifications/", NotificationListAPIView.as_view(), name="notification-list"),
     # Analytics & list storage
     path("vms/analytics/", VmsAnalyticsAPIView.as_view(), name="vms-analytics"),
+    path("vms/overview/", VmsOverviewAPIView.as_view(), name="vms-overview"),
     path("vms/lists/", VmsListRecordsAPIView.as_view(), name="vms-lists"),
 ]

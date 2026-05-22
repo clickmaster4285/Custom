@@ -1,4 +1,6 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import {
   Calendar,
   Users,
@@ -8,10 +10,7 @@ import {
   BarChart3,
   UsersRound,
   CalendarDays,
-  Eye,
-  Pencil,
-  Trash2,
-  Copy,
+  Loader2,
 } from "lucide-react"
 import type { ReactNode } from "react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -19,7 +18,13 @@ import { Button } from "@/components/ui/button"
 import { ROUTES } from "@/routes/config"
 import { getStoredUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
+import { fetchVmsOverview } from "@/lib/vms-api"
+import type { VmsOverviewVisitorRow } from "@/lib/vms-api"
 import { DashboardRtspCameraGrid } from "@/components/dashboard/dashboard-rtsp-camera-grid"
+import {
+  RecentRegistrationsTable,
+  VisitorDeleteDialog,
+} from "@/components/vms/recent-registrations-table"
 
 type DashboardStatCardProps = {
   title: string
@@ -28,6 +33,7 @@ type DashboardStatCardProps = {
   footnoteClassName?: string
   icon: ReactNode
   iconWrapClassName: string
+  loading?: boolean
 }
 
 function DashboardStatCard({
@@ -37,6 +43,7 @@ function DashboardStatCard({
   footnoteClassName,
   icon,
   iconWrapClassName,
+  loading,
 }: DashboardStatCardProps) {
   return (
     <Card className="flex h-full min-w-0 flex-col gap-0 rounded-[10px] border-gray-200 py-0 shadow-sm">
@@ -51,10 +58,12 @@ function DashboardStatCard({
               iconWrapClassName
             )}
           >
-            {icon}
+            {loading ? <Loader2 className="h-5 w-5 animate-spin text-[#155DFC] sm:h-6 sm:w-6" /> : icon}
           </div>
         </div>
-        <p className="text-2xl font-bold leading-none text-[#101727] sm:text-3xl lg:text-[32px]">{value}</p>
+        <p className="text-2xl font-bold leading-none text-[#101727] sm:text-3xl lg:text-[32px]">
+          {loading ? "—" : value}
+        </p>
         <p className={cn("mt-2 text-[10px] leading-tight sm:text-xs", footnoteClassName)}>{footnote}</p>
       </CardContent>
     </Card>
@@ -63,38 +72,15 @@ function DashboardStatCard({
 
 export function Dashboard() {
   const welcomeName = getStoredUser()?.username?.trim() || "User"
-  const recentRegistrations = [
-    {
-      regId: "1234",
-      visitorName: "Ali Hassan",
-      hostName: "Mir Hamza",
-      dateTime: "13-02-2026 | 10:00AM-11:00AM",
-      priority: "Normal",
-      priorityClass: "bg-green-100 text-[#008235]",
-      status: "Approved",
-      statusClass: "bg-green-100 text-[#008235]",
-    },
-    {
-      regId: "1235",
-      visitorName: "Sana Khan",
-      hostName: "Jahandad Khan",
-      dateTime: "13-02-2026 | 10:00AM-11:00AM",
-      priority: "Urgent",
-      priorityClass: "bg-[#FFE2E2] text-[#C10007]",
-      status: "Pending Docs",
-      statusClass: "bg-[#FCEDD7] text-[#BB411E]",
-    },
-    {
-      regId: "1236",
-      visitorName: "Muhammad Zaid",
-      hostName: "Mirza Baig",
-      dateTime: "13-02-2026 | 10:00AM-11:00AM",
-      priority: "High",
-      priorityClass: "bg-[#DEEAFC] text-[#1D4CDD]",
-      status: "Rejected",
-      statusClass: "bg-[#FFE2E2] text-[#C10007]",
-    },
-  ]
+  const [deleteTarget, setDeleteTarget] = useState<VmsOverviewVisitorRow | null>(null)
+
+  const { data: vms, isLoading: vmsLoading } = useQuery({
+    queryKey: ["vms", "overview"],
+    queryFn: fetchVmsOverview,
+    refetchInterval: 60_000,
+  })
+
+  const stat = (n: number | undefined) => (vmsLoading ? "—" : String(n ?? 0))
 
   return (
     <div className="flex min-h-full w-full min-w-0 max-w-full flex-col">
@@ -114,35 +100,39 @@ export function Dashboard() {
           <div className="grid w-full min-w-0 grid-cols-2 grid-rows-2 items-stretch gap-3 sm:gap-4 lg:grid-cols-4 lg:grid-rows-1 lg:gap-6">
             <DashboardStatCard
               title="Total Visitors Today"
-              value="12"
-              footnote="+12% from yesterday"
-              footnoteClassName="text-[#00A63E]"
+              value={stat(vms?.visitors_registered_today)}
+              footnote="Registered today"
+              footnoteClassName="text-[#4A5565]"
               iconWrapClassName="bg-blue-50"
               icon={<Users className="h-5 w-5 text-[#155DFC] sm:h-6 sm:w-6" />}
+              loading={vmsLoading}
             />
             <DashboardStatCard
               title="Active Check-ins"
-              value="12"
+              value={stat(vms?.checked_in)}
               footnote="Currently on premises"
               footnoteClassName="text-[#4A5565]"
               iconWrapClassName="bg-green-50"
               icon={<ClipboardCheck className="h-5 w-5 text-[#00A63E] sm:h-6 sm:w-6" />}
+              loading={vmsLoading}
             />
             <DashboardStatCard
               title="Pending Approvals"
-              value="12"
-              footnote="Requires Attention"
+              value={stat(vms?.pending_approval)}
+              footnote="Requires attention"
               footnoteClassName="text-[#F54900]"
               iconWrapClassName="bg-orange-50"
               icon={<AlertCircle className="h-5 w-5 text-[#F54900] sm:h-6 sm:w-6" />}
+              loading={vmsLoading}
             />
             <DashboardStatCard
-              title="Warehouse Activities"
-              value="43"
-              footnote="Active operations"
+              title="Expected Today"
+              value={stat(vms?.expected_today)}
+              footnote="Scheduled or walk-in visits"
               footnoteClassName="text-[#9810FA]"
               iconWrapClassName="bg-violet-50"
-              icon={<Package className="h-5 w-5 text-[#9810FA] sm:h-6 sm:w-6" />}
+              icon={<Calendar className="h-5 w-5 text-[#9810FA] sm:h-6 sm:w-6" />}
+              loading={vmsLoading}
             />
           </div>
 
@@ -188,17 +178,21 @@ export function Dashboard() {
                       Manage visitor registrations, check-ins, check-outs, and access control.
                     </p>
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                      <div className="flex flex-col bg-blue-50 p-3 gap-1 rounded-[10px] min-w-0">
-                        <span className="text-[#155DFC] text-sm">Today&apos;s Visits</span>
-                        <span className="text-[#1C398E] text-xl font-bold">142</span>
+                      <div className="flex min-w-0 flex-col gap-1 rounded-[10px] bg-blue-50 p-3">
+                        <span className="text-sm text-[#155DFC]">Today&apos;s Visits</span>
+                        <span className="text-xl font-bold text-[#1C398E]">
+                          {vmsLoading ? "—" : vms?.expected_today ?? 0}
+                        </span>
                       </div>
-                      <div className="flex flex-col bg-green-50 p-3 gap-1 rounded-[10px] min-w-0">
-                        <span className="text-[#00A63E] text-sm">Checked In</span>
-                        <span className="text-[#0D542B] text-xl font-bold">38</span>
+                      <div className="flex min-w-0 flex-col gap-1 rounded-[10px] bg-green-50 p-3">
+                        <span className="text-sm text-[#00A63E]">Checked In</span>
+                        <span className="text-xl font-bold text-[#0D542B]">
+                          {vmsLoading ? "—" : vms?.checked_in ?? 0}
+                        </span>
                       </div>
                     </div>
-                    <Link to={ROUTES.PRE_REGISTRATION}>
-                      <Button className="w-full bg-[#155DFC] hover:bg-[#155DFC]/90 text-white rounded-lg py-2.5">
+                    <Link to={ROUTES.VISITOR_MANAGEMENT_OVERVIEW}>
+                      <Button className="w-full rounded-lg bg-[#155DFC] py-2.5 text-white hover:bg-[#155DFC]/90">
                         <span className="text-sm font-medium">View Details</span>
                       </Button>
                     </Link>
@@ -299,89 +293,12 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Recent Registrations */}
-          <Card className="min-w-0 max-w-full overflow-hidden rounded-[10px] border border-gray-200">
-            <div className="pb-1 pl-4 pt-4 sm:pl-6">
-              <h2 className="text-lg font-bold text-[#101727] sm:text-xl">Recent Registrations</h2>
-            </div>
-            <div className="max-w-full overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-              <table className="w-full min-w-[640px] sm:min-w-[800px]">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-7 text-[#697282] text-sm font-bold">Reg ID</th>
-                    <th className="text-left py-3 px-6 text-[#697282] text-sm font-bold">
-                      Visitor Name
-                    </th>
-                    <th className="text-left py-3 px-6 text-[#697282] text-sm font-bold">Host Name</th>
-                    <th className="text-left py-3 px-6 text-[#697282] text-sm font-bold">
-                      Date & Time
-                    </th>
-                    <th className="text-left py-3 px-5 text-[#697282] text-sm font-bold">
-                      Priority Level
-                    </th>
-                    <th className="text-left py-3 px-6 text-[#697282] text-sm font-bold">Status</th>
-                    <th className="text-left py-3 px-5 text-[#697282] text-sm font-bold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentRegistrations.map((row) => (
-                    <tr key={row.regId} className="border-b border-gray-100 hover:bg-gray-50/50">
-                      <td className="py-5 px-7 text-[#495565] text-xs">{row.regId}</td>
-                      <td className="py-5 px-6 text-[#495565] text-xs">{row.visitorName}</td>
-                      <td className="py-5 px-6 text-[#495565] text-xs">{row.hostName}</td>
-                      <td className="py-5 px-6 text-[#495565] text-xs">{row.dateTime}</td>
-                      <td className="py-5 px-6">
-                        <span
-                          className={`inline-block py-1 px-3 rounded-[21px] text-sm font-medium ${row.priorityClass}`}
-                        >
-                          {row.priority}
-                        </span>
-                      </td>
-                      <td className="py-5 px-6">
-                        <span
-                          className={`inline-block py-1 px-3 rounded-[21px] text-sm font-medium ${row.statusClass}`}
-                        >
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="py-5 px-5">
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            className="p-1.5 rounded hover:bg-gray-100 text-[#4A5565]"
-                            aria-label="View"
-                          >
-                            <Eye className="w-5 h-5" />
-                          </button>
-                          <button
-                            type="button"
-                            className="p-1.5 rounded hover:bg-gray-100 text-[#4A5565]"
-                            aria-label="Edit"
-                          >
-                            <Pencil className="w-5 h-5" />
-                          </button>
-                          <button
-                            type="button"
-                            className="p-1.5 rounded hover:bg-gray-100 text-[#4A5565]"
-                            aria-label="Copy"
-                          >
-                            <Copy className="w-5 h-5" />
-                          </button>
-                          <button
-                            type="button"
-                            className="p-1.5 rounded hover:bg-gray-100 text-[#4A5565]"
-                            aria-label="Delete"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          <RecentRegistrationsTable
+            rows={vms?.recent_registrations ?? []}
+            isLoading={vmsLoading}
+            onDeleteClick={setDeleteTarget}
+          />
+          <VisitorDeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} />
         </div>
       </div>
     </div>
