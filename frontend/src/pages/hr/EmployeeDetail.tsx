@@ -12,7 +12,7 @@ import { API_BASE_URL } from "@/lib/api"
 import { ROUTES } from "@/routes/config"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { StaffAvatar } from "@/components/hr/staff-avatar"
 import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
@@ -38,17 +38,6 @@ import {
   Trash2,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-
-function staffImageUrl(profileImage: string | null | undefined, id?: number): string {
-  // if provided, use it; otherwise return deterministic placeholder based on id
-  if (profileImage) {
-    if (profileImage.startsWith("data:")) return profileImage
-    if (profileImage.startsWith("http")) return profileImage
-    return `${API_BASE_URL}${profileImage.startsWith("/") ? "" : "/"}${profileImage}`
-  }
-  const seed = id ?? Math.floor(Math.random() * 1000)
-  return `https://i.pravatar.cc/150?u=${seed}`
-}
 
 /** Build full URL for a document path returned by the API */
 function documentUrl(path: string | null | undefined): string | null {
@@ -297,19 +286,12 @@ export default function EmployeeDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-3 min-w-0">
-            {/* large photo display */}
-            <img
-              src={staffImageUrl(s.profile_image)}
-              alt="Profile"
-              className="h-40 w-40 rounded-full object-cover bg-muted/30"
+            <StaffAvatar
+              profileImage={s.profile_image}
+              fullName={s.full_name}
+              className="h-40 w-40 shrink-0"
+              fallbackClassName="text-2xl bg-muted"
             />
-            {/* small avatar fallback (hidden if image loads) */}
-            <Avatar className="h-24 w-24 hidden">
-              <AvatarImage src={staffImageUrl(s.profile_image, s.id)} alt="" />
-              <AvatarFallback className="text-2xl">
-                {s.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "—"}
-              </AvatarFallback>
-            </Avatar>
             <div className="min-w-0 text-center sm:text-left">
               <h1 className="text-[22px] font-bold tracking-tight text-foreground truncate">
                 {val(s.full_name)}

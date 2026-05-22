@@ -116,12 +116,45 @@ async function parseApiError(res: Response): Promise<string> {
   }
 }
 
+/** True when profile_image is a user-uploaded or API path (not a placeholder URL). */
+export function hasStaffProfileImage(profileImage: string | null | undefined): boolean {
+  const p = (profileImage ?? "").trim();
+  if (!p) return false;
+  if (p.includes("pravatar.cc")) return false;
+  return true;
+}
+
+/** Resolve staff photo URL for display; returns undefined when there is no real image. */
+export function resolveStaffProfileImageUrl(
+  profileImage: string | null | undefined
+): string | undefined {
+  if (!hasStaffProfileImage(profileImage)) return undefined;
+  const p = profileImage!.trim();
+  if (p.startsWith("data:")) return p;
+  if (p.startsWith("http")) return p;
+  return `${API_BASE_URL}${p.startsWith("/") ? "" : "/"}${p}`;
+}
+
+export function staffInitials(fullName: string | null | undefined): string {
+  const parts = (fullName ?? "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "—";
+  return parts
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 /** Map Django staff JSON to `StaffRecord` (list or detail). */
 export function normalizeApiStaff(row: Record<string, unknown>): StaffRecord {
   const userDetails = row.user_details as StaffRecord["user_details"] | undefined;
   const rawProfile = row.profile_image;
   const profile_image =
-    rawProfile === null || rawProfile === undefined ? null : String(rawProfile);
+    rawProfile === null || rawProfile === undefined
+      ? null
+      : hasStaffProfileImage(String(rawProfile))
+        ? String(rawProfile)
+        : null;
   const base = row as unknown as StaffRecord;
   return {
     ...base,
@@ -209,13 +242,7 @@ function localToStaffRecord(item: LocalStaffRecord): StaffRecord {
     date_of_birth: (s.date_of_birth as string) ?? null,
     gender: (s.gender as string) ?? null,
     // In local-only mode, we store the image inside the saved draft as a data URL.
-    profile_image: profileFromDraft || (() => {
-      // if draft didn't have an image, generate a deterministic avatar
-      // prefer pravatar seeded by staff id for consistency between list/detail
-      if (profileFromDraft) return profileFromDraft;
-      const seed = item.id || Math.floor(Math.random() * 1000);
-      return `https://i.pravatar.cc/150?u=${seed}`;
-    })(),
+    profile_image: profileFromDraft ?? null,
     email: (s.email as string) ?? null,
     phone: (s.phone as string) ?? null,
     address: (s.address as string) ?? null,
@@ -248,7 +275,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "499948",
     full_name: "Ali Khan",
     cnic: "12345-6789012-3",
-    profile_image: `https://i.pravatar.cc/150?img=11`,
+    profile_image: null,
     designation: "Inspector",
     department: "Enforcement",
     phone: "0301-1234567",
@@ -275,7 +302,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "285591",
     full_name: "Sara Ahmed",
     cnic: "23456-7890123-4",
-    profile_image: `https://i.pravatar.cc/150?img=12`,
+    profile_image: null,
     designation: "Assistant Collector",
     department: "Intelligence",
     phone: "0302-2345678",
@@ -302,7 +329,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "707664",
     full_name: "Mustafa Ali",
     cnic: "34567-8901234-5",
-    profile_image: `https://i.pravatar.cc/150?img=13`,
+    profile_image: null,
     designation: "Deputy Collector",
     department: "Legal",
     phone: "0303-3456789",
@@ -329,7 +356,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "878685",
     full_name: "Fatima Noor",
     cnic: "45678-9012345-6",
-    profile_image: `https://i.pravatar.cc/150?img=14`,
+    profile_image: null,
     designation: "Inspector",
     department: "Human Resources",
     phone: "0304-4567890",
@@ -356,7 +383,7 @@ const DEFAULT_STAFF: StaffRecord[] = [
     personal_number: "691102",
     full_name: "Rao Sheikh",
     cnic: "56789-0123456-7",
-    profile_image: `https://i.pravatar.cc/150?img=15`,
+    profile_image: null,
     designation: "Assistant Inspector",
     department: "Operations",
     phone: "0305-5678901",
@@ -425,8 +452,7 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
     const needsMerge =
       (!rec.phone || rec.phone === "—") ||
       (!rec.transferred_from || rec.transferred_from === "—") ||
-      (!rec.transferred_to || rec.transferred_to === "—") ||
-      (!rec.profile_image || rec.profile_image === "");
+      (!rec.transferred_to || rec.transferred_to === "—");
     if (!needsMerge) return it;
 
     updated = true;
@@ -435,7 +461,6 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
       phone: def.phone,
       transferred_from: def.transferred_from,
       transferred_to: def.transferred_to,
-      profile_image: def.profile_image,
     } as Record<string, unknown>;
     return { ...it, payload: mergedPayload };
   });

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -30,7 +30,37 @@ const LOCATIONS = ["Peshawar", "Yarik", "DI Khan", "Kohat", "Mardan", "Nowshera"
 const MOCK_CAMERAS = ["Gate-01", "Parking-A", "Warehouse-2", "Entrance", "Hall-B", "Loading-1"]
 const RECORDING_TYPES = ["Continuous", "Motion", "Event", "Manual"]
 const EVENT_TYPES = ["Alert", "Bookmark", "Incident", "AI event"]
-const AI_DETECTION_TYPES = ["Person", "Vehicle", "Fire", "Intrusion", "Loitering"]
+
+/** Demo clips in `public/ai detection/` — each id maps to exactly one file */
+const AI_DETECTION_PLAYBACK = [
+  { id: "smog", label: "Smog", file: "smog.mp4" },
+  { id: "person", label: "Person", file: "persons.mp4" },
+  { id: "vehicle", label: "Vehicle", file: "vehicle.mp4" },
+  { id: "vehicles", label: "Vehicles", file: "vehicles.mp4" },
+] as const
+
+type AiDetectionPlaybackId = (typeof AI_DETECTION_PLAYBACK)[number]["id"]
+
+const AI_DETECTION_VIDEO_SRC: Record<AiDetectionPlaybackId, string> = {
+  smog: "/ai%20detection/smog.mp4",
+  person: "/ai%20detection/persons.mp4",
+  vehicle: "/ai%20detection/vehicle.mp4",
+  vehicles: "/ai%20detection/vehicles.mp4",
+}
+
+/** Filters with no demo clip (Person/Vehicle use playback radios above) */
+const OTHER_AI_DETECTION_TYPES = ["Fire", "Intrusion", "Loitering"]
+
+function aiDetectionVideoSrc(id: AiDetectionPlaybackId | ""): string | null {
+  if (!id) return null
+  return AI_DETECTION_VIDEO_SRC[id] ?? null
+}
+
+function playbackIdFromFilterLabel(label: string): AiDetectionPlaybackId | "" {
+  if (label === "Person") return "person"
+  if (label === "Vehicle") return "vehicle"
+  return ""
+}
 const ALERT_PRIORITIES = ["Critical", "High", "Medium", "Low"]
 const VEHICLE_TYPES = ["Car", "Truck", "Bus", "Motorcycle", "Bicycle"]
 const BEHAVIOR_TYPES = ["Fighting", "Running", "Loitering", "Fallen", "Crowding"]
@@ -41,12 +71,70 @@ const EXPORT_FORMATS = ["MP4", "AVI", "MKV"]
 const RESOLUTIONS = ["Original", "1080p", "720p", "480p"]
 const SYNC_LAYOUTS = ["2x2", "2x3", "3x3", "4x4"]
 
+const PLAYBACK_RATE: Record<string, number> = {
+  "0.25x": 0.25,
+  "0.5x": 0.5,
+  "1x": 1,
+  "2x": 2,
+  "4x": 4,
+  "8x": 8,
+  "16x": 16,
+  "32x": 32,
+}
+
 export default function PlaybackSearchPage() {
+  const videoRef = useRef<HTMLVideoElement>(null)
   const [similarityThreshold, setSimilarityThreshold] = useState(80)
   const [ageRange, setAgeRange] = useState([20, 60])
   const [timelineZoom, setTimelineZoom] = useState(50)
   const [playbackSpeed, setPlaybackSpeed] = useState("1x")
   const [exportFormat, setExportFormat] = useState("MP4")
+  const [aiDetectionPlayback, setAiDetectionPlayback] = useState<AiDetectionPlaybackId | "">("")
+  const [otherAiFilters, setOtherAiFilters] = useState<string[]>([])
+  const [isPlaying, setIsPlaying] = useState(false)
+
+  const activeVideoSrc = aiDetectionVideoSrc(aiDetectionPlayback)
+
+  const setPlayback = (id: AiDetectionPlaybackId | "") => {
+    setAiDetectionPlayback(id)
+  }
+
+  const togglePlaybackFilter = (label: "Person" | "Vehicle", checked: boolean) => {
+    const id = playbackIdFromFilterLabel(label)
+    if (checked) {
+      setPlayback(id)
+      return
+    }
+    if (aiDetectionPlayback === id) {
+      setPlayback("")
+    }
+  }
+
+  const togglePlay = useCallback(() => {
+    const el = videoRef.current
+    if (!el || !activeVideoSrc) return
+    if (el.paused) {
+      void el.play()
+    } else {
+      el.pause()
+    }
+  }, [activeVideoSrc])
+
+  useEffect(() => {
+    const el = videoRef.current
+    if (!el) return
+    el.playbackRate = PLAYBACK_RATE[playbackSpeed] ?? 1
+  }, [playbackSpeed, activeVideoSrc])
+
+  useEffect(() => {
+    const el = videoRef.current
+    if (!el || !activeVideoSrc) {
+      setIsPlaying(false)
+      return
+    }
+    el.load()
+    void el.play().catch(() => setIsPlaying(false))
+  }, [activeVideoSrc])
 
   return (
     <ModulePageLayout
@@ -87,14 +175,74 @@ export default function PlaybackSearchPage() {
             </Collapsible>
 
             {/* Advanced Search */}
-            <Collapsible>
+            <Collapsible defaultOpen>
               <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium hover:bg-muted">
                 <span className="flex items-center gap-2"><Zap className="h-4 w-4" /> Advanced Search</span>
                 <ChevronDown className="h-4 w-4" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2 space-y-3 pl-1">
+                <div>
+                  <Label className="text-xs">AI detection playback *</Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Plays matching clip from <span className="font-mono">public/ai detection</span>
+                  </p>
+                  <RadioGroup
+                    value={aiDetectionPlayback || "none"}
+                    onValueChange={(v) =>
+                      setPlayback(v === "none" ? "" : (v as AiDetectionPlaybackId))
+                    }
+                    className="mt-2 space-y-1.5"
+                  >
+                    <label className="flex cursor-pointer items-center gap-2 text-xs">
+                      <RadioGroupItem value="none" />
+                      None
+                    </label>
+                    {AI_DETECTION_PLAYBACK.map((item) => (
+                      <label
+                        key={item.id}
+                        className="flex cursor-pointer items-center gap-2 text-xs"
+                      >
+                        <RadioGroupItem value={item.id} />
+                        {item.label}
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </div>
                 <div><Label className="text-xs">Event type filter</Label><div className="flex flex-wrap gap-2 mt-1">{EVENT_TYPES.map((e) => <label key={e} className="flex items-center gap-1 text-xs"><Checkbox />{e}</label>)}</div></div>
-                <div><Label className="text-xs">AI detection type</Label><div className="flex flex-wrap gap-2 mt-1">{AI_DETECTION_TYPES.map((d) => <label key={d} className="flex items-center gap-1 text-xs"><Checkbox />{d}</label>)}</div></div>
+                <div>
+                  <Label className="text-xs">Other AI detection types</Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Person / Vehicle also play their clips (Vehicle → vehicle.mp4)
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {(["Person", "Vehicle"] as const).map((d) => {
+                      const playbackId = playbackIdFromFilterLabel(d)
+                      const checked = aiDetectionPlayback === playbackId
+                      return (
+                        <label key={d} className="flex items-center gap-1 text-xs">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => togglePlaybackFilter(d, v === true)}
+                          />
+                          {d}
+                        </label>
+                      )
+                    })}
+                    {OTHER_AI_DETECTION_TYPES.map((d) => (
+                      <label key={d} className="flex items-center gap-1 text-xs">
+                        <Checkbox
+                          checked={otherAiFilters.includes(d)}
+                          onCheckedChange={(v) =>
+                            setOtherAiFilters((prev) =>
+                              v === true ? [...prev, d] : prev.filter((x) => x !== d)
+                            )
+                          }
+                        />
+                        {d}
+                      </label>
+                    ))}
+                  </div>
+                </div>
                 <div><Label className="text-xs">Alert priority filter</Label><div className="flex flex-wrap gap-2 mt-1">{ALERT_PRIORITIES.map((p) => <label key={p} className="flex items-center gap-1 text-xs"><Checkbox />{p}</label>)}</div></div>
                 <div className="flex items-center justify-between"><Label className="text-xs">Has bookmarks only</Label><Switch /></div>
               </CollapsibleContent>
@@ -224,16 +372,76 @@ export default function PlaybackSearchPage() {
         <div className="flex-1 min-w-0 space-y-4">
           <Card>
             <CardContent className="p-4">
-              <div className="aspect-video rounded-lg border border-border bg-muted/30 flex items-center justify-center text-muted-foreground text-sm">
-                Playback video area — select search criteria and run search
+              <div className="aspect-video overflow-hidden rounded-lg border border-border bg-black">
+                {activeVideoSrc ? (
+                  <video
+                    ref={videoRef}
+                    key={aiDetectionPlayback || "none"}
+                    src={activeVideoSrc}
+                    className="h-full w-full object-contain"
+                    controls
+                    playsInline
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onEnded={() => setIsPlaying(false)}
+                  />
+                ) : (
+                  <div className="flex h-full min-h-[200px] items-center justify-center bg-muted/30 px-4 text-center text-sm text-muted-foreground">
+                    Playback video area — open Advanced Search and select Smog, Person, or
+                    Vehicle to play a detection clip
+                  </div>
+                )}
               </div>
+              {activeVideoSrc && aiDetectionPlayback && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Playing:{" "}
+                  <span className="font-medium text-foreground">
+                    {AI_DETECTION_PLAYBACK.find((d) => d.id === aiDetectionPlayback)?.label}
+                  </span>
+                  <span className="font-mono text-[10px]">
+                    {" "}
+                    ({AI_DETECTION_PLAYBACK.find((d) => d.id === aiDetectionPlayback)?.file})
+                  </span>
+                </p>
+              )}
               <div className="mt-3 h-12 rounded border border-border bg-muted/20 flex items-center justify-between px-3">
                 <span className="text-xs text-muted-foreground">Timeline (zoom / event markers / segment colors)</span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline">◀</Button>
-                  <Button size="sm" variant="outline">▶</Button>
-                  <Button size="sm" variant="outline">Step back</Button>
-                  <Button size="sm" variant="outline">Step fwd</Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!activeVideoSrc}
+                    onClick={() => {
+                      const el = videoRef.current
+                      if (el) el.currentTime = Math.max(0, el.currentTime - 5)
+                    }}
+                    aria-label="Step back 5 seconds"
+                  >
+                    ◀
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!activeVideoSrc}
+                    onClick={togglePlay}
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                  >
+                    {isPlaying ? "❚❚" : "▶"}
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={!activeVideoSrc}>
+                    Step back
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!activeVideoSrc}
+                    onClick={() => {
+                      const el = videoRef.current
+                      if (el) el.currentTime = Math.min(el.duration || 0, el.currentTime + 5)
+                    }}
+                  >
+                    Step fwd
+                  </Button>
                 </div>
               </div>
             </CardContent>

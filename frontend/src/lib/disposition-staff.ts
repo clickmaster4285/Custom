@@ -44,7 +44,7 @@ function toStaffRecord(emp: DispositionEmployee): StaffRecord {
     full_name: emp.name,
     father_name: emp.father_name,
     cnic: "",
-    profile_image: `https://i.pravatar.cc/150?u=disp-${emp.s_no}`,
+    profile_image: null,
     designation: emp.designation,
     department: DEPARTMENT,
     personal_number: String(emp.s_no),

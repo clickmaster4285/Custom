@@ -569,6 +569,134 @@ class VmsAnalyticsAPIView(APIView):
         )
 
 
+def _visitor_clearance_label(visitor):
+    status = (visitor.watchlist_check_status or "").lower()
+    if "blacklist" in status or "flagged" in status:
+        return "Blacklisted"
+    if visitor.approval_status == "denied":
+        return "Rejected"
+    if visitor.approval_status == "pending":
+        return "Pending Approval"
+    if visitor.registration_status == "draft":
+        return "Pending Docs"
+    return "Cleared"
+
+
+def _visitor_priority_label(visitor):
+    view = (visitor.preferred_view_visit or "").lower()
+    if view == "high-security":
+        return "High"
+    if view == "logins":
+        return "Urgent"
+    return "Normal"
+
+
+def _visitor_datetime_label(visitor):
+    date_part = ""
+    if visitor.preferred_visit_date:
+        date_part = visitor.preferred_visit_date.strftime("%d-%m-%Y")
+    elif visitor.visit_date:
+        date_part = visitor.visit_date.strftime("%d-%m-%Y")
+    elif visitor.created_at:
+        date_part = visitor.created_at.strftime("%d-%m-%Y")
+    slot = visitor.preferred_time_slot or visitor.preferred_time_slot_walkin or ""
+    if slot:
+        return f"{date_part} | {slot}" if date_part else slot
+    return date_part or "—"
+
+
+def _serialize_overview_visitor(visitor):
+    vehicles = list(visitor.vehicles.all()[:1])
+    plate = vehicles[0].plate_number if vehicles else "-"
+    clearance = _visitor_clearance_label(visitor)
+    approval = visitor.approval_status or "pending"
+    return {
+        "id": visitor.id,
+        "reg_id": str(visitor.id),
+        "date": visitor.created_at.strftime("%d-%m-%Y") if visitor.created_at else "—",
+        "visitor_name": visitor.full_name,
+        "organization": visitor.organization_name or "—",
+        "vehicle_id": plate,
+        "status": clearance,
+        "host_name": visitor.host_full_name or visitor.host_officer_name or "—",
+        "date_time": _visitor_datetime_label(visitor),
+        "priority": _visitor_priority_label(visitor),
+        "approval_status": approval,
+        "registration_source": visitor.registration_source or "",
+    }
+
+
+class VmsOverviewAPIView(APIView):
+    """GET /api/vms/overview/ — dashboard stats and recent visitor rows."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        today = timezone.now().date()
+        qs = filter_visitors_by_request(get_visitor_queryset(), request)
+
+        expected_today = qs.filter(
+            Q(preferred_visit_date=today) | Q(visit_date=today)
+        ).count()
+        checked_in = qs.filter(
+            flow_stage="zone_checked_in", expiry_status="active"
+        ).count()
+        pending_docs = qs.filter(registration_status="draft").count()
+        pending_approval = qs.filter(approval_status="pending").count()
+        rejected_requests = qs.filter(approval_status="denied").count()
+        active_passes = qs.filter(
+            approval_status="approved",
+            expiry_status="active",
+        ).exclude(flow_stage="exited").count()
+
+        location = request.query_params.get("location", "").strip()
+        bl_qs = VmsListRecord.objects.filter(module="vms_blacklist_management_rows")
+        if location:
+            bl_qs = bl_qs.filter(location=location)
+        blacklisted_visitors = bl_qs.count()
+        if blacklisted_visitors == 0:
+            blacklisted_visitors = qs.filter(
+                watchlist_check_status__icontains="blacklist"
+            ).count()
+
+        blacklisted_vehicles = 0
+        vehicle_rows = VmsListRecord.objects.filter(module="vms_vehicle_entries")
+        if location:
+            vehicle_rows = vehicle_rows.filter(location=location)
+        for record in vehicle_rows:
+            data = record.data or {}
+            status = str(data.get("status") or data.get("vehicle_status") or "").lower()
+            if "blacklist" in status:
+                blacklisted_vehicles += 1
+
+        recent_qs = qs.prefetch_related("vehicles")[:10]
+        registered_qs = (
+            qs.filter(approval_status="approved")
+            .prefetch_related("vehicles")
+            .order_by("-created_at")[:10]
+        )
+
+        return Response(
+            {
+                "expected_today": expected_today,
+                "checked_in": checked_in,
+                "pending_docs": pending_docs,
+                "pending_approval": pending_approval,
+                "blacklisted_visitors": blacklisted_visitors,
+                "blacklisted_vehicles": blacklisted_vehicles,
+                "rejected_requests": rejected_requests,
+                "active_passes": active_passes,
+                "visitors_registered_today": qs.filter(created_at__date=today).count(),
+                "recent_registrations": [
+                    _serialize_overview_visitor(v) for v in recent_qs
+                ],
+                "registered_visitors": [
+                    _serialize_overview_visitor(v) for v in registered_qs
+                ],
+            }
+        )
+
+
 # ---------- VMS List storage (blacklist, watchlist, etc.) ----------
 
 

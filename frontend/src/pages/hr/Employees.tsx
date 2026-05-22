@@ -6,7 +6,6 @@ import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Table,
   TableBody,
@@ -15,13 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { API_BASE_URL } from "@/lib/api"
 import {
   fetchEmployeesDirectory,
   deleteStaff,
   isDispositionStaffId,
   type StaffRecord,
 } from "@/lib/staff-api"
+import { StaffAvatar } from "@/components/hr/staff-avatar"
 import { Badge } from "@/components/ui/badge"
 import {
   Select,
@@ -35,16 +34,6 @@ import { useToast } from "@/hooks/use-toast"
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100] as const
 const DEFAULT_PAGE_SIZE = 20
-
-function staffImageUrl(profileImage: string | null | undefined, id?: number): string {
-  if (profileImage) {
-    if (profileImage.startsWith("data:")) return profileImage
-    if (profileImage.startsWith("http")) return profileImage
-    return `${API_BASE_URL}${profileImage.startsWith("/") ? "" : "/"}${profileImage}`
-  }
-  const seed = id ?? Math.floor(Math.random() * 1000)
-  return `https://i.pravatar.cc/150?u=${seed}`
-}
 
 export default function EmployeesPage() {
   const navigate = useNavigate()
@@ -287,12 +276,12 @@ export default function EmployeesPage() {
                         <TableCell>{row.personal_number || row.user || row.employee_id || "—"}</TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                             <Avatar className="h-6 w-6">
-                                <AvatarImage src={staffImageUrl(row.profile_image, row.id)} alt="" />
-                                <AvatarFallback className="text-[10px]">
-                                  {row.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "—"}
-                                </AvatarFallback>
-                              </Avatar>
+                             <StaffAvatar
+                                profileImage={row.profile_image}
+                                fullName={row.full_name}
+                                className="h-6 w-6"
+                                fallbackClassName="text-[10px]"
+                              />
                               <span className="truncate max-w-[150px]">{row.full_name || row.user}</span>
                           </div>
                         </TableCell>
