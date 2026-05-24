@@ -8,6 +8,8 @@ import { AddStaffStep1PersonalInfo } from "@/components/hr/add-staff/step1-perso
 import { AddStaffStep2DocumentsUpload, type UploadValue } from "@/components/hr/add-staff/step2-documents-upload"
 import { AddStaffStep3LoginAccess } from "@/components/hr/add-staff/step3-login-access"
 import { Input } from "@/components/ui/input"
+import { validateHumanFaceFile, NOT_HUMAN_PICTURE_MESSAGE } from "@/lib/human-face-validation"
+import { useToast } from "@/hooks/use-toast"
 
 const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin" },
@@ -156,9 +158,11 @@ async function storedFileToFile(stored: StoredFile): Promise<File> {
 export default function AddStaffPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { toast } = useToast()
   const [form, setForm] = useState<CreateStaffPayload>(emptyForm)
   const [staffPhotos, setStaffPhotos] = useState<UploadValue[]>([])
   const [cameraOpen, setCameraOpen] = useState(false)
+  const [staffPhotoValidating, setStaffPhotoValidating] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [employeeCategory, setEmployeeCategory] = useState<"new" | "existing">("new")
@@ -311,28 +315,45 @@ export default function AddStaffPage() {
     }
   }, [staffPhotos, cnicFront.previewUrl, cnicBack.previewUrl, appointmentLetter.previewUrl, additionalDocument.previewUrl])
 
-  const addPhotos = (files: File[]) => {
+  const addPhotos = async (files: File[]) => {
     const max = 5
-    setStaffPhotos((prev) => {
-      const remaining = Math.max(0, max - prev.length)
-      if (remaining <= 0) return prev
-      const take = files.slice(0, remaining)
-      const added: UploadValue[] = take.map((file) => ({
-        file,
-        previewUrl: URL.createObjectURL(file),
-      }))
-      return [...prev, ...added]
-    })
+    const remaining = Math.max(0, max - staffPhotos.length)
+    if (remaining <= 0 || files.length === 0) return
+
+    setStaffPhotoValidating(true)
+    try {
+      const accepted: UploadValue[] = []
+      for (const file of files.slice(0, remaining)) {
+        const result = await validateHumanFaceFile(file)
+        if (!result.ok) {
+          toast({
+            title: NOT_HUMAN_PICTURE_MESSAGE,
+            description: "Only clear photos of a person's face are allowed.",
+            variant: "destructive",
+          })
+          continue
+        }
+        accepted.push({
+          file,
+          previewUrl: URL.createObjectURL(file),
+        })
+      }
+      if (accepted.length > 0) {
+        setStaffPhotos((prev) => [...prev, ...accepted].slice(0, max))
+      }
+    } finally {
+      setStaffPhotoValidating(false)
+    }
   }
 
-  const handleImageCapture = (file: File) => {
-    addPhotos([file])
+  const handleImageCapture = async (file: File) => {
+    await addPhotos([file])
     setCameraOpen(false)
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"))
-    if (files.length) addPhotos(files)
+    if (files.length) await addPhotos(files)
     e.target.value = ""
   }
 

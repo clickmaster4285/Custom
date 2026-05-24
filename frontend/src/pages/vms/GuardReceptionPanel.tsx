@@ -34,8 +34,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { AccessZoneSelect } from "@/components/vms/access-zone-select"
+import { useAccessZones } from "@/hooks/use-access-zones"
 
-const ZONES = ["zone-a", "zone-b", "zone-c", "main-gate"]
 const GATES = ["main-gate", "gate-1", "gate-2", "vip-gate"]
 /** Radix Select does not allow value=""; use for optional gate and treat as empty when submitting */
 const GATE_PLACEHOLDER = "__none__"
@@ -52,6 +53,8 @@ function formatDate(s: string | undefined) {
 export default function GuardReceptionPanel() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { data: zoneData } = useAccessZones()
+  const defaultZone = zoneData?.options.find((z) => z.value !== "all")?.value ?? ""
   const [qrCodeId, setQrCodeId] = useState("")
   const [zone, setZone] = useState("")
   const [gate, setGate] = useState(GATE_PLACEHOLDER)
@@ -75,7 +78,7 @@ export default function GuardReceptionPanel() {
     mutationFn: () =>
       zoneScan({
         qr_code_id: qrCodeId.trim(),
-        zone: zone || "zone-a",
+        zone: zone || defaultZone,
         gate: gate === GATE_PLACEHOLDER ? "" : gate,
         scan_type: scanType,
       }),
@@ -166,16 +169,12 @@ export default function GuardReceptionPanel() {
           </div>
           <div className="min-w-[120px]">
             <Label>Zone</Label>
-            <Select value={zone} onValueChange={setZone}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Zone" />
-              </SelectTrigger>
-              <SelectContent>
-                {ZONES.map((z) => (
-                  <SelectItem key={z} value={z}>{z}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AccessZoneSelect
+              value={zone}
+              onValueChange={setZone}
+              triggerClassName="mt-1"
+              includeAllOption={false}
+            />
           </div>
           <div className="min-w-[120px]">
             <Label>Gate</Label>

@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { AccessZoneSelect } from "@/components/vms/access-zone-select"
 import { ChevronLeft, ChevronRight, Check } from "lucide-react"
 import { Link } from "react-router-dom"
 import { ROUTES } from "@/routes/config"
@@ -184,18 +185,10 @@ export default function VisitPurposePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Allowed Zones</label>
-                    <Select value={formData.allowedZones} onValueChange={(v) => setFormData({ ...formData, allowedZones: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select zone/area(s)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Zones</SelectItem>
-                        <SelectItem value="zone-a">Zone A</SelectItem>
-                        <SelectItem value="zone-b">Zone B</SelectItem>
-                        <SelectItem value="zone-c">Zone C</SelectItem>
-                        <SelectItem value="restricted">Restricted Area</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <AccessZoneSelect
+                      value={formData.allowedZones}
+                      onValueChange={(v) => setFormData({ ...formData, allowedZones: v })}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Maximum Visit Duration</label>

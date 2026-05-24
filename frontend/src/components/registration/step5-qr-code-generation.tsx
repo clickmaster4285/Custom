@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { AccessZoneSelect } from "@/components/vms/access-zone-select"
 
 export interface QRCodeFormData {
   qrCodeId: string
@@ -81,21 +82,14 @@ export function Step5QRCodeGeneration({ formData, updateFormData }: Step5QRCodeG
           </div>
         </div>
         <div className="space-y-2">
-          <Label className="text-sm text-muted-foreground">Access Zone</Label>
-          <Select
+          <Label className="text-sm text-muted-foreground">
+            Access Zone <span className="text-destructive">*</span>
+          </Label>
+          <AccessZoneSelect
             value={formData.accessZone}
             onValueChange={(value) => updateFormData({ accessZone: value })}
-          >
-            <SelectTrigger className="h-11 border-border">
-              <SelectValue placeholder="Select zone" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="zone-a">Zone A</SelectItem>
-              <SelectItem value="zone-b">Zone B</SelectItem>
-              <SelectItem value="zone-c">Zone C</SelectItem>
-              <SelectItem value="all">All Zones</SelectItem>
-            </SelectContent>
-          </Select>
+            triggerClassName="h-11 border-border"
+          />
         </div>
         <div className="space-y-2">
           <Label className="text-sm text-muted-foreground">Entry Gate</Label>

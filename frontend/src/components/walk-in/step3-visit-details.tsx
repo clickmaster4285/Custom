@@ -19,6 +19,7 @@ import * as Yup from "yup"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
+import { AccessZoneSelect } from "@/components/vms/access-zone-select"
 
 export interface WalkInStep3VisitDetailsFormData {
   visitPurpose: string
@@ -551,23 +552,14 @@ export function WalkInStep3VisitDetails({
 
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">Allowed Zones</Label>
-            <Select
-              value={formik.values.allowedZones || undefined}
+            <AccessZoneSelect
+              value={formik.values.allowedZones || ""}
               onValueChange={(v) => {
                 formik.setFieldValue("allowedZones", v)
                 updateFormData({ allowedZones: v })
               }}
-            >
-              <SelectTrigger className="w-full h-11 text-base bg-background border-border">
-                <SelectValue placeholder="Select zones" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="zone-a" className="py-2.5">Zone A - Administrative</SelectItem>
-                <SelectItem value="zone-b" className="py-2.5">Zone B - Secure Area</SelectItem>
-                <SelectItem value="zone-c" className="py-2.5">Zone C - Restricted</SelectItem>
-                <SelectItem value="all" className="py-2.5">All Zones</SelectItem>
-              </SelectContent>
-            </Select>
+              triggerClassName="w-full h-11 text-base bg-background border-border"
+            />
           </div>
 
           <div className="space-y-2">

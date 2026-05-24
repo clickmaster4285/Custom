@@ -4,6 +4,8 @@
  * No backend required.
  */
 
+import { API_BASE_URL } from "@/lib/api"
+
 const FINGERPRINT_SIZE = 32
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
@@ -88,20 +90,70 @@ export type ImageMatchCandidate = {
   profile_image?: string
 }
 
-/** Get the best available photo URL from a visitor record (walk-in stores captured_photo, visitor_photos, visitorPhotos, etc.). */
+function isUsableInlinePhoto(value: string): boolean {
+  const s = value.trim()
+  if (!s) return false
+  if (s.startsWith("http://") || s.startsWith("https://") || s.startsWith("/api/")) return true
+  if (s.startsWith("data:image/")) return true
+  return false
+}
+
+function absoluteApiUrl(pathOrUrl: string): string {
+  const s = pathOrUrl.trim()
+  if (s.startsWith("http://") || s.startsWith("https://")) return s
+  const base = API_BASE_URL.replace(/\/$/, "")
+  return `${base}${s.startsWith("/") ? s : `/${s}`}`
+}
+
+/** Get the best available photo URL from a visitor record (inline blob, API URL, or profile-image endpoint). */
 export function getVisitorPhotoUrl(visitor: Record<string, unknown>): string | undefined {
   const v = visitor as {
+    id?: number
     profile_image?: string
+    profile_image_url?: string
     captured_photo?: string
     photo_capture?: string
     visitorPhotos?: string[]
     visitor_photos?: string[]
+    has_captured_photo?: boolean
+    has_profile_image?: boolean
+    has_visitor_photos?: boolean
+    has_photo_capture?: boolean
   }
-  if (v.profile_image && typeof v.profile_image === "string") return v.profile_image
-  if (v.captured_photo && typeof v.captured_photo === "string") return v.captured_photo
-  if (v.photo_capture && typeof v.photo_capture === "string") return v.photo_capture
+
+  const profileUrl = v.profile_image_url
+  if (typeof profileUrl === "string" && profileUrl.trim()) {
+    return absoluteApiUrl(profileUrl)
+  }
+
+  if (v.profile_image && typeof v.profile_image === "string" && isUsableInlinePhoto(v.profile_image)) {
+    return v.profile_image.startsWith("data:") || v.profile_image.startsWith("http")
+      ? v.profile_image
+      : absoluteApiUrl(v.profile_image)
+  }
+  if (v.captured_photo && typeof v.captured_photo === "string" && isUsableInlinePhoto(v.captured_photo)) {
+    return v.captured_photo
+  }
+  if (v.photo_capture && typeof v.photo_capture === "string" && isUsableInlinePhoto(v.photo_capture)) {
+    return v.photo_capture
+  }
   const photos = v.visitor_photos ?? v.visitorPhotos
-  if (Array.isArray(photos) && photos.length > 0 && typeof photos[0] === "string") return photos[0]
+  if (Array.isArray(photos) && photos.length > 0 && typeof photos[0] === "string" && isUsableInlinePhoto(photos[0])) {
+    return photos[0]
+  }
+
+  const id = v.id
+  if (id != null && Number(id) > 0) {
+    const hasPhoto =
+      v.has_captured_photo === true ||
+      v.has_profile_image === true ||
+      v.has_visitor_photos === true ||
+      v.has_photo_capture === true
+    if (hasPhoto) {
+      return `${API_BASE_URL.replace(/\/$/, "")}/api/visitors/${id}/profile-image/`
+    }
+  }
+
   return undefined
 }
 

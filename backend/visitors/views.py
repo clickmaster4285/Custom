@@ -115,6 +115,31 @@ class VisitorReadAPIView(generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
 
 
+class VisitorProfileImageAPIView(APIView):
+    """GET /api/visitors/<pk>/profile-image/ — visitor photo for list avatars (blobs omitted from list JSON)."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        from django.http import HttpResponse
+
+        from .payload_utils import get_visitor_profile_photo_bytes
+
+        try:
+            visitor = Visitor.objects.get(pk=pk)
+        except Visitor.DoesNotExist:
+            return Response({"detail": "Visitor not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        parsed = get_visitor_profile_photo_bytes(visitor)
+        if not parsed:
+            return Response({"detail": "No photo for this visitor."}, status=status.HTTP_404_NOT_FOUND)
+
+        content_type, body = parsed
+        response = HttpResponse(body, content_type=content_type)
+        response["Cache-Control"] = "private, max-age=3600"
+        return response
+
+
 class VisitorUpdateAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 

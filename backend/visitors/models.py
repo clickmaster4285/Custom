@@ -97,13 +97,6 @@ class Visitor(models.Model):
         ("scan", "scan"),
     ]
 
-    ACCESS_ZONE_CHOICES = [
-        ("zone-a", "zone-a"),
-        ("zone-b", "zone-b"),
-        ("zone-c", "zone-c"),
-        ("all", "all"),
-    ]
-
     ENTRY_GATE_CHOICES = [
         ("main-gate", "main-gate"),
         ("gate-1", "gate-1"),
@@ -233,9 +226,7 @@ class Visitor(models.Model):
     visit_date = models.DateField(blank=True, null=True)
     time_validity_start = models.CharField(max_length=20, blank=True)
     time_validity_end = models.CharField(max_length=20, blank=True)
-    access_zone = models.CharField(
-        max_length=20, choices=ACCESS_ZONE_CHOICES, blank=True
-    )
+    access_zone = models.CharField(max_length=64, blank=True)
     entry_gate = models.CharField(
         max_length=20, choices=ENTRY_GATE_CHOICES, blank=True
     )

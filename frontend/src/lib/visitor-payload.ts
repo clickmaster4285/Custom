@@ -86,7 +86,6 @@ const issuingAuthorityEnum = z.enum([
 ])
 const supportDocTypeEnum = z.enum(["application", "noc", "invitation"])
 const uploadProcedureEnum = z.enum(["manual", "scan"])
-const accessZoneEnum = z.enum(["zone-a", "zone-b", "zone-c", "all"])
 const entryGateEnum = z.enum(["main-gate", "gate-1", "gate-2", "vip-gate"])
 const expiryStatusEnum = z.enum(["active", "expired", "revoked"])
 const generatedByEnum = z.enum(["system", "admin", "operator"])
@@ -172,7 +171,7 @@ const createPayloadSchema = z.object({
   visit_date: dateOrNull,
   time_validity_start: z.string().optional().default(""),
   time_validity_end: z.string().optional().default(""),
-  access_zone: optionalChoice(accessZoneEnum),
+  access_zone: z.string().min(1, "Access zone is required").max(64),
   entry_gate: optionalChoice(entryGateEnum),
   expiry_status: optionalChoice(expiryStatusEnum),
   scan_count: z.number().int().min(0),

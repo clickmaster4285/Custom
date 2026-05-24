@@ -164,9 +164,23 @@ export default function VisitorDetailPage() {
     : Array.isArray(v.visitorMinors)
       ? (v.visitorMinors as VisitorRecordExtended[])
       : []
+  const groupMembers = Array.isArray(v.group_members)
+    ? (v.group_members as VisitorRecordExtended[])
+    : Array.isArray(v.groupMembers)
+      ? (v.groupMembers as VisitorRecordExtended[])
+      : []
+  const visitMode = String(v.visit_mode ?? v.visitMode ?? "individual")
+  const groupPartySize = v.group_party_size ?? v.groupPartySize
 
   const basicEntries = [
     { label: "Full name", value: fullName },
+    {
+      label: "Visit attendance",
+      value:
+        visitMode === "group"
+          ? `Group visit (${groupPartySize ?? groupMembers.length + 1} people)`
+          : "Individual",
+    },
     { label: "Visitor type", value: val(v, "visitor_type", "visitorType") },
     { label: "Gender", value: val(v, "gender") },
     { label: "CNIC / ID number", value: val(v, "cnic_number", "cnicNumber") },
@@ -379,6 +393,56 @@ export default function VisitorDetailPage() {
           <InfoGrid entries={metadataEntries} />
         </SectionCard>
       </div>
+
+      {groupMembers.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-[18px] font-semibold">
+              <Users className="h-5 w-5 text-[#3b82f6]" /> Group members
+            </CardTitle>
+            <CardDescription>
+              {groupMembers.length} additional member(s) on this shared QR pass.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {groupMembers.map((m, i) => {
+              const memberPhotos = Array.isArray(m.photos) ? (m.photos as string[]) : []
+              const hasPhotos = memberPhotos.some((url) => typeof url === "string" && isImageUrl(url))
+              return (
+                <div key={i} className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+                  <p className="font-medium text-foreground">
+                    {val(m, "name") !== "—" ? val(m, "name") : `Member ${i + 2}`}
+                  </p>
+                  <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                    <div><dt className="text-muted-foreground">Gender</dt><dd>{val(m, "gender")}</dd></div>
+                    <div><dt className="text-muted-foreground">CNIC</dt><dd>{val(m, "cnic_or_b_form", "cnicOrBForm")}</dd></div>
+                    <div><dt className="text-muted-foreground">Passport</dt><dd>{val(m, "passport_number", "passportNumber")}</dd></div>
+                    <div><dt className="text-muted-foreground">DOB</dt><dd>{val(m, "date_of_birth", "dateOfBirth")}</dd></div>
+                    <div><dt className="text-muted-foreground">Mobile</dt><dd>{val(m, "mobile_number", "mobileNumber")}</dd></div>
+                    <div><dt className="text-muted-foreground">Email</dt><dd>{val(m, "email_address", "emailAddress")}</dd></div>
+                    <div><dt className="text-muted-foreground">Organization</dt><dd>{val(m, "organization_name", "organizationName")}</dd></div>
+                    <div><dt className="text-muted-foreground">Designation</dt><dd>{val(m, "designation")}</dd></div>
+                  </dl>
+                  {hasPhotos && (
+                    <div className="pt-2 border-t border-border space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">Photographs</p>
+                      <div className="flex flex-wrap gap-2">
+                        {memberPhotos.map((url, j) =>
+                          typeof url === "string" && isImageUrl(url) ? (
+                            <div key={j} className="rounded-lg border border-border overflow-hidden bg-muted/20">
+                              <img src={url} alt={`Member ${i + 2} – ${j + 1}`} className="max-h-40 w-auto object-contain" />
+                            </div>
+                          ) : null
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {minors.length > 0 && (
         <Card className="mt-6">
