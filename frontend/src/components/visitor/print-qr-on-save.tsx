@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { QRCodeCanvas } from "qrcode.react"
+import { formatAccessZoneLabel } from "@/lib/access-zone"
 
 /** QR code size: 5cm × 5cm when printed, centered. */
 const QR_SIZE_CM = 5
@@ -16,12 +17,36 @@ export interface PrintQROnSaveProps {
   qrCodeId?: string
   visitorName?: string
   visitorCNIC?: string
+  accessZone?: string
   validFrom?: string
   validTo?: string
+  visitMode?: string
+  groupPartySize?: number
+  groupMemberSummary?: string
   onDone: () => void
 }
 
-export function PrintQROnSave({ qrPayload, visitorName, visitorCNIC, validFrom, validTo, qrCodeId, onDone }: PrintQROnSaveProps) {
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
+
+export function PrintQROnSave({
+  qrPayload,
+  visitorName,
+  visitorCNIC,
+  accessZone,
+  validFrom,
+  validTo,
+  qrCodeId,
+  visitMode,
+  groupPartySize,
+  groupMemberSummary,
+  onDone,
+}: PrintQROnSaveProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const printedRef = useRef(false)
   const fromProp = validFrom ?? ""
@@ -66,6 +91,23 @@ export function PrintQROnSave({ qrPayload, visitorName, visitorCNIC, validFrom, 
 
         const fromTime = formatTimeForReceipt(fromProp, "00:00")
         const toTime = formatTimeForReceipt(toProp, "23:59")
+        const zoneLabel = escapeHtml(formatAccessZoneLabel(accessZone))
+        const safeName = escapeHtml(visitorName || "Guest")
+        const safeCnic = escapeHtml(visitorCNIC || "CNIC Number")
+        const isGroup = visitMode === "group"
+        const groupVisitRow = isGroup
+          ? `<tr>
+                    <td class="label-col">Visit</td>
+                    <td class="value-col">Group (${groupPartySize ?? "—"} people)</td>
+                  </tr>`
+          : ""
+        const groupMembersRow =
+          isGroup && groupMemberSummary
+            ? `<tr>
+                    <td class="label-col">Members</td>
+                    <td class="value-col">${escapeHtml(groupMemberSummary)}</td>
+                  </tr>`
+            : ""
 
         const printWindow = window.open("", "_blank")
         if (!printWindow) {
@@ -249,11 +291,17 @@ export function PrintQROnSave({ qrPayload, visitorName, visitorCNIC, validFrom, 
                 <tbody>
                   <tr>
                     <td class="label-col">Name</td>
-                    <td class="value-col">${visitorName || 'Guest'}</td>
+                    <td class="value-col">${safeName}</td>
                   </tr>
                   <tr>
                     <td class="label-col">CNIC</td>
-                    <td class="value-col">${visitorCNIC || 'CNIC Number'}</td>
+                    <td class="value-col">${safeCnic}</td>
+                  </tr>
+                  ${groupVisitRow}
+                  ${groupMembersRow}
+                  <tr>
+                    <td class="label-col">Zone</td>
+                    <td class="value-col">${zoneLabel}</td>
                   </tr>
                   <tr>
                     <td class="label-col">Date</td>
@@ -310,7 +358,7 @@ export function PrintQROnSave({ qrPayload, visitorName, visitorCNIC, validFrom, 
     }
 
     printQR()
-  }, [qrPayload, visitorName, qrCodeId, onDone])
+  }, [qrPayload, visitorName, visitorCNIC, accessZone, validFrom, validTo, qrCodeId, onDone])
 
   return (
     <div

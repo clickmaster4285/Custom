@@ -1,9 +1,21 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { QRCodeCanvas } from "qrcode.react"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { QrCode } from "lucide-react"
+import { formatAccessZoneLabel, resolveAccessZoneFromDepartment } from "@/lib/access-zone"
+import { useAccessZones } from "@/hooks/use-access-zones"
+import { AccessZoneSelect } from "@/components/vms/access-zone-select"
+import { buildVisitorQrPayload } from "@/components/walk-in/group-member"
+import type { GroupVisitMember } from "@/components/walk-in/group-member"
 
 /** Same as print-qr-on-save: 5cm × 5cm equivalent at 96 PPI */
 const QR_SIZE_CM = 5
@@ -39,41 +51,73 @@ interface WalkInStep4QRCodeGenerationProps {
 
 export function WalkInStep4QRCodeGeneration({
   formData,
-  updateFormData: _updateFormData,
+  updateFormData,
   onCancel,
   onReset,
   onPrevious,
   onPrint,
   onFinish,
 }: WalkInStep4QRCodeGenerationProps) {
-  const qrPayload = useMemo(() => {
-    const payload = {
-      fullName: (formData as { fullName?: string }).fullName ?? "",
-      cnicNumber: formData.cnicNumber ?? "",
-      visitDate: formData.visitDate ?? "",
-      timeValidityStart: formData.timeValidityStart ?? "",
-      timeValidityEnd: formData.timeValidityEnd ?? "",
-      accessZone: formData.accessZone ?? "",
-      entryGate: formData.entryGate ?? "",
-      qrCodeId: formData.qrCodeId ?? "",
-      visitorRefNumber: formData.visitorRefNumber ?? "",
-      visitPurpose: (formData as { visitPurpose?: string }).visitPurpose ?? "",
-      department: (formData as { department?: string }).department ?? "",
-    }
-    return JSON.stringify(payload)
-  }, [
-    (formData as { fullName?: string }).fullName,
-    formData.cnicNumber,
-    formData.visitDate,
-    formData.timeValidityStart,
-    formData.timeValidityEnd,
-    formData.accessZone,
-    formData.entryGate,
-    formData.qrCodeId,
-    formData.visitorRefNumber,
-    (formData as { visitPurpose?: string }).visitPurpose,
-    (formData as { department?: string }).department,
-  ])
+  const { data: zoneData } = useAccessZones()
+  const zoneOptions = zoneData?.options ?? []
+
+  const department =
+    (formData as { department?: string }).department ??
+    (formData as { departmentForSlot?: string }).departmentForSlot ??
+    ""
+
+  useEffect(() => {
+    if (formData.accessZone?.trim()) return
+    const defaultZone = resolveAccessZoneFromDepartment(department, zoneOptions)
+    if (defaultZone) updateFormData({ accessZone: defaultZone })
+  }, [department, formData.accessZone, updateFormData, zoneOptions])
+  const extended = formData as {
+    fullName?: string
+    visitPurpose?: string
+    department?: string
+    visitMode?: string
+    groupPartySize?: number
+    groupMembers?: GroupVisitMember[]
+    mobileNumber?: string
+  }
+
+  const qrPayload = useMemo(
+    () =>
+      buildVisitorQrPayload({
+        fullName: extended.fullName ?? "",
+        cnicNumber: formData.cnicNumber ?? "",
+        visitDate: formData.visitDate ?? "",
+        timeValidityStart: formData.timeValidityStart ?? "",
+        timeValidityEnd: formData.timeValidityEnd ?? "",
+        accessZone: formData.accessZone ?? "",
+        entryGate: formData.entryGate ?? "",
+        qrCodeId: formData.qrCodeId ?? "",
+        visitorRefNumber: formData.visitorRefNumber ?? "",
+        visitPurpose: extended.visitPurpose ?? "",
+        department: extended.department ?? "",
+        visitMode: extended.visitMode,
+        groupPartySize: extended.groupPartySize,
+        groupMembers: extended.groupMembers,
+        mobileNumber: extended.mobileNumber,
+      }),
+    [
+      extended.fullName,
+      formData.cnicNumber,
+      formData.visitDate,
+      formData.timeValidityStart,
+      formData.timeValidityEnd,
+      formData.accessZone,
+      formData.entryGate,
+      formData.qrCodeId,
+      formData.visitorRefNumber,
+      extended.visitPurpose,
+      extended.department,
+      extended.visitMode,
+      extended.groupPartySize,
+      extended.groupMembers,
+      extended.mobileNumber,
+    ]
+  )
 
   const visitorName = ((formData as { fullName?: string }).fullName ?? "").trim() || "Guest"
   const visitorCNIC = (formData.cnicNumber ?? "").trim() || "CNIC Number"
@@ -96,13 +140,31 @@ export function WalkInStep4QRCodeGeneration({
     hour: "2-digit",
     minute: "2-digit",
   })
+  const zoneLabel = formatAccessZoneLabel(formData.accessZone, zoneOptions)
+  const isGroup = extended.visitMode === "group"
+  const partySize = extended.groupPartySize ?? 0
+  const memberNames = (extended.groupMembers ?? [])
+    .map((m) => m.name.trim())
+    .filter(Boolean)
 
   return (
     <div className="space-y-8">
       <Label className="text-[22px] font-bold text-foreground">QR Code Generation</Label>
       <p className="text-sm text-muted-foreground">
-        QR code is generated from the information you added. Print it or finish to save the registration.
+        QR code is generated from the information you added. Select an access zone, then print the pass or finish to save.
       </p>
+
+      <div className="max-w-md space-y-2">
+        <Label className="text-sm font-medium text-foreground">
+          Access Zone <span className="text-destructive">*</span>
+        </Label>
+        <AccessZoneSelect
+          value={formData.accessZone}
+          onValueChange={(value) => updateFormData({ accessZone: value })}
+          placeholder="Select zone (required)"
+          triggerClassName="h-11 border-border"
+        />
+      </div>
 
       {/* Exact same format as print-qr-on-save (pass slip layout) */}
       <div className="rounded-lg border-2 border-[#93c5fd] bg-white overflow-hidden p-4">
@@ -142,6 +204,27 @@ export function WalkInStep4QRCodeGeneration({
               <tr>
                 <td style={{ width: "35%", fontWeight: "bold", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>CNIC</td>
                 <td style={{ width: "65%", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>{visitorCNIC}</td>
+              </tr>
+              {isGroup && (
+                <>
+                  <tr>
+                    <td style={{ width: "35%", fontWeight: "bold", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>Visit</td>
+                    <td style={{ width: "65%", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>Group ({partySize} people)</td>
+                  </tr>
+                  {memberNames.length > 0 && (
+                    <tr>
+                      <td style={{ width: "35%", fontWeight: "bold", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>Members</td>
+                      <td style={{ width: "65%", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>
+                        {memberNames.slice(0, 4).join(", ")}
+                        {memberNames.length > 4 ? ` +${memberNames.length - 4}` : ""}
+                      </td>
+                    </tr>
+                  )}
+                </>
+              )}
+              <tr>
+                <td style={{ width: "35%", fontWeight: "bold", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>Zone</td>
+                <td style={{ width: "65%", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>{zoneLabel}</td>
               </tr>
               <tr>
                 <td style={{ width: "35%", fontWeight: "bold", padding: "0.3mm 0.2mm", borderBottom: "1px solid #ddd", verticalAlign: "top", fontSize: "9px" }}>Date</td>

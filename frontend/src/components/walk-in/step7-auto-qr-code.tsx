@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toDataURL } from "qrcode"
+import { resolveAccessZoneFromDepartment } from "@/lib/access-zone"
+import { useAccessZones } from "@/hooks/use-access-zones"
+import { AccessZoneSelect } from "@/components/vms/access-zone-select"
 
 interface WalkInAutoQrFormData {
   cnicPassport: string
@@ -34,15 +36,6 @@ function normalizeCnic(value: string): string {
   return value.replace(/\D/g, "")
 }
 
-function resolveZone(department: string): string {
-  const key = department.toLowerCase()
-  if (key.includes("hr")) return "zone-a"
-  if (key.includes("finance")) return "zone-b"
-  if (key.includes("ops") || key.includes("operation")) return "zone-c"
-  if (key.includes("it") || key.includes("engineering")) return "zone-d"
-  return "zone-a"
-}
-
 function resolveGate(zone: string): string {
   const map: Record<string, string> = {
     "zone-a": "main-gate",
@@ -67,10 +60,12 @@ function addMinutes(time: string, minutes: number): string {
 
 export function WalkInStep7AutoQrCode({ formData, updateFormData }: WalkInStep7AutoQrCodeProps) {
   const [qrImageUrl, setQrImageUrl] = useState("")
+  const { data: zoneData } = useAccessZones()
+  const zoneOptions = zoneData?.options ?? []
 
   const safeCnic = normalizeCnic(formData.cnicPassport || "0000000000000")
   const effectiveDepartment = formData.departmentForSlot || formData.department || ""
-  const defaultZone = resolveZone(effectiveDepartment)
+  const defaultZone = resolveAccessZoneFromDepartment(effectiveDepartment, zoneOptions)
   const zone = formData.accessZone || defaultZone
   const gate = formData.entryGate || resolveGate(zone)
   const generatedDate = formData.generatedOn || new Date().toISOString().slice(0, 10)
@@ -171,18 +166,15 @@ export function WalkInStep7AutoQrCode({ formData, updateFormData }: WalkInStep7A
             </p>
           </div>
           <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">Access Zone</Label>
-            <Select value={autoQrValues.accessZone} onValueChange={(value) => updateFormData({ accessZone: value })}>
-              <SelectTrigger className="h-11 bg-background">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="zone-a">Zone A</SelectItem>
-                <SelectItem value="zone-b">Zone B</SelectItem>
-                <SelectItem value="zone-c">Zone C</SelectItem>
-                <SelectItem value="zone-d">Zone D</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label className="text-sm text-muted-foreground">
+              Access Zone <span className="text-destructive">*</span>
+            </Label>
+            <AccessZoneSelect
+              value={autoQrValues.accessZone}
+              onValueChange={(value) => updateFormData({ accessZone: value })}
+              triggerClassName="h-11 bg-background"
+              includeAllOption={false}
+            />
           </div>
           <div className="space-y-2 text-sm">
             <p>

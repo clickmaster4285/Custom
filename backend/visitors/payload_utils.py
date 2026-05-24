@@ -296,6 +296,86 @@ def _is_blob_string(value: Any) -> bool:
     return value.startswith("data:") or len(value) > 500
 
 
+def _first_photo_blob(*sources: Any) -> str | None:
+    """Return the first data-URL / large image string from candidates."""
+    for source in sources:
+        if isinstance(source, str) and _is_blob_string(source):
+            return source
+        if isinstance(source, list):
+            for item in source:
+                if isinstance(item, str) and _is_blob_string(item):
+                    return item
+        if isinstance(source, dict):
+            for key in ("visitor_photos", "visitorPhotos", "photo_capture", "photoCapture"):
+                found = _first_photo_blob(source.get(key))
+                if found:
+                    return found
+    return None
+
+
+def visitor_has_profile_photo(visitor: Visitor) -> bool:
+    """True when the visitor record stores at least one photograph."""
+    if _is_blob_string(visitor.captured_photo) or _is_blob_string(visitor.profile_image):
+        return True
+    extra = visitor.extra_data if isinstance(visitor.extra_data, dict) else {}
+    return _first_photo_blob(
+        extra.get("visitor_photos"),
+        extra.get("visitorPhotos"),
+        extra.get("draft_form_data"),
+    ) is not None
+
+
+def parse_data_url_image(data_url: str) -> tuple[str, bytes] | None:
+    """Decode a data:image/...;base64,... string to (content_type, raw bytes)."""
+    if not isinstance(data_url, str) or not data_url.startswith("data:"):
+        return None
+    try:
+        import base64
+
+        header, encoded = data_url.split(",", 1)
+        mime = header.split(";")[0].replace("data:", "").strip() or "image/jpeg"
+        return mime, base64.b64decode(encoded)
+    except (ValueError, TypeError):
+        return None
+
+
+def get_visitor_profile_photo_bytes(visitor: Visitor) -> tuple[str, bytes] | None:
+    """Load the best available visitor photo from stored fields."""
+    extra = visitor.extra_data if isinstance(visitor.extra_data, dict) else {}
+    draft = extra.get("draft_form_data") if isinstance(extra.get("draft_form_data"), dict) else {}
+    blob = _first_photo_blob(
+        visitor.captured_photo,
+        visitor.profile_image,
+        extra.get("visitor_photos"),
+        extra.get("visitorPhotos"),
+        draft.get("visitorPhotos"),
+        draft.get("visitor_photos"),
+    )
+    if not blob:
+        return None
+    return parse_data_url_image(blob)
+
+
+def _sync_visitor_photo_fields(out: dict[str, Any]) -> None:
+    """Ensure first gallery photo is copied to captured_photo / profile_image columns."""
+    extra = out.get("extra_data") if isinstance(out.get("extra_data"), dict) else {}
+    first = _first_photo_blob(
+        out.get("visitor_photos"),
+        out.get("visitorPhotos"),
+        out.get("captured_photo"),
+        out.get("photo_capture"),
+        out.get("photoCapture"),
+        out.get("profile_image"),
+        extra.get("visitor_photos") if isinstance(extra, dict) else None,
+    )
+    if not first:
+        return
+    if not out.get("captured_photo"):
+        out["captured_photo"] = first
+    if not out.get("profile_image"):
+        out["profile_image"] = first
+
+
 def _store_blob_on_visitor(model_fields: dict[str, Any], blob: str) -> None:
     """Place image/document data on a TextField column."""
     if not model_fields.get("captured_photo"):
@@ -450,6 +530,7 @@ def normalize_payload(data: dict[str, Any], *, partial: bool = False) -> dict[st
 
     _sanitize_int_fields(out)
     _sanitize_bool_fields(out)
+    _sync_visitor_photo_fields(out)
 
     return out
 

@@ -10,6 +10,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
 import { createVisitor, fetchVisitors, getVisitor, deleteVisitor, getErrorToastMessage, getVisitorCreatedBy, saveDraftToStore, updateVisitor, type VisitorRecord } from "@/lib/visitor-api"
 import { getVisitorPhotoUrl } from "@/lib/image-match"
+import { buildVisitorQrPayload, validateGroupVisit } from "@/components/walk-in/group-member"
+import { useAccessZones } from "@/hooks/use-access-zones"
+import type { GroupVisitMember } from "@/components/walk-in/group-member"
 import { PrintQROnSave } from "@/components/visitor/print-qr-on-save"
 import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, UserPlus, Trash2, Printer } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
@@ -117,6 +120,9 @@ const initialFormData = {
   registrationType: "pre-registration",
   visitorCategory: "new",
   visitorSearch: "",
+  visitMode: "individual" as "individual" | "group",
+  groupPartySize: 2,
+  groupMembers: [] as GroupVisitMember[],
   visitorType: "individual",
   fullName: "",
   cnicPassport: "",
@@ -212,8 +218,16 @@ const initialFormData = {
   guardRemarks: "",
 }
 
+function summarizeGroupMembers(members: GroupVisitMember[]): string {
+  const names = members.map((m) => m.name.trim()).filter(Boolean)
+  if (!names.length) return ""
+  if (names.length <= 3) return names.join(", ")
+  return `${names.slice(0, 2).join(", ")} +${names.length - 2} more`
+}
+
 export default function PreRegistrationPage() {
   const { toast } = useToast()
+  useAccessZones()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { data, isLoading, isError, error } = useQuery({
@@ -229,9 +243,13 @@ export default function PreRegistrationPage() {
     qrPayload: string
     visitorName: string
     visitorCNIC?: string
+    accessZone?: string
     validFrom: string
     validTo: string
     qrCodeId?: string
+    visitMode?: string
+    groupPartySize?: number
+    groupMemberSummary?: string
   } | null>(null)
   const [formData, setFormData] = useState({ ...initialFormData })
   const [editingDraftId, setEditingDraftId] = useState<number | null>(null)
@@ -284,7 +302,11 @@ export default function PreRegistrationPage() {
         visitor_photos: formData.visitorPhotos ?? [],
         photo_capture: formData.photoCapture,
         captured_photo: (formData.visitorPhotos?.length ? formData.visitorPhotos[0] : formData.photoCapture) ?? "",
+        profile_image: (formData.visitorPhotos?.length ? formData.visitorPhotos[0] : formData.photoCapture) ?? "",
         visitor_minors: formData.visitorMinors ?? [],
+        visit_mode: formData.visitMode ?? "individual",
+        group_party_size: formData.visitMode === "group" ? formData.groupPartySize : undefined,
+        group_members: formData.visitMode === "group" ? formData.groupMembers ?? [] : [],
         visit_purpose: formData.visitPurpose,
         visit_purpose_description: formData.visitPurposeDescription,
         visit_type: formData.visitType,
@@ -390,6 +412,15 @@ export default function PreRegistrationPage() {
         if (!formData.fullName.trim()) throw new Error("Full name is required")
         if (!formData.mobileNumber.trim()) throw new Error("Mobile number is required")
         if (!formData.cnicNumber.trim()) throw new Error("CNIC number is required")
+        if (!(formData.visitorPhotos ?? []).length) throw new Error("Visitor photograph is required")
+        if (formData.visitMode === "group") {
+          const groupErr = validateGroupVisit(
+            formData.groupPartySize,
+            formData.groupMembers ?? [],
+            formData.visitorPhotos ?? []
+          )
+          if (groupErr) throw new Error(groupErr)
+        }
         break
       case 2:
         break
@@ -432,26 +463,36 @@ export default function PreRegistrationPage() {
       setCurrentStep(1)
       const validFrom = (formData.timeValidityStart || "00:00").trim() || "00:00"
       const validTo = (formData.timeValidityEnd || "23:59").trim() || "23:59"
-      const qrPayload = JSON.stringify({
+      const qrPayload = buildVisitorQrPayload({
         name: data.full_name,
         cnic: data.cnic_number,
         id: data.id,
         validFrom,
         validTo,
+        accessZone: formData.accessZone,
         qrCodeId: formData.qrCodeId || "",
+        visitMode: formData.visitMode,
+        groupPartySize: formData.groupPartySize,
+        groupMembers: formData.groupMembers,
+        mobileNumber: formData.mobileNumber,
       })
       setPrintQRData({
         qrPayload,
         visitorName: formData.fullName || data.full_name || "Visitor",
         visitorCNIC: formData.cnicPassport || formData.cnicNumber || data.cnic_number || "",
+        accessZone: formData.accessZone,
         validFrom,
         validTo,
         qrCodeId: formData.qrCodeId || "",
+        visitMode: formData.visitMode,
+        groupPartySize: formData.visitMode === "group" ? formData.groupPartySize : undefined,
+        groupMemberSummary:
+          formData.visitMode === "group"
+            ? summarizeGroupMembers(formData.groupMembers ?? [])
+            : undefined,
       })
       setFormData({ ...initialFormData })
       setEditingDraftId(null)
-      try {
-      } catch {}
     },
     onError: (mutationError) => {
       toast({
@@ -478,26 +519,36 @@ export default function PreRegistrationPage() {
         setCurrentStep(1)
         const validFrom = (formData.timeValidityStart || "00:00").trim() || "00:00"
         const validTo = (formData.timeValidityEnd || "23:59").trim() || "23:59"
-        const qrPayload = JSON.stringify({
+        const qrPayload = buildVisitorQrPayload({
           name: updated.full_name,
           cnic: updated.cnic_number,
           id: updated.id,
           validFrom,
           validTo,
+          accessZone: formData.accessZone,
           qrCodeId: formData.qrCodeId || "",
+          visitMode: formData.visitMode,
+          groupPartySize: formData.groupPartySize,
+          groupMembers: formData.groupMembers,
+          mobileNumber: formData.mobileNumber,
         })
         setPrintQRData({
           qrPayload,
           visitorName: formData.fullName || updated.full_name || "Visitor",
           visitorCNIC: formData.cnicPassport || formData.cnicNumber || updated.cnic_number || "",
+          accessZone: formData.accessZone,
           validFrom,
           validTo,
           qrCodeId: formData.qrCodeId || "",
+          visitMode: formData.visitMode,
+          groupPartySize: formData.visitMode === "group" ? formData.groupPartySize : undefined,
+          groupMemberSummary:
+            formData.visitMode === "group"
+              ? summarizeGroupMembers(formData.groupMembers ?? [])
+              : undefined,
         })
         setFormData({ ...initialFormData })
         setEditingDraftId(null)
-        try {
-        } catch {}
       } else {
         createVisitorMutation.mutate(payload)
       }
@@ -518,11 +569,19 @@ export default function PreRegistrationPage() {
   }
 
   const handlePrintQR = () => {
+    if (!formData.accessZone.trim()) {
+      toast({
+        title: "Access zone required",
+        description: "Select an access zone before printing the visitor pass.",
+        variant: "destructive",
+      })
+      return
+    }
     const validFrom = (formData.timeValidityStart || "00:00").trim() || "00:00"
     const validTo = (formData.timeValidityEnd || "23:59").trim() || "23:59"
-    const qrPayload = JSON.stringify({
-      name: formData.fullName,
-      cnic: formData.cnicNumber || formData.cnicPassport,
+    const qrPayload = buildVisitorQrPayload({
+      fullName: formData.fullName,
+      cnicNumber: formData.cnicNumber || formData.cnicPassport,
       validFrom,
       validTo,
       qrCodeId: formData.qrCodeId || "",
@@ -532,14 +591,25 @@ export default function PreRegistrationPage() {
       entryGate: formData.entryGate,
       visitPurpose: formData.visitPurpose,
       department: formData.department,
+      visitMode: formData.visitMode,
+      groupPartySize: formData.groupPartySize,
+      groupMembers: formData.groupMembers,
+      mobileNumber: formData.mobileNumber,
     })
     setPrintQRData({
       qrPayload,
       visitorName: formData.fullName || "Visitor",
       visitorCNIC: formData.cnicPassport || formData.cnicNumber || "",
+      accessZone: formData.accessZone,
       validFrom,
       validTo,
       qrCodeId: formData.qrCodeId || "",
+      visitMode: formData.visitMode,
+      groupPartySize: formData.visitMode === "group" ? formData.groupPartySize : undefined,
+      groupMemberSummary:
+        formData.visitMode === "group"
+          ? summarizeGroupMembers(formData.groupMembers ?? [])
+          : undefined,
     })
   }
 
@@ -699,20 +769,36 @@ export default function PreRegistrationPage() {
                                       toast({ title: "Visitor not found", variant: "destructive" })
                                       return
                                     }
-                                    const qrPayload = JSON.stringify({
+                                    const vZone = String(v.access_zone ?? "")
+                                    const vRec = v as Record<string, unknown>
+                                    const visitMode = String(vRec.visit_mode ?? vRec.visitMode ?? "individual")
+                                    const groupMembers = (vRec.group_members ?? vRec.groupMembers ?? []) as GroupVisitMember[]
+                                    const groupPartySize = Number(vRec.group_party_size ?? vRec.groupPartySize ?? 0) || undefined
+                                    const qrPayload = buildVisitorQrPayload({
                                       name: v.full_name,
                                       cnic: v.cnic_number,
                                       id: v.id,
                                       validFrom: "00:00",
                                       validTo: "23:59",
+                                      accessZone: vZone,
+                                      visitMode,
+                                      groupPartySize,
+                                      groupMembers,
                                     })
                                     setPrintQRData({
                                       qrPayload,
                                       visitorName: v.full_name ?? reg.name,
                                       visitorCNIC: v.cnic_number ?? "",
+                                      accessZone: vZone,
                                       validFrom: "00:00",
                                       validTo: "23:59",
                                       qrCodeId: undefined,
+                                      visitMode,
+                                      groupPartySize: visitMode === "group" ? groupPartySize : undefined,
+                                      groupMemberSummary:
+                                        visitMode === "group"
+                                          ? summarizeGroupMembers(groupMembers)
+                                          : undefined,
                                     })
                                   } catch (e) {
                                     toast({
@@ -783,9 +869,13 @@ export default function PreRegistrationPage() {
           qrPayload={printQRData.qrPayload}
           visitorName={printQRData.visitorName}
           visitorCNIC={printQRData.visitorCNIC}
+          accessZone={printQRData.accessZone}
           validFrom={printQRData.validFrom}
           validTo={printQRData.validTo}
           qrCodeId={printQRData.qrCodeId}
+          visitMode={printQRData.visitMode}
+          groupPartySize={printQRData.groupPartySize}
+          groupMemberSummary={printQRData.groupMemberSummary}
           onDone={() => setPrintQRData(null)}
         />
       )}
@@ -831,6 +921,9 @@ export default function PreRegistrationPage() {
                   vehicleImages: formData.vehicleImages ?? [],
                   visitorPhotos: formData.visitorPhotos ?? [],
                   photoCapture: formData.photoCapture,
+                  visitMode: formData.visitMode ?? "individual",
+                  groupPartySize: formData.groupPartySize ?? 2,
+                  groupMembers: formData.groupMembers ?? [],
                   visitorMinors: formData.visitorMinors ?? [],
                 }}
                 updateFormData={(data) => {

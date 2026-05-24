@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { AccessZoneSelect } from "@/components/vms/access-zone-select"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { fetchVmsJsonBlob, saveVmsJsonBlob } from "@/lib/vms-list-api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -217,20 +218,11 @@ export default function QRCodeGenerationPage() {
               </div>
               <div className="space-y-2">
                 <Label>Zone (Access Zone) *</Label>
-                <Select
+                <AccessZoneSelect
                   value={formData.accessZone}
                   onValueChange={(v) => setFormData({ ...formData, accessZone: v })}
-                >
-                  <SelectTrigger className="h-10 border-border">
-                    <SelectValue placeholder="Select zone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="zone-a">Zone A</SelectItem>
-                    <SelectItem value="zone-b">Zone B</SelectItem>
-                    <SelectItem value="zone-c">Zone C</SelectItem>
-                    <SelectItem value="all">All Zones</SelectItem>
-                  </SelectContent>
-                </Select>
+                  triggerClassName="h-10 border-border"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Visitor Ref Number</Label>

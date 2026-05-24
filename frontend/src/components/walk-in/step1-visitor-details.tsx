@@ -12,13 +12,22 @@ import {
 } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useState, useRef, useEffect, useCallback } from "react"
-import { User, Briefcase, Wrench, Search, Check, Camera, X, Plus } from "lucide-react"
+import { User, Briefcase, Wrench, Search, Check, Camera, X, Plus, Users } from "lucide-react"
+import { GroupMembersSection } from "@/components/walk-in/group-members-section"
+import {
+  MIN_GROUP_PARTY_SIZE,
+  resizeGroupMembers,
+  validateGroupVisit,
+  type GroupVisitMember,
+} from "@/components/walk-in/group-member"
 import { Button } from "@/components/ui/button"
 import CongratulationsModal from "@/components/visitor/CongratulationsModal"
 import { cn } from "@/lib/utils"
 import { useFormik } from "formik"
 import * as Yup from "yup"
 import { isCnicExists } from "@/lib/visitor-api"
+import { validateHumanFaceImage, NOT_HUMAN_PICTURE_MESSAGE, preloadHumanFaceModel } from "@/lib/human-face-validation"
+import { useToast } from "@/hooks/use-toast"
 
 
 const MAX_PHOTO_SIZE_BYTES = 2 * 1024 * 1024 // 2MB
@@ -27,9 +36,15 @@ const MAX_VISITOR_PHOTOS = 5
 const MAX_VEHICLE_PHOTOS = 5
 const MAX_MINOR_PHOTOS = 5
 
+export type VisitAttendanceMode = "individual" | "group"
+
 export interface WalkInStep1VisitorDetailsFormData {
   visitorCategory: string
   visitorSearch: string
+  /** Individual visitor or group sharing one QR code */
+  visitMode: VisitAttendanceMode
+  groupPartySize: number
+  groupMembers: GroupVisitMember[]
   visitorType: string
   fullName: string
   gender: string
@@ -99,12 +114,6 @@ const defaultMinor = (): WalkInStep1VisitorDetailsFormData["visitorMinors"][numb
 
 const visitorTypes = [
   {
-    value: "individual",
-    label: "Individual",
-    description: "Personal visit or guest",
-    icon: User,
-  },
-  {
     value: "company-rep",
     label: "Company Rep.",
     description: "Business meeting or official",
@@ -135,11 +144,13 @@ export function WalkInStep1VisitorDetails({
   onSaveAndContinue,
   onSaveToDraft,
 }: WalkInStep1VisitorDetailsProps) {
+  const { toast } = useToast()
   const photoInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const [photoError, setPhotoError] = useState<string | null>(null)
+  const [photoValidating, setPhotoValidating] = useState(false)
   const [cameraOpen, setCameraOpen] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [cameraLoading, setCameraLoading] = useState(false)
@@ -159,6 +170,7 @@ export function WalkInStep1VisitorDetails({
   const [minorCameraError, setMinorCameraError] = useState<string | null>(null)
   const [minorCameraLoading, setMinorCameraLoading] = useState(false)
   const [minorPhotoError, setMinorPhotoError] = useState<string | null>(null)
+  const [minorPhotoValidating, setMinorPhotoValidating] = useState(false)
   const [minorUploadTarget, setMinorUploadTarget] = useState<number | null>(null)
   const [showCongratsModal, setShowCongratsModal] = useState(false)
 
@@ -172,6 +184,7 @@ export function WalkInStep1VisitorDetails({
       stopCamera()
       return
     }
+    preloadHumanFaceModel()
     setCameraError(null)
     setCameraLoading(true)
     navigator.mediaDevices
@@ -254,6 +267,69 @@ export function WalkInStep1VisitorDetails({
     updateFormData({ visitorPhotos: [...visitorPhotos, dataUrl], photoCapture: dataUrl })
   }
 
+  const rejectHumanPhoto = (message: string) => {
+    setPhotoError(message)
+    toast({
+      title: NOT_HUMAN_PICTURE_MESSAGE,
+      description: "Only clear photos of a person's face are allowed.",
+      variant: "destructive",
+    })
+  }
+
+  const rejectMinorHumanPhoto = (message: string) => {
+    setMinorPhotoError(message)
+    toast({
+      title: NOT_HUMAN_PICTURE_MESSAGE,
+      description: "Only clear photos of a person's face are allowed.",
+      variant: "destructive",
+    })
+  }
+
+  const tryAddVisitorPhoto = async (dataUrl: string): Promise<boolean> => {
+    if (visitorPhotos.length >= MAX_VISITOR_PHOTOS) return false
+    setPhotoError(null)
+    setPhotoValidating(true)
+    try {
+      const result = await validateHumanFaceImage(dataUrl)
+      if (!result.ok) {
+        rejectHumanPhoto(result.message)
+        return false
+      }
+      addPhoto(dataUrl)
+      return true
+    } catch {
+      rejectHumanPhoto(NOT_HUMAN_PICTURE_MESSAGE)
+      return false
+    } finally {
+      setPhotoValidating(false)
+    }
+  }
+
+  const tryAddMinorPhoto = async (minorIndex: number, dataUrl: string): Promise<boolean> => {
+    const next = [...(formData.visitorMinors ?? [])]
+    const minor = { ...defaultMinor(), ...next[minorIndex] }
+    const photos = Array.isArray(minor.photos) ? minor.photos : []
+    if (photos.length >= MAX_MINOR_PHOTOS) return false
+
+    setMinorPhotoError(null)
+    setMinorPhotoValidating(true)
+    try {
+      const result = await validateHumanFaceImage(dataUrl)
+      if (!result.ok) {
+        rejectMinorHumanPhoto(result.message)
+        return false
+      }
+      next[minorIndex] = { ...minor, photos: [...photos, dataUrl] }
+      updateFormData({ visitorMinors: next })
+      return true
+    } catch {
+      rejectMinorHumanPhoto(NOT_HUMAN_PICTURE_MESSAGE)
+      return false
+    } finally {
+      setMinorPhotoValidating(false)
+    }
+  }
+
   const removePhoto = (index: number) => {
     const next = visitorPhotos.filter((_, i) => i !== index)
     updateFormData({
@@ -262,7 +338,7 @@ export function WalkInStep1VisitorDetails({
     })
   }
 
-  const captureFromCamera = () => {
+  const captureFromCamera = async () => {
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !streamRef.current || !canvas) return
@@ -278,9 +354,11 @@ export function WalkInStep1VisitorDetails({
     canvas.height = h
     ctx.drawImage(video, 0, 0, w, h)
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92)
-    addPhoto(dataUrl)
-    setCameraOpen(false)
-    stopCamera()
+    const accepted = await tryAddVisitorPhoto(dataUrl)
+    if (accepted) {
+      setCameraOpen(false)
+      stopCamera()
+    }
   }
 
   const addVehiclePhoto = (dataUrl: string) => {
@@ -336,7 +414,7 @@ export function WalkInStep1VisitorDetails({
     e.target.value = ""
   }
 
-  const captureFromMinorCamera = () => {
+  const captureFromMinorCamera = async () => {
     const index = minorCameraOpen
     if (index === null) return
     const video = minorVideoRef.current
@@ -354,17 +432,14 @@ export function WalkInStep1VisitorDetails({
     canvas.height = h
     ctx.drawImage(video, 0, 0, w, h)
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92)
-    const next = [...(formData.visitorMinors ?? [])]
-    const minor = { ...defaultMinor(), ...next[index] }
-    const photos = Array.isArray(minor.photos) ? minor.photos : []
-    if (photos.length >= MAX_MINOR_PHOTOS) return
-    next[index] = { ...minor, photos: [...photos, dataUrl] }
-    updateFormData({ visitorMinors: next })
-    setMinorCameraOpen(null)
-    stopMinorCamera()
+    const accepted = await tryAddMinorPhoto(index, dataUrl)
+    if (accepted) {
+      setMinorCameraOpen(null)
+      stopMinorCamera()
+    }
   }
 
-  const handleMinorPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMinorPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const index = minorUploadTarget
     setMinorPhotoError(null)
     const file = e.target.files?.[0]
@@ -381,17 +456,14 @@ export function WalkInStep1VisitorDetails({
       setMinorPhotoError("Image size must be max 2MB.")
       return
     }
-    readFileAsDataUrl(file).then((dataUrl) => {
-      const next = [...(formData.visitorMinors ?? [])]
-      const minor = { ...defaultMinor(), ...next[index] }
-      const photos = Array.isArray(minor.photos) ? minor.photos : []
-      if (photos.length >= MAX_MINOR_PHOTOS) return
-      next[index] = { ...minor, photos: [...photos, dataUrl] }
-      updateFormData({ visitorMinors: next })
-      setMinorUploadTarget(null)
-    }).catch(() => {
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      await tryAddMinorPhoto(index, dataUrl)
+    } catch {
       setMinorPhotoError("Failed to read file.")
-    })
+    } finally {
+      setMinorUploadTarget(null)
+    }
   }
 
   const removeMinorPhoto = (minorIndex: number, photoIndex: number) => {
@@ -421,7 +493,7 @@ export function WalkInStep1VisitorDetails({
     }
     try {
       const dataUrl = await readFileAsDataUrl(file)
-      addPhoto(dataUrl)
+      await tryAddVisitorPhoto(dataUrl)
     } catch {
       setPhotoError("Failed to read image.")
     }
@@ -477,15 +549,35 @@ export function WalkInStep1VisitorDetails({
         }
       ),
     onSubmit: (values) => {
-      console.log("Step 1 form submitted with values:", values)
-      console.log("Current formik errors:", formik.errors)
-      // keep parent state in sync for main identity fields
       updateFormData({
         fullName: values.fullName,
         mobileNumber: values.mobileNumber,
         cnicNumber: values.cnicNumber,
         passportNumber: values.passportNumber,
       })
+      if (!visitorPhotos.length) {
+        toast({
+          title: "Photograph required",
+          description: "Capture or upload a photograph of the visitor.",
+          variant: "destructive",
+        })
+        return
+      }
+      if (formData.visitMode === "group") {
+        const groupErr = validateGroupVisit(
+          formData.groupPartySize,
+          formData.groupMembers ?? [],
+          visitorPhotos
+        )
+        if (groupErr) {
+          toast({
+            title: "Group visit incomplete",
+            description: groupErr,
+            variant: "destructive",
+          })
+          return
+        }
+      }
       setShowCongratsModal(true)
     },
   })
@@ -526,7 +618,7 @@ export function WalkInStep1VisitorDetails({
       {/* Visitor Type */}
       <div className="space-y-4">
         <Label className="text-[22px] font-bold text-foreground">Visitor Type</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {visitorTypes.map(({ value, label, description, icon: Icon }) => {
             const isSelected = formData.visitorType === value
             return (
@@ -562,15 +654,85 @@ export function WalkInStep1VisitorDetails({
             )
           })}
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          {(
+            [
+              {
+                value: "individual" as const,
+                label: "Individual",
+                description: "Personal visit or guest · one pass",
+                icon: User,
+              },
+              {
+                value: "group" as const,
+                label: "Group visit",
+                description: "Multiple people, one shared QR",
+                icon: Users,
+              },
+            ] as const
+          ).map(({ value, label, description, icon: Icon }) => {
+            const isSelected = (formData.visitMode ?? "individual") === value
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  if (value === "group") {
+                    const size =
+                      formData.groupPartySize >= MIN_GROUP_PARTY_SIZE
+                        ? formData.groupPartySize
+                        : MIN_GROUP_PARTY_SIZE
+                    updateFormData({
+                      visitMode: value,
+                      groupPartySize: size,
+                      groupMembers: resizeGroupMembers(formData.groupMembers ?? [], size),
+                    })
+                  } else {
+                    updateFormData({ visitMode: value, groupMembers: [] })
+                  }
+                }}
+                className={cn(
+                  "relative flex items-center gap-4 p-4 rounded-lg border text-left transition-colors",
+                  isSelected
+                    ? "border-2 border-[#3b82f6] bg-[#eff6ff]"
+                    : "border border-border bg-card hover:border-muted-foreground/40"
+                )}
+              >
+                {isSelected && (
+                  <span className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#3b82f6]">
+                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                  </span>
+                )}
+                <span
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                    isSelected ? "bg-[#3b82f6] text-white" : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div className="flex min-w-0 flex-col gap-0.5 pr-6">
+                  <span className="text-base font-semibold text-foreground">{label}</span>
+                  <span className="text-sm text-muted-foreground">{description}</span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Personal Details */}
       <div className="space-y-4">
-        <Label className="text-[22px] font-bold text-foreground">Personal Details</Label>
+        <Label className="text-[22px] font-bold text-foreground">
+          {formData.visitMode === "group" ? "Group leader (primary visitor)" : "Personal Details"}
+        </Label>
 
         {/* Photograph Upload – capture from camera; captured images on the right for recognition */}
         <div className="space-y-2">
-          <Label className="text-base font-medium text-foreground">Photograph Upload</Label>
+          <Label className="text-base font-medium text-foreground">
+            {formData.visitMode === "group" ? "Leader photograph" : "Photograph Upload"}
+          </Label>
           <div className="flex flex-col sm:flex-row gap-4 items-start">
             {/* Left: capture box */}
             <div
@@ -585,12 +747,14 @@ export function WalkInStep1VisitorDetails({
                     <Camera className="h-6 w-6 text-primary" />
                   </div>
                   <p className="text-sm font-medium text-muted-foreground text-center">Upload a Visitor Photograph</p>
-                  <p className="text-xs text-muted-foreground text-center">Image size: Max 2MB, Format JPG/PNG. Up to {MAX_VISITOR_PHOTOS} images for recognition.</p>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Image size: Max 2MB, JPG/PNG. Up to {MAX_VISITOR_PHOTOS} photos — human face required.
+                  </p>
                   <div className="flex flex-col gap-2 w-full">
                     <Button
                       type="button"
                       onClick={() => { setVehicleCameraOpen(false); setMinorCameraOpen(null); setCameraOpen(true); }}
-                      disabled={cameraLoading || visitorPhotos.length >= MAX_VISITOR_PHOTOS}
+                      disabled={cameraLoading || photoValidating || visitorPhotos.length >= MAX_VISITOR_PHOTOS}
                       className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 w-full"
                     >
                       {cameraLoading ? "Opening camera…" : "Capture from camera"}
@@ -606,12 +770,15 @@ export function WalkInStep1VisitorDetails({
                       type="button"
                       variant="outline"
                       onClick={() => photoInputRef.current?.click()}
-                      disabled={visitorPhotos.length >= MAX_VISITOR_PHOTOS}
+                      disabled={photoValidating || visitorPhotos.length >= MAX_VISITOR_PHOTOS}
                       className="rounded-md px-4 py-2 text-sm font-medium w-full"
                     >
-                      Upload Photo
+                      {photoValidating ? "Checking photo…" : "Upload Photo"}
                     </Button>
                   </div>
+                  {photoValidating && (
+                    <p className="text-xs text-muted-foreground text-center">Detecting human face…</p>
+                  )}
                   {photoError && (
                     <p className="text-sm text-destructive text-center">{photoError}</p>
                   )}
@@ -632,11 +799,11 @@ export function WalkInStep1VisitorDetails({
                   <div className="flex gap-2">
                     <Button
                       type="button"
-                      onClick={captureFromCamera}
-                      disabled={cameraLoading || !!cameraError || visitorPhotos.length >= MAX_VISITOR_PHOTOS}
+                      onClick={() => void captureFromCamera()}
+                      disabled={cameraLoading || photoValidating || !!cameraError || visitorPhotos.length >= MAX_VISITOR_PHOTOS}
                       className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
                     >
-                      Take photo
+                      {photoValidating ? "Checking…" : "Take photo"}
                     </Button>
                     <Button
                       type="button"
@@ -1085,7 +1252,23 @@ export function WalkInStep1VisitorDetails({
   
       </div>
 
+      {formData.visitMode === "group" && (
+        <GroupMembersSection
+          partySize={formData.groupPartySize}
+          members={formData.groupMembers ?? []}
+          onPartySizeChange={(size) => {
+            updateFormData({
+              groupPartySize: size,
+              groupMembers: resizeGroupMembers(formData.groupMembers ?? [], size),
+            })
+          }}
+          onMembersChange={(groupMembers) => updateFormData({ groupMembers })}
+        />
+      )}
+
       {/* Visitor with Minor – same layout and styling as main visitor form */}
+      {formData.visitMode !== "group" && (
+      <>
       <input
         ref={minorImageInputRef}
         type="file"
@@ -1154,7 +1337,9 @@ export function WalkInStep1VisitorDetails({
                             <Camera className="h-6 w-6 text-primary" />
                           </div>
                           <p className="text-sm font-medium text-muted-foreground text-center">Upload a Minor Photograph</p>
-                          <p className="text-xs text-muted-foreground text-center">Image size: Max 2MB, Format JPG/PNG. Up to {MAX_MINOR_PHOTOS} images for recognition.</p>
+                          <p className="text-xs text-muted-foreground text-center">
+                            Max 2MB, JPG/PNG. Up to {MAX_MINOR_PHOTOS} photos — human face required.
+                          </p>
                           <div className="flex flex-col gap-2 w-full">
                             <Button
                               type="button"
@@ -1163,7 +1348,7 @@ export function WalkInStep1VisitorDetails({
                                 setVehicleCameraOpen(false)
                                 setMinorCameraOpen(index)
                               }}
-                              disabled={minorCameraLoading || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
+                              disabled={minorCameraLoading || minorPhotoValidating || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
                               className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 w-full"
                             >
                               {minorCameraLoading && minorCameraOpen === index ? "Opening camera…" : "Capture from camera"}
@@ -1176,13 +1361,16 @@ export function WalkInStep1VisitorDetails({
                                 setMinorPhotoError(null)
                                 setTimeout(() => minorImageInputRef.current?.click(), 0)
                               }}
-                              disabled={(Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
+                              disabled={minorPhotoValidating || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
                               className="rounded-md px-4 py-2 text-sm font-medium w-full"
                             >
-                              Upload Photo
+                              {minorPhotoValidating ? "Checking photo…" : "Upload Photo"}
                             </Button>
                           </div>
-                          {minorPhotoError && minorUploadTarget === index && (
+                          {minorPhotoValidating && (
+                            <p className="text-xs text-muted-foreground text-center">Detecting human face…</p>
+                          )}
+                          {minorPhotoError && (
                             <p className="text-sm text-destructive text-center">{minorPhotoError}</p>
                           )}
                         </>
@@ -1202,11 +1390,11 @@ export function WalkInStep1VisitorDetails({
                           <div className="flex gap-2">
                             <Button
                               type="button"
-                              onClick={captureFromMinorCamera}
-                              disabled={minorCameraLoading || !!minorCameraError || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
+                              onClick={() => void captureFromMinorCamera()}
+                              disabled={minorCameraLoading || minorPhotoValidating || !!minorCameraError || (Array.isArray(minor.photos) ? minor.photos.length : 0) >= MAX_MINOR_PHOTOS}
                               className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
                             >
-                              Take photo
+                              {minorPhotoValidating ? "Checking…" : "Take photo"}
                             </Button>
                             <Button
                               type="button"
@@ -1381,6 +1569,8 @@ export function WalkInStep1VisitorDetails({
           })}
         </div>
       </div>
+      </>
+      )}
 
       {/* Action buttons */}
       <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-border">

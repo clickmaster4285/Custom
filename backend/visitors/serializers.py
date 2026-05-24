@@ -7,6 +7,7 @@ from .payload_utils import (
     split_visitor_payload,
     strip_large_fields_for_list,
     visitor_created_by_label,
+    visitor_has_profile_photo,
 )
 
 
@@ -134,6 +135,22 @@ class VisitorSerializer(serializers.ModelSerializer):
             "host_officer_name": {"allow_blank": True},
         }
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        reg_status = attrs.get("registration_status")
+        if reg_status is None and self.instance is not None:
+            reg_status = self.instance.registration_status
+        if str(reg_status or "").strip().lower() == "draft":
+            return attrs
+        access_zone = attrs.get("access_zone")
+        if access_zone is None and self.instance is not None:
+            access_zone = self.instance.access_zone
+        if not str(access_zone or "").strip():
+            raise serializers.ValidationError(
+                {"access_zone": "Access zone is required."}
+            )
+        return attrs
+
     def get_created_by(self, obj):
         label = visitor_created_by_label(obj)
         return label or None
@@ -150,7 +167,16 @@ class VisitorListSerializer(VisitorSerializer):
     """List responses without multi-megabyte image payloads."""
 
     def to_representation(self, instance):
-        return super().to_representation(instance)
+        data = super().to_representation(instance)
+        if self.context.get("omit_blobs"):
+            request = self.context.get("request")
+            if request and instance.pk and visitor_has_profile_photo(instance):
+                path = f"/api/visitors/{instance.pk}/profile-image/"
+                try:
+                    data["profile_image_url"] = request.build_absolute_uri(path)
+                except Exception:
+                    data["profile_image_url"] = path
+        return data
 
 
 class VisitorWriteSerializer(serializers.Serializer):
