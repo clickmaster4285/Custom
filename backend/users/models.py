@@ -27,7 +27,7 @@ class User(AbstractUser):
     LOCATION_CHOICES = [
         ("PESHAWAR", "Peshawar (Head Office)"),
         ("KOHAT", "Kohat"),
-        ("NOSHERA", "Noshera"),
+        ("NOWSHERA", "Nowshera"),
         ("MARDAN", "Mardan"),
         ("DI_KHAN", "DI Khan"),
     ]

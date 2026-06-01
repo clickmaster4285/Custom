@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
                 choices=[
                     ("PESHAWAR", "Peshawar (Head Office)"),
                     ("KOHAT", "Kohat"),
-                    ("NOSHERA", "Noshera"),
+                    ("NOWSHERA", "Nowshera"),
                     ("MARDAN", "Mardan"),
                     ("DI_KHAN", "DI Khan"),
                 ],

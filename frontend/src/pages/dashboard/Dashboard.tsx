@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils"
 import { fetchVmsOverview } from "@/lib/vms-api"
 import type { VmsOverviewVisitorRow } from "@/lib/vms-api"
 import { DashboardRtspCameraGrid } from "@/components/dashboard/dashboard-rtsp-camera-grid"
+import { CityControlGrid } from "@/components/dashboard/city-control-grid"
+import { LiveAlerts } from "@/components/dashboard/live-alerts"
 import {
   RecentRegistrationsTable,
   VisitorDeleteDialog,
@@ -137,6 +139,14 @@ export function Dashboard() {
           </div>
 
           <DashboardRtspCameraGrid />
+
+          {/* City Control Grid & Live Alerts */}
+          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+            <div className="lg:col-span-2">
+              <CityControlGrid />
+            </div>
+            <LiveAlerts />
+          </div>
 
           {/* Calendar View banner */}
           <div
