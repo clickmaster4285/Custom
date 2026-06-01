@@ -118,7 +118,7 @@ const criticalCount = ALERTS_DATA.filter((a) => a.type === "critical").length
 export function LiveAlerts() {
   return (
     <Card className="min-w-0 overflow-hidden rounded-[10px] border-gray-200 bg-white flex flex-col">
-      <CardContent className="p-0 flex flex-col h-full">
+      <CardContent className="flex flex-col h-full">
         <div className="flex items-center justify-between px-4 py-5 sm:px-6 sm:py-6 border-b border-gray-200">
           <div className="flex-1">
             <h2 className="text-xl font-bold text-black sm:text-2xl">Live Alerts</h2>
@@ -136,11 +136,11 @@ export function LiveAlerts() {
           </div>
         </div>
         <div className="overflow-y-auto max-h-[320px]">
-          <div className="space-y-0 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="space-y-0 px-4 pt-4 pb-0 sm:px-6 sm:pt-5 sm:pb-0">
             {ALERTS_DATA.map((alert, idx) => (
               <div
                 key={idx}
-                className={`flex gap-3 border-l-4 pl-4 py-4 transition-colors hover:bg-gray-50 ${getAlertBorderColor(alert.type)}`}
+                className={`flex gap-3 border-l-4 pl-4 py-3 transition-colors hover:bg-gray-50 ${getAlertBorderColor(alert.type)}`}
               >
                 <div
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full flex-none mt-1 text-white ${getAlertBgColor(alert.type)}`}
