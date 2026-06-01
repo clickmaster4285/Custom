@@ -143,11 +143,11 @@ export const CUSTOMS_STATIONS = [
   "Kohat",
   "Mardan",
   // "Custom Peshawar",
-  // "Noshera",
+  // "Nowshera",
   // "Customs Faisalabad",
   "Yarik",
   "DI Khan",
   "Peshawar",
   // "Customs Quetta",
-  "Noshera",
+  "Nowshera",
 ] as const

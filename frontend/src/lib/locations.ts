@@ -2,7 +2,7 @@
 export const LOCATION_OPTIONS = [
   { value: "PESHAWAR", label: "Peshawar (Head Office)" },
   { value: "KOHAT", label: "Kohat" },
-  { value: "NOSHERA", label: "Noshera" },
+  { value: "NOESHERA", label: "Nowshera" },
   { value: "MARDAN", label: "Mardan" },
   { value: "DI_KHAN", label: "DI Khan" },
 ] as const;

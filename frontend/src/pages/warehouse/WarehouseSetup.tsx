@@ -48,7 +48,7 @@ const defaultRows: WarehouseRow[] = [
   { id: "2", code: "Yarik", name: "North Regional Hub", location: "Peshawar", capacity: "8,500", totalArea: "42,000", zoneType: "Non-bonded", currentOccupancy: "5,100", status: "Active" },
   { id: "3", code: "Mardan", name: "Customs Bonded Warehouse", location: "Mardan", capacity: "12,000", totalArea: "65,000", zoneType: "Bonded", currentOccupancy: "9,000", status: "Active" },
   { id: "4", code: "Kohat", name: "Transit Warehouse", location: "Kohat", capacity: "5,200", totalArea: "28,000", zoneType: "Dispatch", currentOccupancy: "2,100", status: "Active" },
-  { id: "5", code: "DI Khan", name: "Cold Storage Unit", location: "Noshera", capacity: "2,800", totalArea: "12,000", zoneType: "Quarantine", currentOccupancy: "1,800", status: "Maintenance" },
+  { id: "5", code: "DI Khan", name: "Cold Storage Unit", location: "Nowshera", capacity: "2,800", totalArea: "12,000", zoneType: "Quarantine", currentOccupancy: "1,800", status: "Maintenance" },
 ]
 
 function loadRows(): WarehouseRow[] {
