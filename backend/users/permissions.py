@@ -2,9 +2,9 @@ from rest_framework import permissions
 
 
 class IsAdminOrHR(permissions.BasePermission):
-    """Allow access only to users with role ADMIN or HR."""
+    """Allow access only to users with role ADMIN, HR, or IT_ADMIN."""
 
-    allowed_roles = ("ADMIN", "HR")
+    allowed_roles = ("ADMIN", "HR", "IT_ADMIN")
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:

@@ -1,9 +1,22 @@
 import { ROUTES } from "@/routes/config"
 
-export type RestrictedRole = "RECEPTIONIST" | "GUARD" | "WAREHOUSE_OFFICER" | "HR"
+export type RestrictedRole =
+  | "RECEPTIONIST"
+  | "GUARD"
+  | "WAREHOUSE_OFFICER"
+  | "WAREHOUSE_SUPERINTENDENT"
+  | "WAREHOUSE_IN_CHARGE"
+  | "EXAMINATION_OFFICER"
+  | "STOCK_CONTROLLER"
+  | "IT_ADMIN"
+  | "AUDITOR"
+  | "HR"
 
 export function normalizeRole(role: string | undefined | null): string {
-  return (role ?? "").trim().toUpperCase()
+  return (role ?? "")
+    .trim()
+    .replace(/[\s-]+/g, "_")
+    .toUpperCase()
 }
 
 export function getRestrictedRole(role: string | undefined | null): RestrictedRole | null {
@@ -12,9 +25,15 @@ export function getRestrictedRole(role: string | undefined | null): RestrictedRo
     normalized === "RECEPTIONIST" ||
     normalized === "GUARD" ||
     normalized === "WAREHOUSE_OFFICER" ||
+    normalized === "WAREHOUSE_SUPERINTENDENT" ||
+    normalized === "WAREHOUSE_IN_CHARGE" ||
+    normalized === "EXAMINATION_OFFICER" ||
+    normalized === "STOCK_CONTROLLER" ||
+    normalized === "IT_ADMIN" ||
+    normalized === "AUDITOR" ||
     normalized === "HR"
   ) {
-    return normalized
+    return normalized as RestrictedRole
   }
   return null
 }
@@ -39,8 +58,17 @@ type PathRule = { exact: string[]; patterns: RegExp[] }
 
 const ROLE_PATH_RULES: Record<RestrictedRole, PathRule> = {
   GUARD: {
-    exact: [ROUTES.GUARD_RECEPTION_PANEL],
-    patterns: [],
+    exact: [
+      ROUTES.DASHBOARD,
+      ROUTES.GUARD_RECEPTION_PANEL,
+      ROUTES.VISITOR_MANAGEMENT_OVERVIEW,
+      ROUTES.VEHICLE_REGISTRATION,
+      ROUTES.VEHICLE_TRACKING,
+      ROUTES.CONTRACTOR_PASSES,
+      ROUTES.CARGO_DELIVERY_LOGS,
+      ROUTES.INCIDENT_CREATION,
+    ],
+    patterns: [/^\/visitors\/[^/]+$/],
   },
   RECEPTIONIST: {
     exact: [
@@ -78,6 +106,7 @@ const ROLE_PATH_RULES: Record<RestrictedRole, PathRule> = {
   },
   WAREHOUSE_OFFICER: {
     exact: [
+      ROUTES.DASHBOARD,
       ROUTES.OPERATIONS_DASHBOARD,
       ROUTES.DETENTION_MEMO,
       ROUTES.DEPOSIT_ACCOUNT_REGISTER,
@@ -124,6 +153,179 @@ const ROLE_PATH_RULES: Record<RestrictedRole, PathRule> = {
       /^\/inventory-valuation\/[^/]+$/,
     ],
   },
+  WAREHOUSE_IN_CHARGE: {
+    exact: [
+      ROUTES.DASHBOARD,
+      ROUTES.OPERATIONS_DASHBOARD,
+      ROUTES.GOODS_RECEIPT,
+      ROUTES.DEPOSIT_ACCOUNT_REGISTER,
+      ROUTES.STOCK_MANAGEMENT,
+      ROUTES.CYCLE_COUNTING,
+      ROUTES.STORAGE_ALLOCATION,
+      ROUTES.INVENTORY_TRACKING,
+      ROUTES.STOCK_RECONCILIATION,
+      ROUTES.HANDOVER_REQUESTS,
+      ROUTES.INTER_COLLECTORATE_TRANSFER,
+      ROUTES.INTERNAL_MOVEMENT,
+    ],
+    patterns: [
+      /^\/goods-receipt\/[^/]+$/,
+      /^\/stock-management\/[^/]+$/,
+      /^\/cycle-counting-audit\/[^/]+$/,
+      /^\/deposit-account-register\/[^/]+$/,
+    ],
+  },
+  EXAMINATION_OFFICER: {
+    exact: [
+      ROUTES.DASHBOARD,
+      ROUTES.OPERATIONS_DASHBOARD,
+      ROUTES.DETENTION_MEMO,
+      ROUTES.SEIZURE_REGISTER,
+      ROUTES.INVENTORY_VALUATION,
+      ROUTES.ITEM_VALUATION,
+      ROUTES.STOCK_MANAGEMENT,
+    ],
+    patterns: [
+      /^\/detention-memo\/[^/]+$/,
+      /^\/seized-inventory\/[^/]+$/,
+      /^\/goods-receipt\/[^/]+$/,
+      /^\/inventory-valuation\/[^/]+$/,
+    ],
+  },
+  STOCK_CONTROLLER: {
+    exact: [
+      ROUTES.DASHBOARD,
+      ROUTES.OPERATIONS_DASHBOARD,
+      ROUTES.DEPOSIT_ACCOUNT_REGISTER,
+      ROUTES.STOCK_MANAGEMENT,
+      ROUTES.CYCLE_COUNTING,
+      ROUTES.STORAGE_ALLOCATION,
+      ROUTES.STOCK_RECONCILIATION,
+    ],
+    patterns: [
+      /^\/deposit-account-register\/[^/]+$/,
+      /^\/stock-management\/[^/]+$/,
+      /^\/cycle-counting-audit\/[^/]+$/,
+    ],
+  },
+  WAREHOUSE_SUPERINTENDENT: {
+    exact: [
+      ROUTES.DASHBOARD,
+      ROUTES.OPERATIONS_DASHBOARD,
+      ROUTES.DETENTION_MEMO,
+      ROUTES.DEPOSIT_ACCOUNT_REGISTER,
+      ROUTES.NEW_SEIZURE_ENTRY,
+      ROUTES.GOODS_RECEIPT_HANDOVER,
+      ROUTES.AI_ITEM_CATALOGING,
+      ROUTES.SEIZURE_REGISTER,
+      ROUTES.WAREHOUSE_SETUP,
+      ROUTES.ZONE_LOCATION_MANAGEMENT,
+      ROUTES.STORAGE_ALLOCATION,
+      ROUTES.INVENTORY_TRACKING,
+      ROUTES.STOCK_RECONCILIATION,
+      ROUTES.RELEASE_INVENTORY,
+      ROUTES.CAMERA_INTEGRATION,
+      ROUTES.GOODS_RECEIPT,
+      ROUTES.STOCK_MANAGEMENT,
+      ROUTES.CYCLE_COUNTING,
+      ROUTES.INVENTORY_VALUATION,
+      ROUTES.INTER_COLLECTORATE_TRANSFER,
+      ROUTES.INTERNAL_MOVEMENT,
+      ROUTES.HANDOVER_REQUESTS,
+      ROUTES.DOUBLE_AUTHENTICATION,
+      ROUTES.TRANSFER_TRACKING,
+      ROUTES.PERISHABLE_REGISTER,
+      ROUTES.EXPIRY_TRACKING,
+      ROUTES.PRIORITY_DISPOSAL_QUEUE,
+      ROUTES.DESTRUCTION_ORDERS,
+      ROUTES.LOT_CREATION,
+      ROUTES.ITEM_VALUATION,
+      ROUTES.STANDARD_REPORTS,
+      ROUTES.CUSTOM_REPORT_BUILDER,
+      ROUTES.EXPORT_CENTER,
+      ROUTES.HS_CODES_FILE,
+      ROUTES.SEIZED_INVENTORY,
+      ROUTES.ASO_PORTAL_SYNC,
+      ROUTES.BIDDING_MANAGEMENT,
+      ROUTES.SALE_COMPLETION,
+      ROUTES.REVENUE_REPORTS,
+      ROUTES.AI_INCIDENT_MANAGEMENT,
+      ROUTES.INCIDENT_CREATION,
+      ROUTES.LOGS,
+      ROUTES.ACTIVITY_LOGS,
+      ROUTES.VISITOR_MANAGEMENT_OVERVIEW,
+      ROUTES.VEHICLE_REGISTRATION,
+      ROUTES.VEHICLE_TRACKING,
+      ROUTES.CONTRACTOR_PASSES,
+      ROUTES.CARGO_DELIVERY_LOGS,
+    ],
+    patterns: [
+      /^\/deposit-account-register\/[^/]+$/,
+      /^\/detention-memo\/create$/,
+      /^\/detention-memo\/[^/]+$/,
+      /^\/seized-inventory\/[^/]+$/,
+      /^\/goods-receipt\/[^/]+$/,
+      /^\/stock-management\/[^/]+$/,
+      /^\/cycle-counting-audit\/[^/]+$/,
+      /^\/inventory-valuation\/[^/]+$/,
+      /^\/visitors\/[^/]+$/,
+    ],
+  },
+  IT_ADMIN: {
+    exact: [
+      ROUTES.DASHBOARD,
+      ROUTES.USER_ROLE_MANAGEMENT,
+      ROUTES.USER_ACCOUNTS,
+      ROUTES.ADD_USER,
+      ROUTES.USER_DETAIL,
+      ROUTES.EDIT_USER,
+      ROUTES.LOGS,
+      ROUTES.ACTIVITY_LOGS,
+    ],
+    patterns: [
+      /^\/settings\/users\/[^/]+$/,
+      /^\/settings\/users\/[^/]+\/edit$/,
+    ],
+  },
+  AUDITOR: {
+    exact: [
+      ROUTES.DASHBOARD,
+      ROUTES.VISITOR_MANAGEMENT_OVERVIEW,
+      ROUTES.GUARD_RECEPTION_PANEL,
+      ROUTES.VEHICLE_REGISTRATION,
+      ROUTES.VEHICLE_TRACKING,
+      ROUTES.CONTRACTOR_PASSES,
+      ROUTES.CARGO_DELIVERY_LOGS,
+      ROUTES.OPERATIONS_DASHBOARD,
+      ROUTES.DETENTION_MEMO,
+      ROUTES.SEIZURE_REGISTER,
+      ROUTES.GOODS_RECEIPT,
+      ROUTES.INVENTORY_VALUATION,
+      ROUTES.ITEM_VALUATION,
+      ROUTES.STOCK_MANAGEMENT,
+      ROUTES.CYCLE_COUNTING,
+      ROUTES.STORAGE_ALLOCATION,
+      ROUTES.INVENTORY_TRACKING,
+      ROUTES.STOCK_RECONCILIATION,
+      ROUTES.ASO_PORTAL_SYNC,
+      ROUTES.BIDDING_MANAGEMENT,
+      ROUTES.SALE_COMPLETION,
+      ROUTES.REVENUE_REPORTS,
+      ROUTES.AI_INCIDENT_MANAGEMENT,
+      ROUTES.INCIDENT_CREATION,
+      ROUTES.LOGS,
+      ROUTES.ACTIVITY_LOGS,
+    ],
+    patterns: [
+      /^\/detention-memo\/[^/]+$/,
+      /^\/seized-inventory\/[^/]+$/,
+      /^\/goods-receipt\/[^/]+$/,
+      /^\/stock-management\/[^/]+$/,
+      /^\/cycle-counting-audit\/[^/]+$/,
+      /^\/inventory-valuation\/[^/]+$/,
+      /^\/visitors\/[^/]+$/,
+    ],
+  },
   HR: {
     exact: [
       ROUTES.EMPLOYEES,
@@ -150,7 +352,7 @@ export function isPathAllowedForRestrictedRole(
   restrictedRole: RestrictedRole
 ): boolean {
   const path = normalizePathname(pathname)
-  const { exact, patterns } = ROLE_PATH_RULES[restrictedRole]
+  const patterns = ROLE_PATH_RULES[restrictedRole].patterns
   if (ROLE_PATH_SETS[restrictedRole].has(path)) return true
   return patterns.some((pattern) => pattern.test(path))
 }
@@ -169,9 +371,7 @@ export function isReceptionistAllowedPath(pathname: string): boolean {
 
 export function getHomeRouteForRole(role: string | undefined | null): string {
   const restricted = getRestrictedRole(role)
-  if (restricted === "GUARD") return ROUTES.GUARD_RECEPTION_PANEL
   if (restricted === "RECEPTIONIST") return ROUTES.VISITOR_MANAGEMENT_OVERVIEW
-  if (restricted === "WAREHOUSE_OFFICER") return ROUTES.OPERATIONS_DASHBOARD
   if (restricted === "HR") return ROUTES.EMPLOYEES
   return ROUTES.DASHBOARD
 }
@@ -187,7 +387,13 @@ export function getRoleDisplayLabel(role: string | undefined | null): string {
   if (normalized === "RECEPTIONIST") return "Receptionist"
   if (normalized === "GUARD") return "Guard"
   if (normalized === "WAREHOUSE_OFFICER") return "Warehouse Officer"
+  if (normalized === "WAREHOUSE_SUPERINTENDENT") return "Warehouse Superintendent"
+  if (normalized === "WAREHOUSE_IN_CHARGE") return "Warehouse In-Charge"
+  if (normalized === "EXAMINATION_OFFICER") return "Examination Officer"
+  if (normalized === "STOCK_CONTROLLER") return "Stock Controller"
+  if (normalized === "IT_ADMIN") return "IT Administrator"
   if (normalized === "HR") return "Human Resource"
+  if (normalized === "AUDITOR") return "Auditor"
   if (!normalized) return "User"
   return normalized
     .split("_")
