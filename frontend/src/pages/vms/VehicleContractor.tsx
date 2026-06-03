@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { getStoredUser } from "@/lib/auth"
+import { isViewOnlyForVehicleModule } from "@/lib/role-access"
 import { Truck, Loader2, Plus } from "lucide-react"
 import {
   Select,
@@ -69,6 +71,9 @@ export default function VehicleContractorPage() {
     createMutation.mutate()
   }
 
+  const currentUser = getStoredUser()
+  const viewOnly = isViewOnlyForVehicleModule(currentUser?.role)
+
   function formatDate(s: string) {
     try {
       return new Date(s).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })
@@ -91,7 +96,12 @@ export default function VehicleContractorPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-6 space-y-4">
+      {viewOnly ? (
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <p className="text-sm text-muted-foreground">You have view-only access for Vehicle Management. Creation is disabled.</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-6 space-y-4">
         <div>
           <Label>Visitor</Label>
           <Select value={visitorId} onValueChange={setVisitorId} required>
@@ -161,11 +171,12 @@ export default function VehicleContractorPage() {
             className="mt-1"
           />
         </div>
-        <Button type="submit" disabled={createMutation.isPending}>
-          {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-          Add vehicle
-        </Button>
-      </form>
+          <Button type="submit" disabled={createMutation.isPending}>
+            {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+            Add vehicle
+          </Button>
+        </form>
+      )}
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="px-4 py-3 border-b border-border font-medium text-foreground">Recent vehicles</div>

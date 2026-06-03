@@ -559,6 +559,88 @@ export type NavSection = { title: string; items: (NavItem | NavGroup)[] }
 const VISITOR_MANAGEMENT_NAV = ALL_NAV_ITEMS[1] as NavGroup
 const WAREHOUSE_MANAGEMENT_NAV = ALL_NAV_ITEMS[2] as NavGroup
 const HUMAN_RESOURCE_NAV = ALL_NAV_ITEMS[3] as NavGroup
+const AUCTION_MANAGEMENT_NAV = ALL_NAV_ITEMS[6] as NavGroup
+
+const VEHICLE_MANAGEMENT_NAV: NavGroup = {
+  label: "Vehicle Management",
+  children: [
+    { label: "Vehicle Registration", href: ROUTES.VEHICLE_REGISTRATION },
+    { label: "Vehicle Tracking", href: ROUTES.VEHICLE_TRACKING },
+    { label: "Contractor Passes", href: ROUTES.CONTRACTOR_PASSES },
+    { label: "Cargo/Delivery Logs", href: ROUTES.CARGO_DELIVERY_LOGS },
+  ],
+}
+
+const INCIDENT_MANAGEMENT_NAV: NavGroup = {
+  label: "Incident Management",
+  children: [
+    { label: "AI Incident Management", href: ROUTES.AI_INCIDENT_MANAGEMENT },
+    { label: "Incident Creation", href: ROUTES.INCIDENT_CREATION },
+  ],
+}
+
+const VISITOR_OVERVIEW_NAV: NavItem = {
+  label: "Visitor Management Overview",
+  href: ROUTES.VISITOR_MANAGEMENT_OVERVIEW,
+}
+
+const WAREHOUSE_SUPERINTENDENT_WAREHOUSE_NAV: NavGroup = {
+  label: "Warehouse Management",
+  children: [
+    { label: "Goods Receipt", href: ROUTES.GOODS_RECEIPT },
+    { label: "Deposit Account Register", href: ROUTES.DEPOSIT_ACCOUNT_REGISTER },
+    { label: "Seizure Register", href: ROUTES.SEIZURE_REGISTER },
+    { label: "Examination", href: ROUTES.DETENTION_MEMO },
+    { label: "Inventory Valuation", href: ROUTES.INVENTORY_VALUATION },
+    { label: "Item Valuation", href: ROUTES.ITEM_VALUATION },
+    { label: "Stock Management", href: ROUTES.STOCK_MANAGEMENT },
+    { label: "Bin Management", href: ROUTES.STORAGE_ALLOCATION },
+  ],
+}
+
+const WAREHOUSE_IN_CHARGE_WAREHOUSE_NAV: NavGroup = {
+  label: "Warehouse Management",
+  children: [
+    { label: "Goods Receipt", href: ROUTES.GOODS_RECEIPT },
+    { label: "Deposit Account Register", href: ROUTES.DEPOSIT_ACCOUNT_REGISTER },
+    { label: "Stock Management", href: ROUTES.STOCK_MANAGEMENT },
+    { label: "Bin Management", href: ROUTES.STORAGE_ALLOCATION },
+  ],
+}
+
+const EXAMINATION_OFFICER_WAREHOUSE_NAV: NavGroup = {
+  label: "Warehouse Management",
+  children: [
+    { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
+    { label: "Seizure Register", href: ROUTES.SEIZURE_REGISTER },
+    { label: "Inventory Valuation", href: ROUTES.INVENTORY_VALUATION },
+    { label: "Item Valuation", href: ROUTES.ITEM_VALUATION },
+    { label: "Stock Management", href: ROUTES.STOCK_MANAGEMENT },
+  ],
+}
+
+const STOCK_CONTROLLER_WAREHOUSE_NAV: NavGroup = {
+  label: "Warehouse Management",
+  children: [
+    { label: "Deposit Account Register", href: ROUTES.DEPOSIT_ACCOUNT_REGISTER },
+    { label: "Stock Management", href: ROUTES.STOCK_MANAGEMENT },
+    { label: "Bin Management", href: ROUTES.STORAGE_ALLOCATION },
+  ],
+}
+
+const AUDITOR_WAREHOUSE_NAV: NavGroup = {
+  label: "Warehouse Management",
+  children: [
+    { label: "Goods Receipt", href: ROUTES.GOODS_RECEIPT },
+    { label: "Deposit Account Register", href: ROUTES.DEPOSIT_ACCOUNT_REGISTER },
+    { label: "Seizure Register", href: ROUTES.SEIZURE_REGISTER },
+    { label: "Examination", href: ROUTES.DETENTION_MEMO },
+    { label: "Inventory Valuation", href: ROUTES.INVENTORY_VALUATION },
+    { label: "Item Valuation", href: ROUTES.ITEM_VALUATION },
+    { label: "Stock Management", href: ROUTES.STOCK_MANAGEMENT },
+    { label: "Bin Management", href: ROUTES.STORAGE_ALLOCATION },
+  ],
+}
 
 /** Role-scoped sidebar: one module only. */
 export const RECEPTIONIST_NAV_SECTIONS: NavSection[] = [
@@ -566,7 +648,56 @@ export const RECEPTIONIST_NAV_SECTIONS: NavSection[] = [
 ]
 
 export const WAREHOUSE_OFFICER_NAV_SECTIONS: NavSection[] = [
+  { title: "Main Menu", items: [ALL_NAV_ITEMS[0]] },
   { title: "Warehouse Management", items: [WAREHOUSE_MANAGEMENT_NAV] },
+]
+
+export const WAREHOUSE_SUPERINTENDENT_NAV_SECTIONS: NavSection[] = [
+  { title: "Main Menu", items: [ALL_NAV_ITEMS[0]] },
+  { title: "Visitor Management", items: [VISITOR_OVERVIEW_NAV] },
+  { title: "Warehouse Management", items: [WAREHOUSE_SUPERINTENDENT_WAREHOUSE_NAV] },
+  { title: "Vehicle Management", items: [VEHICLE_MANAGEMENT_NAV] },
+  { title: "Incident Management", items: [INCIDENT_MANAGEMENT_NAV] },
+  { title: "Auction Management", items: [AUCTION_MANAGEMENT_NAV] },
+  { title: "System", items: [{ label: "Logs", href: ROUTES.LOGS }] },
+]
+
+export const WAREHOUSE_IN_CHARGE_NAV_SECTIONS: NavSection[] = [
+  { title: "Main Menu", items: [ALL_NAV_ITEMS[0]] },
+  { title: "Warehouse Management", items: [WAREHOUSE_IN_CHARGE_WAREHOUSE_NAV] },
+  { title: "Vehicle Management", items: [VEHICLE_MANAGEMENT_NAV] },
+  { title: "Incident Management", items: [INCIDENT_MANAGEMENT_NAV] },
+]
+
+export const EXAMINATION_OFFICER_NAV_SECTIONS: NavSection[] = [
+  { title: "Main Menu", items: [ALL_NAV_ITEMS[0]] },
+  { title: "Warehouse Management", items: [EXAMINATION_OFFICER_WAREHOUSE_NAV] },
+]
+
+export const STOCK_CONTROLLER_NAV_SECTIONS: NavSection[] = [
+  { title: "Main Menu", items: [ALL_NAV_ITEMS[0]] },
+  { title: "Warehouse Management", items: [STOCK_CONTROLLER_WAREHOUSE_NAV] },
+]
+
+export const AUDITOR_NAV_SECTIONS: NavSection[] = [
+  { title: "Main Menu", items: [ALL_NAV_ITEMS[0]] },
+  { title: "Visitor Management", items: [VISITOR_OVERVIEW_NAV] },
+  { title: "Warehouse Management", items: [AUDITOR_WAREHOUSE_NAV] },
+  { title: "Vehicle Management", items: [VEHICLE_MANAGEMENT_NAV] },
+  { title: "Incident Management", items: [INCIDENT_MANAGEMENT_NAV] },
+  { title: "Auction Management", items: [AUCTION_MANAGEMENT_NAV] },
+  { title: "System", items: [{ label: "Logs", href: ROUTES.LOGS }] },
+]
+
+export const IT_ADMIN_NAV_SECTIONS: NavSection[] = [
+  { title: "Main Menu", items: [ALL_NAV_ITEMS[0]] },
+  {
+    title: "System Configuration",
+    items: [
+      { label: "Roles & Permissions", href: ROUTES.USER_ROLE_MANAGEMENT },
+      { label: "Logs", href: ROUTES.LOGS },
+    ],
+  },
 ]
 
 export const HR_NAV_SECTIONS: NavSection[] = [
@@ -574,17 +705,26 @@ export const HR_NAV_SECTIONS: NavSection[] = [
 ]
 
 export const GUARD_NAV_SECTIONS: NavSection[] = [
-  {
-    title: "Gate",
-    items: [{ label: "Guard & Reception Panel", href: ROUTES.GUARD_RECEPTION_PANEL }],
-  },
+  { title: "Main Menu", items: [ALL_NAV_ITEMS[0]] },
+  { title: "Visitor Management", items: [VISITOR_MANAGEMENT_NAV] },
+  { title: "Vehicle Management", items: [VEHICLE_MANAGEMENT_NAV] },
+  { title: "Incident Management", items: [{ label: "Incident Creation", href: ROUTES.INCIDENT_CREATION }] },
 ]
 
 export function getNavSectionsForRole(role: string | undefined | null): NavSection[] {
-  const normalized = (role ?? "").trim().toUpperCase()
+  const normalized = (role ?? "")
+    .trim()
+    .replace(/[\s-]+/g, "_")
+    .toUpperCase()
+
   if (normalized === "GUARD") return GUARD_NAV_SECTIONS
   if (normalized === "RECEPTIONIST") return RECEPTIONIST_NAV_SECTIONS
-  if (normalized === "WAREHOUSE_OFFICER") return WAREHOUSE_OFFICER_NAV_SECTIONS
+  if (normalized === "WAREHOUSE_SUPERINTENDENT") return WAREHOUSE_SUPERINTENDENT_NAV_SECTIONS
+  if (normalized === "WAREHOUSE_IN_CHARGE") return WAREHOUSE_IN_CHARGE_NAV_SECTIONS
+  if (normalized === "EXAMINATION_OFFICER") return EXAMINATION_OFFICER_NAV_SECTIONS
+  if (normalized === "STOCK_CONTROLLER") return STOCK_CONTROLLER_NAV_SECTIONS
+  if (normalized === "AUDITOR") return AUDITOR_NAV_SECTIONS
+  if (normalized === "IT_ADMIN") return IT_ADMIN_NAV_SECTIONS
   if (normalized === "HR") return HR_NAV_SECTIONS
   return NAV_SECTIONS
 }

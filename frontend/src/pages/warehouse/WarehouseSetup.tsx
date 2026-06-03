@@ -1,5 +1,7 @@
+"use client"
+
 import { useEffect, useState } from "react"
-import { Warehouse, MapPin, Package, Plus, ListOrdered } from "lucide-react"
+import { Warehouse, MapPin, Package, Plus, ListOrdered, AlertCircle, Loader2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,116 +29,111 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { LOCATION_OPTIONS, locationLabel } from "@/lib/locations"
+import { fetchWarehouses, createWarehouse, ensureWarehouseZones, type WarehouseRecord } from "@/lib/warehouse-zones-api"
+import { WAREHOUSE_STATUSES } from "@/lib/warehouse-zones"
 import { CREATE_WAREHOUSE_FLOW, WAREHOUSE_TABLE_COLUMNS } from "@/lib/warehouse-module-spec"
 
-const STORAGE_KEY = "wms_warehouses"
-
-type WarehouseRow = {
-  id: string
-  code: string
-  name: string
-  location: string
-  capacity: string
-  totalArea: string
-  zoneType: string
-  currentOccupancy: string
-  status: string
-}
-
-const defaultRows: WarehouseRow[] = [
-  { id: "1", code: "Peshawar", name: "Main Distribution Center", location: "Yarik", capacity: "10,000", totalArea: "50,000", zoneType: "Non-bonded", currentOccupancy: "7,200", status: "Active" },
-  { id: "2", code: "Yarik", name: "North Regional Hub", location: "Peshawar", capacity: "8,500", totalArea: "42,000", zoneType: "Non-bonded", currentOccupancy: "5,100", status: "Active" },
-  { id: "3", code: "Mardan", name: "Customs Bonded Warehouse", location: "Mardan", capacity: "12,000", totalArea: "65,000", zoneType: "Bonded", currentOccupancy: "9,000", status: "Active" },
-  { id: "4", code: "Kohat", name: "Transit Warehouse", location: "Kohat", capacity: "5,200", totalArea: "28,000", zoneType: "Dispatch", currentOccupancy: "2,100", status: "Active" },
-  { id: "5", code: "DI Khan", name: "Cold Storage Unit", location: "Nowshera", capacity: "2,800", totalArea: "12,000", zoneType: "Quarantine", currentOccupancy: "1,800", status: "Maintenance" },
-]
-
-function loadRows(): WarehouseRow[] {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((r: Record<string, unknown>) =>
-          ensureRowShape({
-            id: String(r.id ?? ""),
-            code: String(r.code ?? ""),
-            name: String(r.name ?? ""),
-            location: String(r.location ?? ""),
-            capacity: String(r.capacity ?? ""),
-            status: String(r.status ?? "Active"),
-            totalArea: r.totalArea != null ? String(r.totalArea) : "",
-            zoneType: r.zoneType != null ? String(r.zoneType) : "",
-            currentOccupancy: r.currentOccupancy != null ? String(r.currentOccupancy) : "",
-          })
-        )
-      }
-    }
-  } catch {}
-  return defaultRows
-}
-
-function saveRows(rows: WarehouseRow[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
-}
-
-function ensureRowShape(row: { id: string; code: string; name: string; location: string; capacity: string; status: string; totalArea?: string; zoneType?: string; currentOccupancy?: string }): WarehouseRow {
-  return {
-    id: row.id,
-    code: row.code,
-    name: row.name,
-    location: row.location,
-    capacity: row.capacity,
-    totalArea: row.totalArea ?? "",
-    zoneType: row.zoneType ?? "",
-    currentOccupancy: row.currentOccupancy ?? "",
-    status: row.status,
-  }
-}
-
 export default function WarehouseSetupPage() {
-  const [rows, setRows] = useState<WarehouseRow[]>([])
-  const [open, setOpen] = useState(false)
+  const [warehouses, setWarehouses] = useState<WarehouseRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [ensureLoading, setEnsureLoading] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [showFlow, setShowFlow] = useState(false)
-  const [form, setForm] = useState({ code: "", name: "", location: "", capacity: "", totalArea: "", zoneType: "", currentOccupancy: "", status: "Active" })
+  const [open, setOpen] = useState(false)
+
+  const [form, setForm] = useState({
+    code: "",
+    name: "",
+    location_code: "",
+    status: "ACTIVE",
+    description: "",
+  })
 
   useEffect(() => {
-    setRows(loadRows())
+    loadWarehouses()
   }, [])
 
-  useEffect(() => {
-    if (rows.length > 0) saveRows(rows)
-  }, [rows])
+  const loadWarehouses = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await fetchWarehouses()
+      setWarehouses(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load warehouses")
+      setWarehouses([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const openAdd = () => {
-    setForm({ code: "", name: "", location: "", capacity: "", totalArea: "", zoneType: "", currentOccupancy: "", status: "Active" })
+    setForm({
+      code: "",
+      name: "",
+      location_code: "",
+      status: "ACTIVE",
+      description: "",
+    })
     setOpen(true)
   }
 
-  const onSave = () => {
-    if (!form.code.trim() || !form.name.trim() || !form.location.trim() || !form.capacity.trim()) return
-    const newRow: WarehouseRow = {
-      id: `wh-${Date.now()}`,
-      code: form.code.trim(),
-      name: form.name.trim(),
-      location: form.location.trim(),
-      capacity: form.capacity.trim(),
-      totalArea: form.totalArea.trim(),
-      zoneType: form.zoneType,
-      currentOccupancy: form.currentOccupancy.trim(),
-      status: form.status,
+  const onSave = async () => {
+    if (!form.code.trim() || !form.name.trim() || !form.location_code.trim()) {
+      setError("Code, name, and location are required")
+      return
     }
-    setRows((prev) => [newRow, ...prev])
-    setOpen(false)
+
+    try {
+      setSaving(true)
+      setError(null)
+      const newWarehouse = await createWarehouse({
+        code: form.code.trim(),
+        name: form.name.trim(),
+        location_code: form.location_code,
+        status: form.status,
+        description: form.description.trim(),
+      })
+
+      // Automatically ensure zones for the new warehouse
+      try {
+        await ensureWarehouseZones(newWarehouse.id)
+      } catch (zoneErr) {
+        console.warn("Failed to ensure zones, but warehouse was created:", zoneErr)
+      }
+
+      await loadWarehouses()
+      setOpen(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create warehouse")
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const totalCapacity = rows.reduce((sum, r) => sum + (parseInt(r.capacity.replace(/,/g, ""), 10) || 0), 0)
-  const activeCount = rows.filter((r) => r.status === "Active").length
+  const handleEnsureZones = async (warehouseId: string) => {
+    try {
+      setEnsureLoading(warehouseId)
+      setError(null)
+      await ensureWarehouseZones(warehouseId)
+      await loadWarehouses()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to ensure zones")
+    } finally {
+      setEnsureLoading(null)
+    }
+  }
+
+  const activeCount = warehouses.filter((w) => w.status === "ACTIVE").length
+  const totalZones = warehouses.reduce((sum, w) => sum + w.zone_count, 0)
 
   return (
     <ModulePageLayout
       title="Warehouse Setup"
-      description="Warehouse Master per spec: Create Warehouse → Define Zones → Assign Storage Locations → Map Cameras → Activate."
+      description="Master warehouse management from backend database."
       breadcrumbs={[{ label: "WMS" }, { label: "Warehouse Setup" }]}
     >
       <div className="grid gap-6">
@@ -145,9 +142,11 @@ export default function WarehouseSetupPage() {
             <div className="min-w-0">
               <CardTitle className="flex items-center gap-2">
                 <ListOrdered className="h-5 w-5" />
-                Create Warehouse Flow
+                Warehouse Setup Flow
               </CardTitle>
-              <CardDescription className="break-words">Create Warehouse → Define Zones → Assign Storage Locations → Map Cameras → Activate</CardDescription>
+              <CardDescription className="break-words">
+                Create Warehouse → Automatically seed 7 canonical zones → Activate
+              </CardDescription>
             </div>
             <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setShowFlow(!showFlow)}>
               {showFlow ? "Hide" : "Show"} steps
@@ -164,6 +163,15 @@ export default function WarehouseSetupPage() {
           )}
         </Card>
 
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Stats */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -171,113 +179,171 @@ export default function WarehouseSetupPage() {
               <Warehouse className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{rows.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Active locations</p>
+              <div className="text-2xl font-bold">{warehouses.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">{activeCount} active</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Capacity</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Zones</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalCapacity.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">Pallet positions</p>
+              <div className="text-2xl font-bold">{totalZones}</div>
+              <p className="text-xs text-muted-foreground mt-1">Across all warehouses</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Utilization</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Locations</CardTitle>
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{activeCount > 0 ? Math.round((activeCount / rows.length) * 100) : 0}%</div>
-              <p className="text-xs text-muted-foreground mt-1">Active vs total</p>
+              <div className="text-2xl font-bold">{LOCATION_OPTIONS.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">Customs locations</p>
             </CardContent>
           </Card>
         </div>
 
+        {/* Warehouses Table */}
         <Card className="w-full min-w-0">
           <CardHeader className="flex flex-wrap items-center justify-between gap-4 space-y-0">
             <div className="min-w-0">
               <CardTitle>Warehouse List</CardTitle>
-              <CardDescription className="break-words">Spec-aligned columns: Warehouse ID, Name, Location, Total Area, Zone, Storage Capacity, Current Occupancy, Status.</CardDescription>
+              <CardDescription className="break-words">
+                Master warehouses from database. Create new warehouse with auto-seeded 7 canonical zones.
+              </CardDescription>
             </div>
-            <Button className="w-full flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto" onClick={openAdd}>
+            <Button
+              className="w-full flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto"
+              onClick={openAdd}
+              disabled={saving}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Warehouse
             </Button>
           </CardHeader>
-          <CardContent className="w-full min-w-0 space-y-3">
-            <div className="divide-y rounded-lg border md:hidden">
-              {rows.map((row) => (
-                <div key={row.id} className="p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-semibold">{row.code}</p>
-                    <Badge variant={row.status === "Active" ? "default" : "secondary"}>{row.status}</Badge>
-                  </div>
-                  <p className="mt-1 text-sm">{row.name}</p>
-                  <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <p className="truncate">Location: <span className="text-foreground">{row.location || "—"}</span></p>
-                    <p className="truncate">Zone: <span className="text-foreground">{row.zoneType || "—"}</span></p>
-                    <p className="truncate">Capacity: <span className="text-foreground">{row.capacity || "—"}</span></p>
-                    <p className="truncate">Occupancy: <span className="text-foreground">{row.currentOccupancy || "—"}</span></p>
-                    <p className="col-span-2 truncate">Area: <span className="text-foreground">{row.totalArea || row.capacity}</span></p>
-                  </div>
-                  <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-primary">Edit</Button>
-                </div>
-              ))}
-            </div>
 
-            <div className="hidden w-full min-w-0 md:block">
-              <div className="w-full max-w-full overflow-x-auto rounded-lg border pb-2">
-                <Table className="min-w-[980px]">
-                  <TableHeader>
-                    <TableRow>
-                      {WAREHOUSE_TABLE_COLUMNS.map((col) => (
-                        <TableHead key={col}>{col}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="font-medium">{row.code}</TableCell>
-                        <TableCell>{row.name}</TableCell>
-                        <TableCell>{row.location}</TableCell>
-                        <TableCell>{row.totalArea || row.capacity}</TableCell>
-                        <TableCell>{row.zoneType || "—"}</TableCell>
-                        <TableCell>{row.capacity}</TableCell>
-                        <TableCell>{row.currentOccupancy || "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant={row.status === "Active" ? "default" : "secondary"}>{row.status}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" className="text-primary">Edit</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+          <CardContent className="w-full min-w-0 space-y-3">
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            </div>
+            ) : warehouses.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No warehouses yet. Create one to get started.</p>
+              </div>
+            ) : (
+              <>
+                {/* Mobile View */}
+                <div className="divide-y rounded-lg border md:hidden">
+                  {warehouses.map((row) => (
+                    <div key={row.id} className="p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-semibold">{row.code}</p>
+                        <Badge variant={row.status === "ACTIVE" ? "default" : "secondary"}>
+                          {row.status}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm">{row.name}</p>
+                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <p className="truncate">
+                          Location: <span className="text-foreground">{locationLabel(row.location_code)}</span>
+                        </p>
+                        <p className="truncate">
+                          Zones: <span className="text-foreground">{row.zone_count}/7</span>
+                        </p>
+                      </div>
+                      <div className="mt-2 flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-0 text-primary"
+                          onClick={() => handleEnsureZones(row.id)}
+                          disabled={ensureLoading === row.id}
+                        >
+                          {ensureLoading === row.id && (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          )}
+                          Ensure Zones
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop View */}
+                <div className="hidden md:block">
+                  <div className="w-full overflow-x-auto rounded-lg border">
+                    <Table className="min-w-[900px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Zones</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {warehouses.map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell className="font-medium">{row.code}</TableCell>
+                            <TableCell>{row.name}</TableCell>
+                            <TableCell>{locationLabel(row.location_code)}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {row.zone_count}/7
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={row.status === "ACTIVE" ? "default" : "secondary"}>
+                                {row.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-primary"
+                                onClick={() => handleEnsureZones(row.id)}
+                                disabled={ensureLoading === row.id}
+                              >
+                                {ensureLoading === row.id && (
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                )}
+                                Ensure Zones
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
+      {/* Create Warehouse Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add Warehouse</DialogTitle>
-            <p className="text-sm text-muted-foreground">Warehouse Master fields per spec. Stored in localStorage.</p>
+            <DialogTitle>Create Warehouse</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              New warehouse will automatically get the 7 canonical zones seeded.
+            </p>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Warehouse ID (Code)</Label>
+              <Label>Warehouse Code</Label>
               <Input
                 value={form.code}
                 onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
-                placeholder="e.g. WH-006"
+                placeholder="e.g. WH-PSH-01"
               />
             </div>
             <div className="grid gap-2">
@@ -285,52 +351,30 @@ export default function WarehouseSetupPage() {
               <Input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Warehouse name"
+                placeholder="e.g. Peshawar Customs Warehouse"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Location / Address</Label>
-              <Input
-                value={form.location}
-                onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                placeholder="City or address"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Total Area (sq ft / sq m)</Label>
-              <Input
-                value={form.totalArea}
-                onChange={(e) => setForm((f) => ({ ...f, totalArea: e.target.value }))}
-                placeholder="e.g. 50,000"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Zone Type</Label>
-              <Select value={form.zoneType} onValueChange={(v) => setForm((f) => ({ ...f, zoneType: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <Label>Location</Label>
+              <Select value={form.location_code} onValueChange={(v) => setForm((f) => ({ ...f, location_code: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select location" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Bonded">Bonded</SelectItem>
-                  <SelectItem value="Non-bonded">Non-bonded</SelectItem>
-                  <SelectItem value="Quarantine">Quarantine</SelectItem>
-                  <SelectItem value="Inspection">Inspection</SelectItem>
-                  <SelectItem value="Dispatch">Dispatch</SelectItem>
+                  {LOCATION_OPTIONS.map((loc) => (
+                    <SelectItem key={loc.value} value={loc.value}>
+                      {loc.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Storage Capacity</Label>
+              <Label>Description (optional)</Label>
               <Input
-                value={form.capacity}
-                onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
-                placeholder="e.g. 10,000"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Current Occupancy</Label>
-              <Input
-                value={form.currentOccupancy}
-                onChange={(e) => setForm((f) => ({ ...f, currentOccupancy: e.target.value }))}
-                placeholder="e.g. 7,200"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Additional details"
               />
             </div>
             <div className="grid gap-2">
@@ -340,16 +384,28 @@ export default function WarehouseSetupPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Maintenance">Maintenance</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  {WAREHOUSE_STATUSES.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
-            <Button variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
-            <Button onClick={onSave} className="w-full sm:w-auto">Save</Button>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="w-full sm:w-auto"
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={onSave} className="w-full sm:w-auto" disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

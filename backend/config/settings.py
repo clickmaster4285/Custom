@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'logs',
     "detentions",
     "cameras",
+    "warehouse",
 ]
 
 # -----------------------------

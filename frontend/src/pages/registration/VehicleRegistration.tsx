@@ -29,6 +29,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ROUTES } from "@/routes/config"
 import type { VehicleEntry, VehicleStatus, VehicleType } from "@/lib/vms-types"
 import { VEHICLE_TYPES, VEHICLE_STATUSES } from "@/lib/vms-types"
+import { getStoredUser } from "@/lib/auth"
+import { isViewOnlyForVehicleModule } from "@/lib/role-access"
 import {
   loadVehicleEntries,
   saveVehicleEntries,
@@ -151,6 +153,9 @@ export default function VehicleRegistrationPage() {
         { label: "Vehicle Registration" },
   ]
 
+  const currentUser = getStoredUser()
+  const viewOnly = isViewOnlyForVehicleModule(currentUser?.role)
+
   return (
     <>
       <nav className="text-sm text-muted-foreground mb-2">
@@ -192,7 +197,7 @@ export default function VehicleRegistrationPage() {
                 Important info in list; open Add for full registration form.
               </CardDescription>
             </div>
-            <div className="flex flex-col md:flex-row gap-2">
+              <div className="flex flex-col md:flex-row gap-2">
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -215,7 +220,11 @@ export default function VehicleRegistrationPage() {
               <Button variant="outline" asChild>
                 <Link to={ROUTES.VEHICLE_TRACKING}>Vehicle Tracking</Link>
               </Button>
-              <Button onClick={() => setOpen(true)}>Add vehicle entry</Button>
+              {viewOnly ? (
+                <div className="flex items-center text-sm text-muted-foreground px-2">View-only: creation disabled</div>
+              ) : (
+                <Button onClick={() => setOpen(true)}>Add vehicle entry</Button>
+              )}
             </div>
           </div>
         </CardHeader>
