@@ -200,6 +200,13 @@ const ROLE_PATH_RULES: Record<RestrictedRole, PathRule> = {
       ROUTES.INCIDENT_MANAGEMENT,
       ROUTES.AI_INCIDENT_MANAGEMENT,
       ROUTES.INCIDENT_CREATION,
+      // Vehicle management (view-only)
+      ROUTES.VEHICLE_CONTRACTOR_MANAGEMENT,
+      ROUTES.VEHICLE_REGISTRATION,
+      ROUTES.VEHICLE_TRACKING,
+      ROUTES.CONTRACTOR_PASSES,
+      ROUTES.CARGO_DELIVERY_LOGS,
+      ROUTES.VEHICLE_DATABASE,
     ],
     patterns: [
       /^\/goods-receipt\/[^/]+$/,
@@ -209,6 +216,8 @@ const ROLE_PATH_RULES: Record<RestrictedRole, PathRule> = {
       // allow incident management subpaths
       /^\/incident-management(\/.*)?$/,
       /^\/ai-incident-management(\/.*)?$/,
+      // allow vehicle database details
+      /^\/vehicle-database(\/.*)?$/,
     ],
   },
   EXAMINATION_OFFICER: {
@@ -435,4 +444,9 @@ export function getRoleDisplayLabel(role: string | undefined | null): string {
     .split("_")
     .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
     .join(" ")
+}
+
+/** Returns true when the role should only have view/list access for vehicle-management modules. */
+export function isViewOnlyForVehicleModule(role: string | undefined | null): boolean {
+  return getRestrictedRole(role) === "WAREHOUSE_IN_CHARGE"
 }
