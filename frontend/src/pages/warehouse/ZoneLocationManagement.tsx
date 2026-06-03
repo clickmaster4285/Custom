@@ -36,9 +36,9 @@ import { zoneSecurityBadge } from "@/lib/warehouse-zones"
 
 export default function ZoneLocationManagementPage() {
   const [locations, setLocations] = useState<string[]>([])
-  const [selectedLocation, setSelectedLocation] = useState<string>("")
+  const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined)
   const [warehouses, setWarehouses] = useState<WarehouseRecord[]>([])
-  const [selectedWarehouse, setSelectedWarehouse] = useState<string>("")
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string | undefined>(undefined)
   const [zones, setZones] = useState<SiteZoneRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +48,6 @@ export default function ZoneLocationManagementPage() {
   const [zoneForm, setZoneForm] = useState({
     code: "",
     name: "",
-    purpose: "",
     security_level: "standard" as "standard" | "restricted" | "high",
     sort_order: 1,
     description: "",
@@ -60,7 +59,6 @@ export default function ZoneLocationManagementPage() {
     setZoneForm({
       code: "",
       name: "",
-      purpose: "",
       security_level: "standard",
       sort_order: zones.length + 1 || 1,
       description: "",
@@ -96,7 +94,7 @@ export default function ZoneLocationManagementPage() {
         setSelectedWarehouse(data[0].id)
       } else if (data.length === 0) {
         setZones([])
-        setSelectedWarehouse("")
+        setSelectedWarehouse(undefined)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load warehouses")
@@ -134,7 +132,10 @@ export default function ZoneLocationManagementPage() {
   }
 
   const handleEditZone = (zone: SiteZoneRecord) => {
-    setEditingZone(zone)
+    setEditingZone({
+      ...zone,
+      description: zone.description || zone.purpose,
+    })
     setEditDialogOpen(true)
   }
 
@@ -145,6 +146,7 @@ export default function ZoneLocationManagementPage() {
       await updateZone(editingZone.id, {
         name: editingZone.name,
         description: editingZone.description,
+        purpose: editingZone.description,
         is_active: editingZone.is_active,
       })
       setEditDialogOpen(false)
@@ -163,7 +165,7 @@ export default function ZoneLocationManagementPage() {
         warehouse: selectedWarehouse,
         code: zoneForm.code,
         name: zoneForm.name,
-        purpose: zoneForm.purpose,
+        purpose: zoneForm.description,
         security_level: zoneForm.security_level,
         sort_order: zoneForm.sort_order,
         description: zoneForm.description,
@@ -208,12 +210,15 @@ export default function ZoneLocationManagementPage() {
             <div className="grid gap-2">
               <Label htmlFor="location-select">Location</Label>
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                <SelectTrigger id="location-select">
-                  <SelectValue />
+                <SelectTrigger
+                  id="location-select"
+                  className="w-full md:w-80 h-11 text-sm bg-background border-border rounded-md focus:ring-2 focus:ring-[#3b82f6]/20"
+                >
+                  <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map((loc) => (
-                    <SelectItem key={loc} value={loc}>
+                    <SelectItem key={loc} value={loc} className="py-2.5">
                       {locationLabel(loc)}
                     </SelectItem>
                   ))}
@@ -224,12 +229,15 @@ export default function ZoneLocationManagementPage() {
             <div className="grid gap-2">
               <Label htmlFor="warehouse-select">Warehouse</Label>
               <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-                <SelectTrigger id="warehouse-select">
+                <SelectTrigger
+                  id="warehouse-select"
+                  className="w-full md:w-80 h-11 text-sm bg-background border-border rounded-md focus:ring-2 focus:ring-[#3b82f6]/20"
+                >
                   <SelectValue placeholder="Select warehouse" />
                 </SelectTrigger>
                 <SelectContent>
                   {warehouses.map((wh) => (
-                    <SelectItem key={wh.id} value={wh.id}>
+                    <SelectItem key={wh.id} value={wh.id} className="py-2.5">
                       {wh.code} - {wh.name}
                     </SelectItem>
                   ))}
@@ -340,7 +348,7 @@ export default function ZoneLocationManagementPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">{zone.name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{zone.purpose}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{zone.description || zone.purpose}</p>
                       <div className="mt-2 text-xs space-y-1">
                         <p>Status: <span className={zone.is_active ? "text-green-600" : "text-red-600"}>{zone.is_active ? "Active" : "Inactive"}</span></p>
                       </div>
@@ -385,7 +393,9 @@ export default function ZoneLocationManagementPage() {
                           <TableRow key={zone.id}>
                             <TableCell className="font-medium">{zone.code}</TableCell>
                             <TableCell>{zone.name}</TableCell>
-                            <TableCell className="max-w-[320px] truncate text-sm text-muted-foreground">{zone.purpose}</TableCell>
+                            <TableCell className="max-w-[320px] truncate text-sm text-muted-foreground">
+                              {zone.description || zone.purpose}
+                            </TableCell>
                             <TableCell>
                               <Badge variant={zoneSecurityBadge(zone.security_level)}>
                                 {zone.security_level}
@@ -449,15 +459,15 @@ export default function ZoneLocationManagementPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <textarea
-                  id="description"
-                  className="border rounded-md p-2 text-sm resize-none h-24"
-                  value={editingZone.description}
-                  onChange={(e) =>
-                    setEditingZone({ ...editingZone, description: e.target.value })
-                  }
-                  placeholder="Optional SOP text or notes"
+<Label htmlFor="description">Purpose / Description</Label>
+              <textarea
+                id="description"
+                className="border rounded-md p-2 text-sm resize-none h-24"
+                value={editingZone.description}
+                onChange={(e) =>
+                  setEditingZone({ ...editingZone, description: e.target.value })
+                }
+                placeholder="Visitor or operational purpose"
                 />
               </div>
 
@@ -529,11 +539,12 @@ export default function ZoneLocationManagementPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="zone-purpose">Purpose</Label>
-              <Input
-                id="zone-purpose"
-                value={zoneForm.purpose}
-                onChange={(e) => setZoneForm({ ...zoneForm, purpose: e.target.value })}
+              <Label htmlFor="zone-description">Purpose / Description</Label>
+              <textarea
+                id="zone-description"
+                className="border rounded-md p-2 text-sm resize-none h-24"
+                value={zoneForm.description}
+                onChange={(e) => setZoneForm({ ...zoneForm, description: e.target.value })}
                 placeholder="Visitor or operational purpose"
               />
             </div>
@@ -561,16 +572,6 @@ export default function ZoneLocationManagementPage() {
                 min={1}
                 value={zoneForm.sort_order}
                 onChange={(e) => setZoneForm({ ...zoneForm, sort_order: Number(e.target.value) || 1 })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="zone-description">Description</Label>
-              <textarea
-                id="zone-description"
-                className="border rounded-md p-2 text-sm resize-none h-24"
-                value={zoneForm.description}
-                onChange={(e) => setZoneForm({ ...zoneForm, description: e.target.value })}
-                placeholder="Optional SOP text or notes"
               />
             </div>
             <div className="grid gap-2">

@@ -123,13 +123,13 @@ export default function ZoneRestrictionsPage() {
 
   const availableZones = zonesQuery.data ?? []
   const [search, setSearch] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string>("all")
+  const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined)
 
   const filteredZones = useMemo(() => {
     const q = search.trim().toLowerCase()
     return availableZones.filter((zone) => {
       const matchesType =
-        typeFilter === "all" || zone.vms_zone_type === typeFilter
+        !typeFilter || typeFilter === "all" || zone.vms_zone_type === typeFilter
       const matchesSearch =
         q.length === 0 ||
         [
@@ -259,13 +259,15 @@ export default function ZoneRestrictionsPage() {
                 className="md:w-72"
               />
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="md:w-48">
+                <SelectTrigger className="md:w-48 h-11 text-sm bg-background border-border rounded-md focus:ring-2 focus:ring-[#3b82f6]/20">
                   <SelectValue placeholder="Zone type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="all" className="py-2.5">
+                    All
+                  </SelectItem>
                   {ZONE_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
+                    <SelectItem key={t} value={t} className="py-2.5">
                       {t}
                     </SelectItem>
                   ))}
@@ -282,11 +284,8 @@ export default function ZoneRestrictionsPage() {
                 <TableHead>Warehouse</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Zone</TableHead>
-                <TableHead>Category</TableHead>
                 <TableHead>VMS Type</TableHead>
-                <TableHead>Escort</TableHead>
-                <TableHead>Occupancy</TableHead>
-                <TableHead>Access hours</TableHead>
+                <TableHead>Security</TableHead>
                 <TableHead>Weekend</TableHead>
                 <TableHead>Active</TableHead>
                 <TableHead />
@@ -295,13 +294,13 @@ export default function ZoneRestrictionsPage() {
             <TableBody>
               {zonesQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     Loading zones…
                   </TableCell>
                 </TableRow>
               ) : filteredZones.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No zones found for your location.
                   </TableCell>
                 </TableRow>
@@ -315,11 +314,7 @@ export default function ZoneRestrictionsPage() {
                       <div className="text-xs text-muted-foreground">{zone.code}</div>
                     </TableCell>
                     <TableCell>{zone.vms_zone_type}</TableCell>
-                    <TableCell>{zone.requires_escort ? "Yes" : "No"}</TableCell>
-                    <TableCell>{zone.max_occupancy}</TableCell>
-                    <TableCell className="text-xs">
-                      {zone.access_hours_start}–{zone.access_hours_end}
-                    </TableCell>
+                    <TableCell>{zone.security_level}</TableCell>
                     <TableCell>{zone.weekend_access ? "Yes" : "No"}</TableCell>
                     <TableCell>
                       <Badge variant={zone.is_active ? "default" : "secondary"}>
@@ -363,12 +358,12 @@ export default function ZoneRestrictionsPage() {
               <div className="space-y-1.5">
                 <Label>Zone type</Label>
                 <Select value={formData.vms_zone_type} onValueChange={(v) => setFormData((prev) => ({ ...prev, vms_zone_type: v as ZoneRestrictionFormData["vms_zone_type"] }))}>
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className="w-full h-11 text-sm bg-background border-border rounded-md focus:ring-2 focus:ring-[#3b82f6]/20">
+                    <SelectValue placeholder="Select zone type" />
                   </SelectTrigger>
                   <SelectContent>
                     {ZONE_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
+                      <SelectItem key={type} value={type} className="py-2.5">
                         {type}
                       </SelectItem>
                     ))}
