@@ -706,10 +706,6 @@ export const HR_NAV_SECTIONS: NavSection[] = [
 
 export const GUARD_NAV_SECTIONS: NavSection[] = [
   { title: "Main Menu", items: [ALL_NAV_ITEMS[0]] },
-  {
-    title: "Gate",
-    items: [{ label: "Guard & Reception Panel", href: ROUTES.GUARD_RECEPTION_PANEL }],
-  },
   { title: "Visitor Management", items: [VISITOR_MANAGEMENT_NAV] },
   { title: "Vehicle Management", items: [VEHICLE_MANAGEMENT_NAV] },
   { title: "Incident Management", items: [{ label: "Incident Creation", href: ROUTES.INCIDENT_CREATION }] },
