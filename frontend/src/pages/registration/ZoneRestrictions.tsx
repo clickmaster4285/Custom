@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,98 +29,169 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ROUTES } from "@/routes/config"
-import type { Zone, ZoneType } from "@/lib/gate-types"
+import { locationLabel } from "@/lib/locations"
 import { ZONE_TYPES } from "@/lib/gate-types"
-import { loadZones, saveZones, loadGates, ensureDefaultZones } from "@/lib/gate-storage"
+import { fetchZones, updateZone, type SiteZoneRecord } from "@/lib/warehouse-zones-api"
+import { getUserLocationFilter } from "@/lib/location-access"
+import { loadGates } from "@/lib/gate-storage"
 
-function generateZoneId(): string {
-  return `zone-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+interface ZoneRestrictionFormData {
+  zone_id: string
+  zone_code: string
+  zone_name: string
+  warehouse_name: string
+  warehouse_location: string
+  category: string
+  vms_zone_type: "Public" | "Restricted" | "High Security" | "Admin"
+  requires_escort: boolean
+  access_hours_start: string
+  access_hours_end: string
+  weekend_access: boolean
+  max_occupancy: number
+  allowed_categories: string[]
+  gate_ids: string[]
+  camera_ids: string[]
+  zone_active: boolean
 }
 
-const emptyZone = (): Omit<Zone, "zone_id"> => ({
-  zone_name: "",
-  zone_code: "",
-  zone_type: "Public",
-  floor: "",
-  building: "",
-  allowed_categories: [],
-  max_occupancy: 0,
-  requires_escort: false,
-  access_hours_start: "06:00",
-  access_hours_end: "22:00",
-  weekend_access: false,
-  camera_ids: [],
-  gate_ids: [],
-  zone_active: true,
-})
+function mapSiteZoneToForm(zone: SiteZoneRecord): ZoneRestrictionFormData {
+  return {
+    zone_id: zone.id,
+    zone_code: zone.code,
+    zone_name: zone.name,
+    warehouse_name: zone.warehouse_name,
+    warehouse_location: zone.warehouse_location,
+    category: zone.category,
+    vms_zone_type: zone.vms_zone_type,
+    requires_escort: zone.requires_escort,
+    access_hours_start: zone.access_hours_start,
+    access_hours_end: zone.access_hours_end,
+    weekend_access: zone.weekend_access,
+    max_occupancy: zone.max_occupancy,
+    allowed_categories: zone.allowed_visitor_categories,
+    gate_ids: zone.gate_ids,
+    camera_ids: zone.camera_ids,
+    zone_active: zone.is_active,
+  }
+}
+
+function createEmptyForm(): ZoneRestrictionFormData {
+  return {
+    zone_id: "",
+    zone_code: "",
+    zone_name: "",
+    warehouse_name: "",
+    warehouse_location: "",
+    category: "",
+    vms_zone_type: "Public",
+    requires_escort: false,
+    access_hours_start: "06:00",
+    access_hours_end: "22:00",
+    weekend_access: false,
+    max_occupancy: 0,
+    allowed_categories: [],
+    gate_ids: [],
+    camera_ids: [],
+    zone_active: true,
+  }
+}
 
 export default function ZoneRestrictionsPage() {
-  const [zones, setZonesState] = useState<Zone[]>([])
+  const locationFilter = getUserLocationFilter()
+  const [open, setOpen] = useState(false)
+  const [selectedZone, setSelectedZone] = useState<SiteZoneRecord | null>(null)
+  const [formData, setFormData] = useState<ZoneRestrictionFormData>(createEmptyForm())
   const [gates, setGates] = useState<{ gate_id: string; gate_name: string }[]>([])
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const zonesQuery = useQuery({
+    queryKey: ["site-zones", locationFilter],
+    queryFn: async () => fetchZones(locationFilter ? { location: locationFilter } : undefined),
+    staleTime: 60_000,
+  })
+
+  useQuery({
+    queryKey: ["vms-gates"],
+    queryFn: async () => loadGates(),
+    onSuccess: (result) => {
+      setGates(result.map((gate) => ({ gate_id: gate.gate_id, gate_name: gate.gate_name })))
+    },
+  })
+
+  const availableZones = zonesQuery.data ?? []
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [open, setOpen] = useState(false)
-  const [formData, setFormData] = useState(emptyZone())
-
-  const [hydrated, setHydrated] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      await ensureDefaultZones()
-      const z = await loadZones()
-      const g = await loadGates()
-      if (!cancelled) {
-        setZonesState(z)
-        setGates(g.map((gate) => ({ gate_id: gate.gate_id, gate_name: gate.gate_name })))
-        setHydrated(true)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!hydrated) return
-    void saveZones(zones)
-  }, [zones, hydrated])
 
   const filteredZones = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return zones.filter((row) => {
-      const matchType = typeFilter === "all" || (row.zone_type ?? "") === typeFilter
-      const matchSearch =
+    return availableZones.filter((zone) => {
+      const matchesType =
+        typeFilter === "all" || zone.vms_zone_type === typeFilter
+      const matchesSearch =
         q.length === 0 ||
-        [row.zone_id, row.zone_name, row.zone_code, row.floor, row.building].some((v) =>
-          (v ?? "").toString().toLowerCase().includes(q)
-        )
-      return matchType && matchSearch
+        [
+          zone.code,
+          zone.name,
+          zone.warehouse_code,
+          zone.warehouse_name,
+          zone.category,
+          zone.vms_zone_type,
+        ].some((value) => value?.toString().toLowerCase().includes(q))
+      return matchesType && matchesSearch
     })
-  }, [zones, search, typeFilter])
+  }, [availableZones, search, typeFilter])
 
-  const onAdd = () => {
-    if (!formData.zone_name?.trim() || !formData.zone_code?.trim()) return
-    const code = formData.zone_code.trim().slice(0, 10)
-    if (zones.some((z) => z.zone_code === code)) return
-    const newZone: Zone = {
-      ...formData,
-      zone_id: generateZoneId(),
-      zone_code: code,
-      max_occupancy: Number(formData.max_occupancy) || 0,
-    }
-    setZonesState((prev) => [newZone, ...prev])
-    setFormData(emptyZone())
+  const startEdit = (zone: SiteZoneRecord) => {
+    setSelectedZone(zone)
+    setFormData(mapSiteZoneToForm(zone))
+    setSaveError(null)
+    setOpen(true)
+  }
+
+  const closeDialog = () => {
     setOpen(false)
+    setSelectedZone(null)
+    setFormData(createEmptyForm())
+    setSaveError(null)
+  }
+
+  const onSave = async () => {
+    if (!selectedZone) return
+    try {
+      setSaving(true)
+      setSaveError(null)
+      await updateZone(selectedZone.id, {
+        requires_escort: formData.requires_escort,
+        access_hours_start: formData.access_hours_start,
+        access_hours_end: formData.access_hours_end,
+        weekend_access: formData.weekend_access,
+        max_occupancy: formData.max_occupancy,
+        allowed_visitor_categories: formData.allowed_categories,
+        gate_ids: formData.gate_ids,
+        camera_ids: formData.camera_ids,
+        vms_zone_type: formData.vms_zone_type,
+        is_active: formData.zone_active,
+      })
+      await zonesQuery.refetch()
+      closeDialog()
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to update zone")
+    } finally {
+      setSaving(false)
+    }
   }
 
   const breadcrumbs = [
-        { label: "Home", href: ROUTES.DASHBOARD },
-        { label: "Visitor Management System" },
-        { label: "Access Control" },
-        { label: "Zone Restrictions" },
+    { label: "Home", href: ROUTES.DASHBOARD },
+    { label: "Visitor Management System" },
+    { label: "Access Control" },
+    { label: "Zone Restrictions" },
   ]
+
+  const locationFilterLabel = locationFilter ? locationLabel(locationFilter) : "All locations"
 
   return (
     <>
@@ -147,29 +219,48 @@ export default function ZoneRestrictionsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Zone Restrictions</h1>
         <p className="text-sm text-muted-foreground">
-          Define zones with access hours, occupancy, escort rules, and linked gates. Important info in list; full fields when you Add zone.
+          Manage visitor access rules on shared WMS zone records. Zones are created by Warehouse Setup and shared across VMS.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Showing zones for: <span className="font-medium text-foreground">{locationFilterLabel}</span>
         </p>
       </div>
 
+      {zonesQuery.isError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            {zonesQuery.error instanceof Error ? zonesQuery.error.message : "Failed to load zones."}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card className="mb-4">
+        <CardContent>
+          <div className="text-sm text-muted-foreground">
+            Zones are no longer stored in a separate VMS blob. This page edits access fields on shared SiteZone records from the warehouse system.
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <CardTitle>Zones</CardTitle>
+              <CardTitle>Zone access rules</CardTitle>
               <CardDescription>
-                List shows key info; click Add zone for all fields.
+                Select a zone to update escort, occupancy, schedule, and linked gates.
               </CardDescription>
             </div>
             <div className="flex flex-col md:flex-row gap-2">
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name, code, floor..."
-                className="md:w-56"
+                placeholder="Search zone code, name, warehouse..."
+                className="md:w-72"
               />
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="md:w-40">
-                  <SelectValue placeholder="Type" />
+                <SelectTrigger className="md:w-48">
+                  <SelectValue placeholder="Zone type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
@@ -180,251 +271,207 @@ export default function ZoneRestrictionsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" asChild>
-                <Link to={ROUTES.GATE_INTEGRATION}>Gate Integration</Link>
-              </Button>
-              <Button onClick={() => { setFormData(emptyZone()); setOpen(true) }}>Add zone</Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
+
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Warehouse</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Zone</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>VMS Type</TableHead>
+                <TableHead>Escort</TableHead>
+                <TableHead>Occupancy</TableHead>
+                <TableHead>Access hours</TableHead>
+                <TableHead>Weekend</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {zonesQuery.isLoading ? (
                 <TableRow>
-                  <TableHead>Zone ID</TableHead>
-                  <TableHead>Zone Name</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Floor</TableHead>
-                  <TableHead>Building</TableHead>
-                  <TableHead>Max Occupancy</TableHead>
-                  <TableHead>Escort</TableHead>
-                  <TableHead>Access Hours</TableHead>
-                  <TableHead>Weekend</TableHead>
-                  <TableHead>Active</TableHead>
+                  <TableCell colSpan={10} className="text-center py-8">
+                    Loading zones…
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredZones.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={11}
-                      className="text-center text-muted-foreground py-8"
-                    >
-                      No zones. Click &quot;Add zone&quot; to create one.
+              ) : filteredZones.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    No zones found for your location.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredZones.map((zone) => (
+                  <TableRow key={zone.id}>
+                    <TableCell>{zone.warehouse_name}</TableCell>
+                    <TableCell>{locationLabel(zone.warehouse_location)}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{zone.name}</div>
+                      <div className="text-xs text-muted-foreground">{zone.code}</div>
+                    </TableCell>
+                    <TableCell>{zone.vms_zone_type}</TableCell>
+                    <TableCell>{zone.requires_escort ? "Yes" : "No"}</TableCell>
+                    <TableCell>{zone.max_occupancy}</TableCell>
+                    <TableCell className="text-xs">
+                      {zone.access_hours_start}–{zone.access_hours_end}
+                    </TableCell>
+                    <TableCell>{zone.weekend_access ? "Yes" : "No"}</TableCell>
+                    <TableCell>
+                      <Badge variant={zone.is_active ? "default" : "secondary"}>
+                        {zone.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" onClick={() => startEdit(zone)}>
+                        Edit
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filteredZones.map((z) => (
-                    <TableRow key={z.zone_id}>
-                      <TableCell className="font-mono text-xs">
-                        {z.zone_id.slice(0, 14)}…
-                      </TableCell>
-                      <TableCell>{z.zone_name ?? "—"}</TableCell>
-                      <TableCell className="font-mono">{z.zone_code ?? "—"}</TableCell>
-                      <TableCell>{z.zone_type ?? "—"}</TableCell>
-                      <TableCell>{z.floor || "—"}</TableCell>
-                      <TableCell>{z.building || "—"}</TableCell>
-                      <TableCell>{z.max_occupancy ?? "—"}</TableCell>
-                      <TableCell>{z.requires_escort ? "Yes" : "No"}</TableCell>
-                      <TableCell className="text-xs">
-                        {z.access_hours_start}–{z.access_hours_end}
-                      </TableCell>
-                      <TableCell>{z.weekend_access ? "Yes" : "No"}</TableCell>
-                      <TableCell>
-                        <Badge variant={z.zone_active ? "default" : "secondary"}>
-                          {z.zone_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setFormData(emptyZone()) }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) closeDialog(); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add zone</DialogTitle>
+            <DialogTitle>Edit Zone Access</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              All zone fields. Zone ID is auto-generated. Zone code must be unique.
+              Update visitor access rules for this shared warehouse zone.
             </p>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            <div className="space-y-1.5">
-              <Label>Zone name *</Label>
-              <Input
-                value={formData.zone_name}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, zone_name: e.target.value.slice(0, 50) }))
-                }
-                placeholder="Max 50"
-                maxLength={50}
-              />
+
+          {saveError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{saveError}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2 rounded-md border bg-muted p-4">
+              <div className="text-sm text-muted-foreground">Warehouse</div>
+              <div className="font-medium">{formData.warehouse_name}</div>
+              <div className="text-sm text-muted-foreground">Zone</div>
+              <div className="font-medium">{formData.zone_name} ({formData.zone_code})</div>
+              <div className="space-y-1.5">
+                <Label>Zone type</Label>
+                <Select value={formData.vms_zone_type} onValueChange={(v) => setFormData((prev) => ({ ...prev, vms_zone_type: v as ZoneRestrictionFormData["vms_zone_type"] }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ZONE_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Max occupancy</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={formData.max_occupancy}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, max_occupancy: Number(e.target.value) || 0 }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Access hours start</Label>
+                <Input
+                  type="time"
+                  value={formData.access_hours_start}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, access_hours_start: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Access hours end</Label>
+                <Input
+                  type="time"
+                  value={formData.access_hours_end}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, access_hours_end: e.target.value }))}
+                />
+              </div>
             </div>
+
             <div className="space-y-1.5">
-              <Label>Zone code * (unique)</Label>
+              <Label>Allowed visitor categories</Label>
               <Input
-                value={formData.zone_code}
+                value={formData.allowed_categories.join(", ")}
                 onChange={(e) =>
-                  setFormData((p) => ({ ...p, zone_code: e.target.value.slice(0, 10) }))
-                }
-                placeholder="Max 10, unique"
-                maxLength={10}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Zone type *</Label>
-              <Select
-                value={formData.zone_type}
-                onValueChange={(v) =>
-                  setFormData((p) => ({ ...p, zone_type: v as ZoneType }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ZONE_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Max occupancy *</Label>
-              <Input
-                type="number"
-                min={0}
-                value={formData.max_occupancy || ""}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, max_occupancy: Number(e.target.value) || 0 }))
-                }
-                placeholder="Number"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Floor (optional)</Label>
-              <Input
-                value={formData.floor}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, floor: e.target.value.slice(0, 10) }))
-                }
-                placeholder="Max 10"
-                maxLength={10}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Building (optional)</Label>
-              <Input
-                value={formData.building}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, building: e.target.value.slice(0, 50) }))
-                }
-                placeholder="Max 50"
-                maxLength={50}
-              />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label>Allowed categories (Visitor Category IDs, comma-separated)</Label>
-              <Input
-                value={(formData.allowed_categories ?? []).join(", ")}
-                onChange={(e) =>
-                  setFormData((p) => ({
-                    ...p,
+                  setFormData((prev) => ({
+                    ...prev,
                     allowed_categories: e.target.value
                       .split(",")
-                      .map((s) => s.trim())
+                      .map((item) => item.trim())
                       .filter(Boolean),
                   }))
                 }
-                placeholder="e.g. cat1, cat2"
+                placeholder="e.g. contractor, staff"
               />
             </div>
+
             <div className="space-y-1.5">
-              <Label>Access hours start *</Label>
-              <Input
-                type="time"
-                value={formData.access_hours_start}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, access_hours_start: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Access hours end *</Label>
-              <Input
-                type="time"
-                value={formData.access_hours_end}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, access_hours_end: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label>Gate IDs * (select gates linked to this zone)</Label>
+              <Label>Gate IDs</Label>
               <div className="flex flex-wrap gap-3 rounded-md border p-3">
                 {gates.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No gates. Add gates in Gate Integration first.
-                  </p>
+                  <p className="text-sm text-muted-foreground">No gates available.</p>
                 ) : (
-                  gates.map((g) => (
-                    <div key={g.gate_id} className="flex items-center gap-2">
+                  gates.map((gate) => (
+                    <div key={gate.gate_id} className="flex items-center gap-2">
                       <Checkbox
-                        id={`gate-${g.gate_id}`}
-                        checked={formData.gate_ids.includes(g.gate_id)}
+                        id={`gate-${gate.gate_id}`}
+                        checked={formData.gate_ids.includes(gate.gate_id)}
                         onCheckedChange={(checked) => {
-                          setFormData((p) => ({
-                            ...p,
+                          setFormData((prev) => ({
+                            ...prev,
                             gate_ids:
                               checked === true
-                                ? [...p.gate_ids, g.gate_id]
-                                : p.gate_ids.filter((id) => id !== g.gate_id),
+                                ? [...prev.gate_ids, gate.gate_id]
+                                : prev.gate_ids.filter((id) => id !== gate.gate_id),
                           }))
                         }}
                       />
-                      <Label
-                        htmlFor={`gate-${g.gate_id}`}
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        {g.gate_name} ({g.gate_id.slice(0, 10)}…)
+                      <Label htmlFor={`gate-${gate.gate_id}`} className="text-sm font-normal cursor-pointer">
+                        {gate.gate_name}
                       </Label>
                     </div>
                   ))
                 )}
               </div>
             </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label>Camera IDs (optional, comma-separated)</Label>
+
+            <div className="space-y-1.5">
+              <Label>Camera IDs</Label>
               <Input
-                value={(formData.camera_ids ?? []).join(", ")}
+                value={formData.camera_ids.join(", ")}
                 onChange={(e) =>
-                  setFormData((p) => ({
-                    ...p,
+                  setFormData((prev) => ({
+                    ...prev,
                     camera_ids: e.target.value
                       .split(",")
-                      .map((s) => s.trim())
+                      .map((item) => item.trim())
                       .filter(Boolean),
                   }))
                 }
-                placeholder="Camera registry IDs"
+                placeholder="Comma-separated camera IDs"
               />
             </div>
-            <div className="flex flex-wrap items-center gap-6 md:col-span-2">
+
+            <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2">
                 <Switch
                   id="requires_escort"
                   checked={formData.requires_escort}
-                  onCheckedChange={(c) =>
-                    setFormData((p) => ({ ...p, requires_escort: c }))
-                  }
+                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, requires_escort: checked }))}
                 />
                 <Label htmlFor="requires_escort">Requires escort</Label>
               </div>
@@ -432,9 +479,7 @@ export default function ZoneRestrictionsPage() {
                 <Switch
                   id="weekend_access"
                   checked={formData.weekend_access}
-                  onCheckedChange={(c) =>
-                    setFormData((p) => ({ ...p, weekend_access: c }))
-                  }
+                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, weekend_access: checked }))}
                 />
                 <Label htmlFor="weekend_access">Weekend access</Label>
               </div>
@@ -442,19 +487,20 @@ export default function ZoneRestrictionsPage() {
                 <Switch
                   id="zone_active"
                   checked={formData.zone_active}
-                  onCheckedChange={(c) =>
-                    setFormData((p) => ({ ...p, zone_active: c }))
-                  }
+                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, zone_active: checked }))}
                 />
                 <Label htmlFor="zone_active">Zone active</Label>
               </div>
             </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={onAdd}>Add zone</Button>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={closeDialog}>
+                Cancel
+              </Button>
+              <Button onClick={onSave} disabled={saving}>
+                {saving ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
