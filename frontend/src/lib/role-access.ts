@@ -196,12 +196,19 @@ const ROLE_PATH_RULES: Record<RestrictedRole, PathRule> = {
       ROUTES.HANDOVER_REQUESTS,
       ROUTES.INTER_COLLECTORATE_TRANSFER,
       ROUTES.INTERNAL_MOVEMENT,
+      // Incident management access
+      ROUTES.INCIDENT_MANAGEMENT,
+      ROUTES.AI_INCIDENT_MANAGEMENT,
+      ROUTES.INCIDENT_CREATION,
     ],
     patterns: [
       /^\/goods-receipt\/[^/]+$/,
       /^\/stock-management\/[^/]+$/,
       /^\/cycle-counting-audit\/[^/]+$/,
       /^\/deposit-account-register\/[^/]+$/,
+      // allow incident management subpaths
+      /^\/incident-management(\/.*)?$/,
+      /^\/ai-incident-management(\/.*)?$/,
     ],
   },
   EXAMINATION_OFFICER: {
