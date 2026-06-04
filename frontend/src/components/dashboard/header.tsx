@@ -11,6 +11,7 @@ import {
 import { clearAuth, getStoredUser } from "@/lib/auth"
 import { clearLegacyVmsLocalStorage } from "@/lib/vms-list-api"
 import { getRoleDisplayLabel } from "@/lib/role-access"
+import { isGlobalAdmin } from "@/lib/location-access"
 import { locationLabel } from "@/lib/locations"
 import { ROUTES } from "@/routes/config"
 
@@ -31,7 +32,11 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   const displayName = user?.username?.trim() || "User"
   const role = getRoleDisplayLabel(user?.role)
-  const locationName = user?.location ? locationLabel(user.location) : ""
+  const locationName = user?.location
+    ? locationLabel(user.location)
+    : isGlobalAdmin(user?.role)
+      ? "All Locations"
+      : ""
   const roleLine = locationName ? `${role} · ${locationName}` : role
   const initials = displayName
     .split(" ")
