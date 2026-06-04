@@ -437,6 +437,7 @@ export function getRoleDisplayLabel(role: string | undefined | null): string {
   if (normalized === "EXAMINATION_OFFICER") return "Examination Officer"
   if (normalized === "STOCK_CONTROLLER") return "Stock Controller"
   if (normalized === "IT_ADMIN") return "IT Administrator"
+  if (normalized === "LOCATION_ADMIN") return "Location Administrator"
   if (normalized === "HR") return "Human Resource"
   if (normalized === "AUDITOR") return "Auditor"
   if (!normalized) return "User"

@@ -10,7 +10,13 @@ from .models import (
     PayrollEntry,
 )
 from django.contrib.auth import authenticate
-from django.contrib.auth.hashers import make_password
+from .permissions import (
+    GLOBAL_ADMIN_ROLE,
+    LOCATION_ADMIN_ROLE,
+    get_location_scope,
+    is_global_admin,
+    location_admin_may_assign_role,
+)
 
 
 # -----------------------------
@@ -114,7 +120,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
         }
 
     def get_can_delete(self, obj):
-        return obj.role != "ADMIN"
+        request = self.context.get("request")
+        actor = getattr(request, "user", None) if request else None
+        if obj.role == GLOBAL_ADMIN_ROLE:
+            return False
+        if obj.role == LOCATION_ADMIN_ROLE:
+            return bool(actor and is_global_admin(actor))
+        return True
 
     def validate_username(self, value):
         username = (value or "").strip()
@@ -151,6 +163,31 @@ class UserCreateSerializer(serializers.ModelSerializer):
             attrs["phone"] = phone or (self.instance.phone if self.instance else "0000000000")
         if not (attrs.get("full_name") or "").strip() and self.instance is None:
             raise serializers.ValidationError({"full_name": "Name is required."})
+
+        role = attrs.get("role") or (self.instance.role if self.instance else None)
+        location = attrs.get("location", "")
+        if self.instance is not None and "location" not in attrs:
+            location = self.instance.location or ""
+
+        if role == GLOBAL_ADMIN_ROLE:
+            attrs["location"] = ""
+        elif role == LOCATION_ADMIN_ROLE:
+            if not (location or "").strip():
+                raise serializers.ValidationError(
+                    {"location": "Location is required for Location Administrator."}
+                )
+
+        request = self.context.get("request")
+        actor = getattr(request, "user", None) if request else None
+        if actor and getattr(actor, "is_authenticated", False):
+            scope = get_location_scope(actor)
+            if scope:
+                attrs["location"] = scope
+            if role and not location_admin_may_assign_role(actor, role):
+                raise serializers.ValidationError(
+                    {"role": "You cannot assign this role."}
+                )
+
         return attrs
 
     def create(self, validated_data):

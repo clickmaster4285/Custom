@@ -12,7 +12,8 @@ import { validateHumanFaceFile, NOT_HUMAN_PICTURE_MESSAGE } from "@/lib/human-fa
 import { useToast } from "@/hooks/use-toast"
 
 const ROLE_OPTIONS = [
-  { value: "ADMIN", label: "Admin" },
+  { value: "ADMIN", label: "Super Admin (All Locations)" },
+  { value: "LOCATION_ADMIN", label: "Location Administrator" },
   { value: "OPERATION_MANAGER", label: "Operation Manager" },
   { value: "INSPECTOR", label: "Inspector" },
   { value: "COLLECTOR", label: "Collector" },

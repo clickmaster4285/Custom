@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { LOCATION_OPTIONS, locationLabel } from "@/lib/locations"
+import { getUserLocationFilter } from "@/lib/location-access"
 import { fetchWarehouses, fetchZones, updateZone, createZone, deleteZone, ensureWarehouseZones, type SiteZoneRecord, type WarehouseRecord } from "@/lib/warehouse-zones-api"
 import { zoneSecurityBadge } from "@/lib/warehouse-zones"
 
@@ -54,6 +55,8 @@ export default function ZoneLocationManagementPage() {
     is_active: true,
   })
   const [ensureLoading, setEnsureLoading] = useState(false)
+  const locationFilter = getUserLocationFilter()
+  const isLocationScoped = Boolean(locationFilter)
 
   const resetZoneForm = () => {
     setZoneForm({
@@ -66,12 +69,17 @@ export default function ZoneLocationManagementPage() {
     })
   }
 
-  // Initialize locations
+  // Initialize locations — lock to user's site for location admins
   useEffect(() => {
+    if (locationFilter) {
+      setLocations([locationFilter])
+      setSelectedLocation(locationFilter)
+      return
+    }
     const locs = LOCATION_OPTIONS.map((o) => o.value)
     setLocations(locs)
     if (locs.length > 0) setSelectedLocation(locs[0])
-  }, [])
+  }, [locationFilter])
 
   // Load warehouses when location changes
   useEffect(() => {
@@ -209,7 +217,11 @@ export default function ZoneLocationManagementPage() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="location-select">Location</Label>
-              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+              <Select
+                value={selectedLocation}
+                onValueChange={setSelectedLocation}
+                disabled={isLocationScoped}
+              >
                 <SelectTrigger
                   id="location-select"
                   className="w-full md:w-80 h-11 text-sm bg-background border-border rounded-md focus:ring-2 focus:ring-[#3b82f6]/20"

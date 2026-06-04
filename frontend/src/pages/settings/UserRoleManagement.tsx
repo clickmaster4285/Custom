@@ -312,7 +312,8 @@ export default function UserRoleManagementPage() {
                   </TableHeader>
                   <TableBody>
                     {[
-                      { name: "Admin", desc: "Full system access", role: "ADMIN" },
+                      { name: "Super Admin", desc: "Full system access — all collectorates", role: "ADMIN" },
+                      { name: "Location Administrator", desc: "Full access for one collectorate site", role: "LOCATION_ADMIN" },
                       { name: "Operation Manager", desc: "Operations oversight", role: "OPERATION_MANAGER" },
                       { name: "Inspector", desc: "Inspection and field ops", role: "INSPECTOR" },
                       { name: "Collector", desc: "Collectorate level access", role: "COLLECTOR" },

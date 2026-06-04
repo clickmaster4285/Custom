@@ -22,6 +22,12 @@ from .models import (
     PayrollEntry,
 )
 from .permissions import IsAdminOrHR
+from .permissions import (
+    apply_location_filter,
+    is_global_admin,
+    GLOBAL_ADMIN_ROLE,
+    LOCATION_ADMIN_ROLE,
+)
 from .serializers import (
     StaffCreateSerializer,
     StaffSerializer,
@@ -76,6 +82,10 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ["username", "email", "role", "full_name", "cnic", "employee_id"]
     filterset_fields = ["role", "is_active", "location"]
 
+    def get_queryset(self):
+        qs = User.objects.filter(is_deleted=False)
+        return apply_location_filter(qs, self.request.user, field="location")
+
     def perform_create(self, serializer):
         user = serializer.save()
         create_activity_log(
@@ -94,8 +104,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.role == "ADMIN":
+        if instance.role == GLOBAL_ADMIN_ROLE:
             raise PermissionDenied("Admin accounts cannot be deleted.")
+        if instance.role == LOCATION_ADMIN_ROLE and not is_global_admin(request.user):
+            raise PermissionDenied("Only the global administrator can delete location administrators.")
         if instance.pk == request.user.pk:
             raise PermissionDenied("You cannot delete your own account.")
         instance.is_deleted = True
@@ -111,7 +123,11 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def unlinked(self, request):
         """Get users that are not linked to any staff"""
-        users = User.objects.filter(staff_profile__isnull=True, is_deleted=False)
+        users = apply_location_filter(
+            User.objects.filter(staff_profile__isnull=True, is_deleted=False),
+            request.user,
+            field="location",
+        )
         serializer = self.get_serializer(users, many=True)
         return Response(serializer.data)
 
@@ -128,7 +144,7 @@ class StaffViewSet(viewsets.ModelViewSet):
     ordering_fields = ["full_name", "created_at"]
 
     def get_queryset(self):
-        return Staff.objects.all()
+        return apply_location_filter(Staff.objects.all(), self.request.user, field="user__location")
 
     def get_serializer_class(self):
         if self.action == "create":

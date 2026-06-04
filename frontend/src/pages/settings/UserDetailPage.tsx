@@ -165,8 +165,12 @@ export default function UserDetailPage() {
           {user.is_active ? "Active" : "Inactive"}
         </Badge>
         <Badge variant="outline">{roleLabel(user.role)}</Badge>
-        <Badge variant="outline">{locationLabel(user.location)}</Badge>
-        {user.role === "ADMIN" && (
+        <Badge variant="outline">
+          {user.role === "ADMIN" && !user.location
+            ? "All Locations"
+            : locationLabel(user.location)}
+        </Badge>
+        {(user.role === "ADMIN" || user.role === "LOCATION_ADMIN") && (
           <Badge variant="secondary">Protected account</Badge>
         )}
       </div>

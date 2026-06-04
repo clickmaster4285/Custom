@@ -29,7 +29,8 @@ export type ApiUser = {
 
 export function canDeleteUser(user: Pick<ApiUser, "role" | "can_delete">): boolean {
   if (user.can_delete === false) return false;
-  return user.role !== "ADMIN";
+  if (user.role === "ADMIN" || user.role === "LOCATION_ADMIN") return false;
+  return true;
 }
 
 export type UserProfilePayload = {
@@ -136,7 +137,8 @@ export function roleLabel(role: string): string {
 }
 
 export const ROLE_OPTIONS = [
-  { value: "ADMIN", label: "Admin" },
+  { value: "ADMIN", label: "Super Admin (All Locations)" },
+  { value: "LOCATION_ADMIN", label: "Location Administrator" },
   { value: "OPERATION_MANAGER", label: "Operation Manager" },
   { value: "INSPECTOR", label: "Inspector" },
   { value: "COLLECTOR", label: "Collector" },

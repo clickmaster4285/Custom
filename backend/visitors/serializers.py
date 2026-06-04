@@ -183,11 +183,18 @@ class VisitorWriteSerializer(serializers.Serializer):
     """Accept flexible frontend payload for create/update."""
 
     def create(self, validated_data):
+        from users.permissions import resolve_location_for_write
         from .payload_utils import apply_registered_by_from_request
 
         source = self.context.get("registration_source", "")
         model_fields, extra = split_visitor_payload(validated_data, registration_source=source)
-        apply_registered_by_from_request(model_fields, self.context.get("request"))
+        request = self.context.get("request")
+        if request and getattr(request.user, "is_authenticated", False):
+            model_fields["location"] = resolve_location_for_write(
+                request.user,
+                model_fields.get("location") or validated_data.get("location") or "",
+            )
+        apply_registered_by_from_request(model_fields, request)
         model_fields["extra_data"] = extra
         if model_fields.get("registration_status") == "draft":
             model_fields["flow_stage"] = "arrived"
