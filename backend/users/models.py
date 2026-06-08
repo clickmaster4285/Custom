@@ -9,6 +9,7 @@ class User(AbstractUser):
 
     ROLE_CHOICES = [
         ("ADMIN", "Admin"),
+        ("LOCATION_ADMIN", "Location Administrator"),
         ("OPERATION_MANAGER", "Operation Manager"),
         ("INSPECTOR", "Inspector"),
         ("COLLECTOR", "Collector"),

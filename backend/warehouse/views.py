@@ -9,22 +9,39 @@ from .serializers import WarehouseSerializer, SiteZoneSerializer
 from .zone_catalog import CUSTOMS_WAREHOUSE_ZONES
 
 
+from users.permissions import apply_location_filter, get_location_scope, resolve_location_for_write
+
+
 class IsWarehouseManager(permissions.BasePermission):
-    """Only WAREHOUSE_SUPERINTENDENT, IT_ADMIN, and ADMIN can write; all WMS users can read."""
+    """Warehouse/location admins and superintendents can write; authenticated users can read."""
+
+    WRITE_ROLES = [
+        "WAREHOUSE_SUPERINTENDENT",
+        "IT_ADMIN",
+        "ADMIN",
+        "LOCATION_ADMIN",
+    ]
 
     def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
         if request.method in permissions.SAFE_METHODS:
-            # Read: all authenticated users
-            return request.user and request.user.is_authenticated
-        # Write: only high-level warehouse/IT/admin roles or Django superusers
+            return True
         return (
-            request.user
-            and request.user.is_authenticated
-            and (
-                request.user.is_superuser
-                or request.user.role in ["WAREHOUSE_SUPERINTENDENT", "IT_ADMIN", "ADMIN"]
-            )
+            request.user.is_superuser
+            or request.user.role in self.WRITE_ROLES
         )
+
+    def has_object_permission(self, request, view, obj):
+        from users.permissions import get_location_scope
+
+        scope = get_location_scope(request.user)
+        if not scope:
+            return True
+        location_code = getattr(obj, "location_code", None)
+        if location_code is None and hasattr(obj, "warehouse"):
+            location_code = getattr(obj.warehouse, "location_code", None)
+        return location_code == scope
 
 
 class WarehouseViewSet(viewsets.ModelViewSet):
@@ -36,12 +53,28 @@ class WarehouseViewSet(viewsets.ModelViewSet):
     filterset_fields = ["location_code", "status"]
 
     def get_queryset(self):
-        """Filter by location_code if provided."""
         queryset = Warehouse.objects.all()
-        location = self.request.query_params.get("location_code")
-        if location:
-            queryset = queryset.filter(location_code=location)
+        queryset = apply_location_filter(
+            queryset,
+            self.request.user,
+            field="location_code",
+            query_param=self.request.query_params.get("location_code"),
+        )
         return queryset
+
+    def perform_create(self, serializer):
+        location_code = resolve_location_for_write(
+            self.request.user,
+            serializer.validated_data.get("location_code", ""),
+        )
+        serializer.save(location_code=location_code)
+
+    def perform_update(self, serializer):
+        location_code = resolve_location_for_write(
+            self.request.user,
+            serializer.validated_data.get("location_code", serializer.instance.location_code),
+        )
+        serializer.save(location_code=location_code)
 
     @action(detail=True, methods=["post"])
     def ensure_zones(self, request, pk=None):
@@ -117,21 +150,22 @@ class SiteZoneViewSet(viewsets.ModelViewSet):
     filterset_fields = ["warehouse", "code", "category", "security_level", "is_active"]
 
     def get_queryset(self):
-        """Filter by warehouse, location, or code if provided."""
         queryset = SiteZone.objects.all().select_related("warehouse")
-        
+        queryset = apply_location_filter(
+            queryset,
+            self.request.user,
+            field="warehouse__location_code",
+            query_param=self.request.query_params.get("location"),
+        )
+
         warehouse_id = self.request.query_params.get("warehouse")
         if warehouse_id:
             queryset = queryset.filter(warehouse_id=warehouse_id)
-        
-        location = self.request.query_params.get("location")
-        if location:
-            queryset = queryset.filter(warehouse__location_code=location)
-        
+
         code = self.request.query_params.get("code")
         if code:
             queryset = queryset.filter(code=code)
-        
+
         return queryset
 
     def partial_update(self, request, *args, **kwargs):

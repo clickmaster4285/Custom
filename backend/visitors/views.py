@@ -27,6 +27,7 @@ from .serializers import (
     VmsListRecordSerializer,
     VmsListBulkSerializer,
 )
+from users.permissions import apply_location_filter, get_effective_location, resolve_location_for_write
 from .payload_utils import merge_extra_into_response
 
 
@@ -35,6 +36,12 @@ def get_visitor_queryset():
 
 
 def filter_visitors_by_request(queryset, request):
+    queryset = apply_location_filter(
+        queryset,
+        request.user,
+        field="location",
+        query_param=request.query_params.get("location"),
+    )
     source = request.query_params.get("registration_source", "").strip()
     if source:
         queryset = queryset.filter(registration_source=source)
@@ -44,9 +51,6 @@ def filter_visitors_by_request(queryset, request):
     approval = request.query_params.get("approval_status", "").strip()
     if approval:
         queryset = queryset.filter(approval_status=approval)
-    location = request.query_params.get("location", "").strip()
-    if location:
-        queryset = queryset.filter(location=location)
     search = request.query_params.get("search", "").strip()
     if search:
         queryset = queryset.filter(
@@ -72,7 +76,7 @@ class VisitorListAPIView(generics.ListAPIView):
     """GET /api/visitors/list/?registration_source=walk-in|pre-registration"""
 
     serializer_class = VisitorSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return filter_visitors_by_request(get_visitor_queryset(), self.request)
@@ -91,7 +95,7 @@ class VisitorListAPIView(generics.ListAPIView):
 class VisitorCreateAPIView(APIView):
     """POST /api/visitors/create/ — body may include registration_source query or field."""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         source = (
@@ -110,23 +114,26 @@ class VisitorCreateAPIView(APIView):
 
 
 class VisitorReadAPIView(generics.RetrieveAPIView):
-    queryset = Visitor.objects.all()
     serializer_class = VisitorSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return filter_visitors_by_request(get_visitor_queryset(), self.request)
 
 
 class VisitorProfileImageAPIView(APIView):
     """GET /api/visitors/<pk>/profile-image/ — visitor photo for list avatars (blobs omitted from list JSON)."""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
         from django.http import HttpResponse
 
         from .payload_utils import get_visitor_profile_photo_bytes
 
+        qs = filter_visitors_by_request(get_visitor_queryset(), request)
         try:
-            visitor = Visitor.objects.get(pk=pk)
+            visitor = qs.get(pk=pk)
         except Visitor.DoesNotExist:
             return Response({"detail": "Visitor not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -141,7 +148,7 @@ class VisitorProfileImageAPIView(APIView):
 
 
 class VisitorUpdateAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def put(self, request, pk):
         return self._update(request, pk, partial=False)
@@ -150,8 +157,9 @@ class VisitorUpdateAPIView(APIView):
         return self._update(request, pk, partial=True)
 
     def _update(self, request, pk, partial):
+        qs = filter_visitors_by_request(get_visitor_queryset(), request)
         try:
-            visitor = Visitor.objects.get(pk=pk)
+            visitor = qs.get(pk=pk)
         except Visitor.DoesNotExist:
             return Response({"detail": "Visitor not found."}, status=status.HTTP_404_NOT_FOUND)
         write_ser = VisitorWriteSerializer(
@@ -169,13 +177,13 @@ class VisitorUpdateAPIView(APIView):
 class VisitorDeleteAPIView(generics.DestroyAPIView):
     queryset = Visitor.objects.all()
     serializer_class = VisitorSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class VisitorCnicCheckAPIView(APIView):
     """GET /api/visitors/check-cnic/?cnic=..."""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         cnic = str(request.query_params.get("cnic", "")).strip().replace(" ", "").replace("-", "")
@@ -194,7 +202,7 @@ class VisitorCnicCheckAPIView(APIView):
 class ActiveVisitorsAPIView(APIView):
     """GET /api/visitors/active/"""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         qs = Visitor.objects.filter(
@@ -208,7 +216,7 @@ class ActiveVisitorsAPIView(APIView):
 class PendingApprovalsAPIView(APIView):
     """GET /api/approval/pending/"""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         qs = Visitor.objects.filter(approval_status="pending").order_by("-created_at")
@@ -219,7 +227,7 @@ class PendingApprovalsAPIView(APIView):
 class VisitorApproveAPIView(APIView):
     """POST /api/visitors/<id>/approve/"""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         try:
@@ -240,7 +248,7 @@ class VisitorApproveAPIView(APIView):
 class VisitorDenyAPIView(APIView):
     """POST /api/visitors/<id>/deny/"""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         try:
@@ -260,7 +268,7 @@ class VisitorDenyAPIView(APIView):
 class VisitorNotifyHostAPIView(APIView):
     """POST /api/visitors/<id>/notify-host/"""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         try:
@@ -295,7 +303,7 @@ class VisitorNotifyHostAPIView(APIView):
 
 
 class VisitorFaceCaptureAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         try:
@@ -316,7 +324,7 @@ class VisitorFaceCaptureAPIView(APIView):
 
 
 class ZoneScanAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         ser = ZoneScanSerializer(data=request.data)
@@ -441,7 +449,7 @@ class ZoneScanAPIView(APIView):
 
 
 class SecurityAlertListAPIView(generics.ListAPIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = SecurityAlertSerializer
 
     def get_queryset(self):
@@ -461,7 +469,7 @@ class SecurityAlertListAPIView(generics.ListAPIView):
 class SecurityAlertAcknowledgeAPIView(APIView):
     """POST /api/security/alerts/<id>/acknowledge/"""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         try:
@@ -476,7 +484,7 @@ class SecurityAlertAcknowledgeAPIView(APIView):
 
 
 class SecurityDashboardAPIView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         today = timezone.now().date()
@@ -502,7 +510,7 @@ class SecurityDashboardAPIView(APIView):
 
 class VehicleListAPIView(generics.ListAPIView):
     serializer_class = VehicleSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         qs = Vehicle.objects.select_related("visitor").all()
@@ -514,7 +522,7 @@ class VehicleListAPIView(generics.ListAPIView):
 
 class VehicleCreateAPIView(generics.CreateAPIView):
     serializer_class = VehicleSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Vehicle.objects.all()
 
 
@@ -523,7 +531,7 @@ class VehicleCreateAPIView(generics.CreateAPIView):
 
 class NotificationListAPIView(generics.ListAPIView):
     serializer_class = VisitorNotificationSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         qs = VisitorNotification.objects.select_related("visitor").all()
@@ -539,7 +547,7 @@ class NotificationListAPIView(generics.ListAPIView):
 class VmsAnalyticsAPIView(APIView):
     """GET /api/vms/analytics/?from=YYYY-MM-DD&to=YYYY-MM-DD"""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         today = timezone.now().date()
@@ -654,7 +662,7 @@ def _serialize_overview_visitor(visitor):
 class VmsOverviewAPIView(APIView):
     """GET /api/vms/overview/ — dashboard stats and recent visitor rows."""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         today = timezone.now().date()
@@ -674,7 +682,9 @@ class VmsOverviewAPIView(APIView):
             expiry_status="active",
         ).exclude(flow_stage="exited").count()
 
-        location = request.query_params.get("location", "").strip()
+        location = get_effective_location(
+            request.user, request.query_params.get("location")
+        )
         bl_qs = VmsListRecord.objects.filter(module="vms_blacklist_management_rows")
         if location:
             bl_qs = bl_qs.filter(location=location)
@@ -731,14 +741,16 @@ class VmsListRecordsAPIView(APIView):
     PUT /api/vms/lists/  body: { module, rows: [{ id, ...fields }] }
     """
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         module = request.query_params.get("module", "").strip()
         if not module:
             return Response({"detail": "module query param required."}, status=400)
         records = VmsListRecord.objects.filter(module=module)
-        location = request.query_params.get("location", "").strip()
+        location = get_effective_location(
+            request.user, request.query_params.get("location")
+        )
         if location:
             records = records.filter(location=location)
         rows = [{"id": r.record_id, **(r.data or {})} for r in records]
@@ -749,8 +761,13 @@ class VmsListRecordsAPIView(APIView):
         ser.is_valid(raise_exception=True)
         module = ser.validated_data["module"]
         rows = ser.validated_data["rows"]
-        location = ser.validated_data.get("location") or ""
-        VmsListRecord.objects.filter(module=module).delete()
+        location = resolve_location_for_write(
+            request.user, ser.validated_data.get("location") or ""
+        )
+        if location:
+            VmsListRecord.objects.filter(module=module, location=location).delete()
+        else:
+            VmsListRecord.objects.filter(module=module).delete()
         bulk = []
         for row in rows:
             record_id = str(row.get("id") or f"row-{timezone.now().timestamp()}")

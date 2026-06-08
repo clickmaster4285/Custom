@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, Eye, EyeOff, Loader2, Trash2 } from "lucide-react"
@@ -27,6 +27,12 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { getStoredToken } from "@/lib/api"
+import { getStoredUser } from "@/lib/auth"
+import {
+  getUserLocationFilter,
+  isLocationAdmin,
+  rolesAvailableToLocationAdmin,
+} from "@/lib/location-access"
 import { ROUTES, getUserDetailPath } from "@/routes/config"
 import {
   COLLECTORATE_OPTIONS,
@@ -77,7 +83,7 @@ const emptyForm: FormState = {
   employee_id: "",
   posting_date: "",
   role: "RECEPTIONIST",
-  location: "PESHAWAR",
+  location: "",
   collectorate: "",
   effective_date: "",
   we_boc_role: "",
@@ -89,7 +95,8 @@ function displayPhone(phone: string | undefined): string {
   return phone
 }
 
-function resolveLocation(code: string | undefined): string {
+function resolveLocation(code: string | undefined, role: string): string {
+  if (role === "ADMIN") return ""
   if (!code) return "PESHAWAR"
   if (LOCATION_OPTIONS.some((o) => o.value === code)) return code
   return "PESHAWAR"
@@ -109,12 +116,26 @@ export default function UserFormPage() {
   const userId = id ? parseInt(id, 10) : NaN
   const isEditing = Number.isInteger(userId)
   const hasAuth = Boolean(getStoredToken())
+  const actor = getStoredUser()
+  const actorIsLocationAdmin = isLocationAdmin(actor?.role)
+  const locationLocked = actorIsLocationAdmin
 
   const [form, setForm] = useState<FormState>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  const availableRoles = useMemo(() => {
+    if (actorIsLocationAdmin) {
+      const allowed = new Set(rolesAvailableToLocationAdmin())
+      return ROLE_OPTIONS.filter((r) => allowed.has(r.value))
+    }
+    return ROLE_OPTIONS
+  }, [actorIsLocationAdmin])
+
+  const showLocationField = form.role !== "ADMIN"
+  const locationRequired = form.role !== "ADMIN"
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: ["users", userId],
@@ -123,7 +144,14 @@ export default function UserFormPage() {
   })
 
   useEffect(() => {
+    if (actorIsLocationAdmin && actor?.location) {
+      setForm((p) => ({ ...p, location: actor.location! }))
+    }
+  }, [actorIsLocationAdmin, actor?.location])
+
+  useEffect(() => {
     if (!user) return
+    const role = resolveRole(user.role)
     setForm({
       username: user.username,
       password: "",
@@ -138,8 +166,8 @@ export default function UserFormPage() {
       designation: user.designation ?? "",
       employee_id: user.employee_id ?? "",
       posting_date: user.posting_date ?? "",
-      role: resolveRole(user.role),
-      location: resolveLocation(user.location),
+      role,
+      location: resolveLocation(user.location, role),
       collectorate: user.collectorate ?? "",
       effective_date: user.effective_date ?? "",
       we_boc_role: user.we_boc_role ?? "",
@@ -188,7 +216,7 @@ export default function UserFormPage() {
       toast({ title: "Email required", variant: "destructive" })
       return
     }
-    if (!form.location) {
+    if (locationRequired && !form.location) {
       toast({ title: "Location required", variant: "destructive" })
       return
     }
@@ -230,7 +258,7 @@ export default function UserFormPage() {
           email: form.email.trim(),
           password: form.password || undefined,
           role: form.role,
-          location: form.location,
+          location: form.role === "ADMIN" ? "" : form.location,
           phone: form.cell_no.trim() || undefined,
           is_active: form.is_active,
           ...profile,
@@ -245,7 +273,7 @@ export default function UserFormPage() {
           email: form.email.trim(),
           password: form.password,
           role: form.role,
-          location: form.location,
+          location: form.role === "ADMIN" ? "" : form.location,
           phone: form.cell_no.trim() || undefined,
           ...profile,
         })
@@ -554,15 +582,25 @@ export default function UserFormPage() {
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
-              <Select value={form.role} onValueChange={(v) => set("role", v)}>
+              <Select
+                value={form.role}
+                onValueChange={(v) => {
+                  set("role", v)
+                  if (v === "ADMIN") {
+                    set("location", "")
+                  } else if (!form.location) {
+                    set("location", actor?.location || "PESHAWAR")
+                  }
+                }}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {form.role && !ROLE_OPTIONS.some((r) => r.value === form.role) && (
+                  {form.role && !availableRoles.some((r) => r.value === form.role) && (
                     <SelectItem value={form.role}>{form.role}</SelectItem>
                   )}
-                  {ROLE_OPTIONS.map((r) => (
+                  {availableRoles.map((r) => (
                     <SelectItem key={r.value} value={r.value}>
                       {r.label}
                     </SelectItem>
@@ -570,11 +608,16 @@ export default function UserFormPage() {
                 </SelectContent>
               </Select>
             </div>
+            {showLocationField && (
             <div className="space-y-2">
-              <Label>Location *</Label>
-              <Select value={form.location} onValueChange={(v) => set("location", v)}>
+              <Label>Location {locationRequired ? "*" : ""}</Label>
+              <Select
+                value={form.location}
+                onValueChange={(v) => set("location", v)}
+                disabled={locationLocked}
+              >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
                   {LOCATION_OPTIONS.map((loc) => (
@@ -584,7 +627,13 @@ export default function UserFormPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {locationLocked && (
+                <p className="text-xs text-muted-foreground">
+                  Users are created for your assigned location only.
+                </p>
+              )}
             </div>
+            )}
             {isEditing && (
               <div className="space-y-2">
                 <Label>Status</Label>
