@@ -24,6 +24,7 @@ const MM_PER_INCH = 25.4
 const qrSizePx = Math.round((QR_SIZE_CM * 10 * PPI) / MM_PER_INCH)
 
 export interface WalkInStep4QRCodeFormData {
+  location?: string
   qrCodeId: string
   accessZone: string
   entryGate: string
@@ -58,7 +59,7 @@ export function WalkInStep4QRCodeGeneration({
   onPrint,
   onFinish,
 }: WalkInStep4QRCodeGenerationProps) {
-  const { data: zoneData } = useAccessZones()
+  const { data: zoneData } = useAccessZones(formData.location ?? undefined)
   const zoneOptions = zoneData?.options ?? []
 
   const department =
@@ -161,6 +162,8 @@ export function WalkInStep4QRCodeGeneration({
         <AccessZoneSelect
           value={formData.accessZone}
           onValueChange={(value) => updateFormData({ accessZone: value })}
+          location={formData.location ?? ""}
+          includeAllOption={false}
           placeholder="Select zone (required)"
           triggerClassName="h-11 border-border"
         />

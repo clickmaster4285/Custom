@@ -19,6 +19,8 @@ type AccessZoneSelectProps = {
   triggerClassName?: string
   disabled?: boolean
   includeAllOption?: boolean
+  /** Scope zones to a location; pass "" when location must be chosen first */
+  location?: string | null
 }
 
 export function AccessZoneSelect({
@@ -29,8 +31,10 @@ export function AccessZoneSelect({
   triggerClassName,
   disabled,
   includeAllOption = true,
+  location,
 }: AccessZoneSelectProps) {
-  const { data, isLoading } = useAccessZones()
+  const waitingForLocation = location === ""
+  const { data, isLoading } = useAccessZones(location)
   let options = data?.options?.length ? data.options : ACCESS_ZONE_OPTIONS_FALLBACK
   if (!includeAllOption) {
     options = options.filter((o) => o.value !== "all")
@@ -40,10 +44,18 @@ export function AccessZoneSelect({
     <Select
       value={value || undefined}
       onValueChange={onValueChange}
-      disabled={disabled || (isLoading && !value)}
+      disabled={disabled || waitingForLocation || (isLoading && !value)}
     >
       <SelectTrigger className={cn("h-11 border-border", triggerClassName, className)}>
-        <SelectValue placeholder={isLoading ? "Loading zones…" : placeholder} />
+        <SelectValue
+          placeholder={
+            waitingForLocation
+              ? "Select location first"
+              : isLoading
+                ? "Loading zones…"
+                : placeholder
+          }
+        />
       </SelectTrigger>
       <SelectContent>
         {options.map((z) => (
