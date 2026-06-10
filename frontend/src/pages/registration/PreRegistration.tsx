@@ -979,6 +979,16 @@ export default function PreRegistrationPage() {
                   preferredTimeSlot: formData.preferredTimeSlot,
                   slotDuration: formData.slotDuration,
                   priorityLevel: formData.priorityLevel,
+                  location: formData.location,
+                  securityLevel: formData.securityLevel,
+                  allowedDepartments: formData.allowedDepartments,
+                  allowedZones: formData.allowedZones,
+                  entryGate: formData.entryGate,
+                  maxVisitDuration: formData.maxVisitDuration,
+                  timeValidityStart: formData.timeValidityStart,
+                  timeValidityEnd: formData.timeValidityEnd,
+                  additionalRemarks: formData.additionalRemarks,
+                  escortMandatory: formData.escortMandatory,
                 }}
                 updateFormData={(data) => updateFormData(data)}
                 onCancel={handleCancelForm}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,8 +20,13 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { AccessZoneSelect } from "@/components/vms/access-zone-select"
+import { getStoredUser } from "@/lib/auth"
+import { canSeeAllLocations } from "@/lib/location-access"
+import { LOCATION_OPTIONS, locationLabel } from "@/lib/locations"
 
 export interface WalkInStep3VisitDetailsFormData {
+  location?: string
+  accessZone?: string
   visitPurpose: string
   visitPurposeDescription: string
   department: string
@@ -104,10 +109,25 @@ export function WalkInStep3VisitDetails({
   onSaveAndContinue,
 }: WalkInStep3VisitDetailsProps) {
   const { toast } = useToast()
+  const user = getStoredUser()
+  const canPickLocation = canSeeAllLocations(user?.role)
+  const userLocation = user?.location ?? ""
+
+  const visitLocation = formData.location || ""
+  const zoneLocationScope = useMemo(() => {
+    if (canPickLocation) return visitLocation
+    return userLocation || visitLocation
+  }, [canPickLocation, visitLocation, userLocation])
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" })
   }, [])
+
+  useEffect(() => {
+    if (!canPickLocation && userLocation && formData.location !== userLocation) {
+      updateFormData({ location: userLocation })
+    }
+  }, [canPickLocation, userLocation, formData.location, updateFormData])
 
   const handleCheckAvailability = () => {
     if (!formik.values.hostFullName) {
@@ -163,6 +183,7 @@ export function WalkInStep3VisitDetails({
       allowedDepartments: formData.allowedDepartments || "",
       entryGate: formData.entryGate || "",
       maxVisitDuration: formData.maxVisitDuration || "",
+      location: formData.location || "",
       allowedZones: formData.allowedZones || "",
       timeValidityStart: formData.timeValidityStart || "",
       timeValidityEnd: formData.timeValidityEnd || "",
@@ -551,13 +572,53 @@ export function WalkInStep3VisitDetails({
           </div>
 
           <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Visit Location
+              {canPickLocation ? <span className="text-destructive"> *</span> : null}
+            </Label>
+            {canPickLocation ? (
+              <Select
+                value={formik.values.location || undefined}
+                onValueChange={(v) => {
+                  formik.setFieldValue("location", v)
+                  formik.setFieldValue("allowedZones", "")
+                  updateFormData({ location: v, allowedZones: "", accessZone: "" })
+                }}
+              >
+                <SelectTrigger className="w-full h-11 text-base bg-background border-border">
+                  <SelectValue placeholder="Select location for this visit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOCATION_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value} className="py-2.5">
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex h-11 items-center rounded-md border border-border bg-muted/30 px-3 text-base text-foreground">
+                {locationLabel(zoneLocationScope) || "—"}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {canPickLocation
+                ? "Choose the site first — zones below are loaded for this location."
+                : "Zones are limited to your assigned location."}
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">Allowed Zones</Label>
             <AccessZoneSelect
               value={formik.values.allowedZones || ""}
               onValueChange={(v) => {
                 formik.setFieldValue("allowedZones", v)
-                updateFormData({ allowedZones: v })
+                updateFormData({ allowedZones: v, accessZone: v })
               }}
+              location={canPickLocation ? visitLocation : zoneLocationScope || ""}
+              includeAllOption={false}
+              placeholder="Select zone"
               triggerClassName="w-full h-11 text-base bg-background border-border"
             />
           </div>
