@@ -112,20 +112,63 @@ const defaultMinor = (): WalkInStep1VisitorDetailsFormData["visitorMinors"][numb
   photos: [],
 })
 
-const visitorTypes = [
+type VisitorKind = "company-rep" | "contractor" | "individual" | "group"
+
+const visitorKindOptions = [
   {
-    value: "company-rep",
+    value: "company-rep" as const,
     label: "Company Rep.",
     description: "Business meeting or official",
     icon: Briefcase,
   },
   {
-    value: "contractor",
+    value: "contractor" as const,
     label: "Contractor",
     description: "Maintenance or service",
     icon: Wrench,
   },
+  {
+    value: "individual" as const,
+    label: "Individual",
+    description: "Personal visit or guest · one pass",
+    icon: User,
+  },
+  {
+    value: "group" as const,
+    label: "Group visit",
+    description: "Multiple people, one shared QR",
+    icon: Users,
+  },
 ] as const
+
+function getVisitorKind(formData: WalkInStep1VisitorDetailsFormData): VisitorKind {
+  if (formData.visitMode === "group") return "group"
+  if (formData.visitorType === "company-rep") return "company-rep"
+  if (formData.visitorType === "contractor") return "contractor"
+  return "individual"
+}
+
+function visitorKindPatch(
+  kind: VisitorKind,
+  formData: WalkInStep1VisitorDetailsFormData
+): Partial<WalkInStep1VisitorDetailsFormData> {
+  if (kind === "group") {
+    const size =
+      formData.groupPartySize >= MIN_GROUP_PARTY_SIZE
+        ? formData.groupPartySize
+        : MIN_GROUP_PARTY_SIZE
+    return {
+      visitMode: "group",
+      groupPartySize: size,
+      groupMembers: resizeGroupMembers(formData.groupMembers ?? [], size),
+    }
+  }
+  return {
+    visitMode: "individual",
+    groupMembers: [],
+    visitorType: kind === "individual" ? "individual" : kind,
+  }
+}
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -615,83 +658,18 @@ export function WalkInStep1VisitorDetails({
         </div>
       </div>
 
-      {/* Visitor Type */}
+      {/* Visitor Type — one selection only */}
       <div className="space-y-4">
         <Label className="text-[22px] font-bold text-foreground">Visitor Type</Label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {visitorTypes.map(({ value, label, description, icon: Icon }) => {
-            const isSelected = formData.visitorType === value
+          {visitorKindOptions.map(({ value, label, description, icon: Icon }) => {
+            const selectedKind = getVisitorKind(formData)
+            const isSelected = selectedKind === value
             return (
               <button
                 key={value}
                 type="button"
-                onClick={() => updateFormData({ visitorType: value })}
-                className={cn(
-                  "relative flex items-center gap-4 p-4 rounded-lg border text-left transition-colors",
-                  isSelected
-                    ? "border-2 border-[#3b82f6] bg-[#eff6ff]"
-                    : "border border-border bg-card hover:border-muted-foreground/40"
-                )}
-              >
-                {isSelected && (
-                  <span className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#3b82f6]">
-                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
-                  </span>
-                )}
-                <span
-                  className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                    isSelected ? "bg-[#3b82f6] text-white" : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                </span>
-                <div className="flex min-w-0 flex-col gap-0.5 pr-6">
-                  <span className="text-base font-semibold text-foreground">{label}</span>
-                  <span className="text-sm text-muted-foreground">{description}</span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-          {(
-            [
-              {
-                value: "individual" as const,
-                label: "Individual",
-                description: "Personal visit or guest · one pass",
-                icon: User,
-              },
-              {
-                value: "group" as const,
-                label: "Group visit",
-                description: "Multiple people, one shared QR",
-                icon: Users,
-              },
-            ] as const
-          ).map(({ value, label, description, icon: Icon }) => {
-            const isSelected = (formData.visitMode ?? "individual") === value
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => {
-                  if (value === "group") {
-                    const size =
-                      formData.groupPartySize >= MIN_GROUP_PARTY_SIZE
-                        ? formData.groupPartySize
-                        : MIN_GROUP_PARTY_SIZE
-                    updateFormData({
-                      visitMode: value,
-                      groupPartySize: size,
-                      groupMembers: resizeGroupMembers(formData.groupMembers ?? [], size),
-                    })
-                  } else {
-                    updateFormData({ visitMode: value, groupMembers: [] })
-                  }
-                }}
+                onClick={() => updateFormData(visitorKindPatch(value, formData))}
                 className={cn(
                   "relative flex items-center gap-4 p-4 rounded-lg border text-left transition-colors",
                   isSelected

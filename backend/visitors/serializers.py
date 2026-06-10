@@ -199,6 +199,10 @@ class VisitorWriteSerializer(serializers.Serializer):
         if model_fields.get("registration_status") == "draft":
             model_fields["flow_stage"] = "arrived"
         visitor = Visitor.objects.create(**model_fields)
+        if str(model_fields.get("registration_status") or "").strip().lower() != "draft":
+            from .screening_utils import apply_visitor_screening
+
+            apply_visitor_screening(visitor)
         return visitor
 
     def update(self, instance, validated_data):
@@ -212,6 +216,11 @@ class VisitorWriteSerializer(serializers.Serializer):
                 continue
             setattr(instance, key, value)
         instance.save()
+        reg_status = model_fields.get("registration_status", instance.registration_status)
+        if str(reg_status or "").strip().lower() != "draft":
+            from .screening_utils import apply_visitor_screening
+
+            apply_visitor_screening(instance)
         return instance
 
     def to_internal_value(self, data):
