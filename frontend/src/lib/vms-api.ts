@@ -265,6 +265,110 @@ export async function fetchSecurityAlerts(params?: {
   return res.json()
 }
 
+export async function acknowledgeSecurityAlert(
+  alertId: number,
+  acknowledgedBy?: string
+): Promise<SecurityAlertRecord> {
+  const res = await fetch(`${API}/security/alerts/${alertId}/acknowledge/`, {
+    method: "POST",
+    ...authInit(),
+    body: JSON.stringify({ acknowledged_by: acknowledgedBy || "" }),
+  })
+  if (!res.ok) {
+    let msg = `Failed to acknowledge alert (${res.status})`
+    try {
+      const data = await res.json()
+      msg = getErrorMessage(res, data)
+    } catch {
+      // ignore
+    }
+    throw new Error(msg)
+  }
+  return res.json()
+}
+
+export type ScreeningSummary = {
+  total: number
+  cleared: number
+  flagged: number
+  potential: number
+  blacklisted: number
+  not_checked: number
+}
+
+export async function fetchScreeningSummary(): Promise<ScreeningSummary> {
+  const sp = new URLSearchParams()
+  const loc = getUserLocationFilter()
+  if (loc) sp.set("location", loc)
+  const url = sp.toString() ? `${API}/vms/screening/summary/?${sp}` : `${API}/vms/screening/summary/`
+  const res = await fetch(url, authInit())
+  if (!res.ok) throw new Error(`Failed to load screening summary (${res.status})`)
+  return res.json()
+}
+
+export type MarkVisitorScreeningResult = {
+  visitor_id: number
+  watchlist_check_status: string
+  screening: {
+    match?: string
+    score?: number
+    source?: string
+    status?: string
+    message?: string
+    remarks?: string
+  }
+}
+
+export async function markVisitorScreening(
+  visitorId: number,
+  action: "flagged" | "blacklisted",
+  remarks?: string
+): Promise<MarkVisitorScreeningResult> {
+  const res = await fetch(`${API}/vms/screening/mark/`, {
+    method: "POST",
+    ...authInit(),
+    body: JSON.stringify({
+      visitor_id: visitorId,
+      action,
+      remarks: remarks || "",
+    }),
+  })
+  if (!res.ok) {
+    let msg = `Failed to update screening status (${res.status})`
+    try {
+      const data = await res.json()
+      msg = getErrorMessage(res, data)
+    } catch {
+      // ignore
+    }
+    throw new Error(msg)
+  }
+  return res.json()
+}
+
+export async function rescreenVisitors(visitorId?: number): Promise<{ screened: number }> {
+  const body: Record<string, unknown> = {}
+  if (visitorId) body.visitor_id = visitorId
+  const loc = getUserLocationFilter()
+  if (loc) body.location = loc
+  const res = await fetch(`${API}/vms/screening/rescreen/`, {
+    method: "POST",
+    ...authInit(),
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    let msg = `Re-screen failed (${res.status})`
+    try {
+      const data = await res.json()
+      msg = getErrorMessage(res, data)
+    } catch {
+      // ignore
+    }
+    throw new Error(msg)
+  }
+  return res.json()
+}
+
 export type SecurityDashboard = {
   visitors_today: number
   in_building: number

@@ -359,7 +359,23 @@ class ZoneScanAPIView(APIView):
         allowed = True
         msg = "Access granted."
 
-        if visitor.approval_status == "denied":
+        from .screening_utils import apply_visitor_screening, visitor_blocks_entry
+
+        apply_visitor_screening(visitor, create_alert=False)
+        blocked, block_msg = visitor_blocks_entry(visitor)
+        if blocked:
+            allowed = False
+            msg = block_msg
+            SecurityAlert.objects.create(
+                visitor=visitor,
+                alert_type="watchlist_hit",
+                severity="critical",
+                message=msg,
+                zone=zone,
+                gate=gate,
+            )
+
+        if allowed and visitor.approval_status == "denied":
             allowed = False
             msg = "Visitor approval was denied."
             SecurityAlert.objects.create(
@@ -782,4 +798,95 @@ class VmsListRecordsAPIView(APIView):
             )
         if bulk:
             VmsListRecord.objects.bulk_create(bulk)
+        if module in ("vms_watchlist_screening_rows", "vms_blacklist_management_rows"):
+            from .screening_utils import rescreen_all_visitors
+
+            rescreen_all_visitors(location=location or "")
         return Response({"module": module, "count": len(bulk)})
+
+
+class VmsScreeningSummaryAPIView(APIView):
+    """GET /api/vms/screening/summary/ — visitor screening status counts."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = filter_visitors_by_request(get_visitor_queryset(), request)
+        return Response(
+            {
+                "total": qs.count(),
+                "cleared": qs.filter(watchlist_check_status="cleared").count(),
+                "flagged": qs.filter(watchlist_check_status="flagged").count(),
+                "potential": qs.filter(watchlist_check_status="potential").count(),
+                "blacklisted": qs.filter(
+                    watchlist_check_status__icontains="blacklist"
+                ).count(),
+                "not_checked": qs.filter(
+                    Q(watchlist_check_status="") | Q(watchlist_check_status__isnull=True)
+                ).count(),
+            }
+        )
+
+
+class VmsScreeningRescreenAPIView(APIView):
+    """POST /api/vms/screening/rescreen/ — re-run screening for one or all visitors."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from .screening_utils import apply_visitor_screening, rescreen_all_visitors
+
+        visitor_id = request.data.get("visitor_id")
+        if visitor_id:
+            try:
+                visitor = Visitor.objects.get(pk=visitor_id)
+            except Visitor.DoesNotExist:
+                return Response({"detail": "Visitor not found."}, status=404)
+            apply_visitor_screening(visitor)
+            return Response({"screened": 1})
+
+        location = get_effective_location(
+            request.user, request.data.get("location")
+        )
+        count = rescreen_all_visitors(location=location or "")
+        return Response({"screened": count})
+
+
+class VmsScreeningMarkAPIView(APIView):
+    """POST /api/vms/screening/mark/ — flag or blacklist a registered visitor."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from .screening_utils import mark_visitor_blacklisted, mark_visitor_flagged
+
+        visitor_id = request.data.get("visitor_id")
+        action = str(request.data.get("action") or "").strip().lower()
+        remarks = str(request.data.get("remarks") or "").strip()
+        marked_by = str(request.data.get("marked_by") or request.user.username or "security").strip()
+
+        if not visitor_id:
+            return Response({"detail": "visitor_id is required."}, status=400)
+        if action not in ("flagged", "blacklisted"):
+            return Response(
+                {"detail": "action must be 'flagged' or 'blacklisted'."},
+                status=400,
+            )
+
+        try:
+            visitor = Visitor.objects.get(pk=visitor_id)
+        except Visitor.DoesNotExist:
+            return Response({"detail": "Visitor not found."}, status=404)
+
+        if action == "flagged":
+            result = mark_visitor_flagged(visitor, remarks=remarks, marked_by=marked_by)
+        else:
+            result = mark_visitor_blacklisted(visitor, reason=remarks, marked_by=marked_by)
+
+        return Response(
+            {
+                "visitor_id": visitor.pk,
+                "watchlist_check_status": visitor.watchlist_check_status,
+                "screening": result.as_extra(),
+            }
+        )

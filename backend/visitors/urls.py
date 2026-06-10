@@ -23,6 +23,9 @@ from .views import (
     VmsAnalyticsAPIView,
     VmsOverviewAPIView,
     VmsListRecordsAPIView,
+    VmsScreeningSummaryAPIView,
+    VmsScreeningRescreenAPIView,
+    VmsScreeningMarkAPIView,
 )
 
 urlpatterns = [
@@ -60,4 +63,7 @@ urlpatterns = [
     path("vms/analytics/", VmsAnalyticsAPIView.as_view(), name="vms-analytics"),
     path("vms/overview/", VmsOverviewAPIView.as_view(), name="vms-overview"),
     path("vms/lists/", VmsListRecordsAPIView.as_view(), name="vms-lists"),
+    path("vms/screening/summary/", VmsScreeningSummaryAPIView.as_view(), name="vms-screening-summary"),
+    path("vms/screening/rescreen/", VmsScreeningRescreenAPIView.as_view(), name="vms-screening-rescreen"),
+    path("vms/screening/mark/", VmsScreeningMarkAPIView.as_view(), name="vms-screening-mark"),
 ]
