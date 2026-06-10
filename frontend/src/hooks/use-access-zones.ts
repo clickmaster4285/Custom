@@ -28,17 +28,29 @@ function mapSiteZoneToZone(zone: SiteZoneRecord): Zone {
   }
 }
 
-export function useAccessZones() {
+/**
+ * @param locationOverride — When set:
+ *   - non-empty string: load zones for that location
+ *   - empty string: no zones (e.g. superadmin has not picked a location yet)
+ *   - undefined: use the signed-in user's location scope (null = all zones for global admins)
+ */
+export function useAccessZones(locationOverride?: string | null) {
+  const userScopedLocation = getUserLocationFilter()
+  const effectiveLocation =
+    locationOverride !== undefined ? locationOverride || null : userScopedLocation
+
   return useQuery({
-    queryKey: ["vms", "zones", getUserLocationFilter()],
+    queryKey: ["vms", "zones", effectiveLocation ?? "__all__"],
     queryFn: async (): Promise<{ zones: Zone[]; options: AccessZoneOption[] }> => {
-      const location = getUserLocationFilter() || undefined
-      const siteZones = await fetchZones(location ? { location } : undefined)
+      const siteZones = await fetchZones(
+        effectiveLocation ? { location: effectiveLocation } : undefined
+      )
       const zones = siteZones.map(mapSiteZoneToZone)
       const options = zonesToAccessZoneOptions(zones)
       setAccessZoneLabelCache(options)
       return { zones, options }
     },
+    enabled: locationOverride !== "",
     staleTime: 60_000,
   })
 }
