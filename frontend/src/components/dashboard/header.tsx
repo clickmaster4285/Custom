@@ -46,7 +46,10 @@ export function Header({ onMenuClick }: HeaderProps) {
     .toUpperCase()
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-20 flex h-16 min-w-0 shrink-0 items-center justify-between gap-2 border-b border-gray-100 bg-white px-2 sm:px-4 md:left-[333px] lg:px-8">
+    <header className="fixed inset-x-0 top-0 z-20 flex h-16 min-w-0 shrink-0 items-center justify-between gap-2 border-b border-gray-100 bg-white px-2 sm:px-4 md:left-[333px] lg:px-8">
+      <div className="pointer-events-none absolute inset-x-0 top-1/2 flex justify-center -translate-y-1/2">
+        <span className="text-sm font-semibold text-slate-700 tracking-wide">Version 1.0</span>
+      </div>
       <button
         type="button"
         className="inline-flex rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden"
