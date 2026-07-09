@@ -56,7 +56,7 @@ function getQrCodeUrl(data: string, size = 120) {
 
 function getGoodsQrPayload(memoId: string, item: GoodsLineItem): string {
   const ref = item.qrCodeNumber || `${memoId}-${item.id}`
-  return `${window.location.origin}/detention-memo/${encodeURIComponent(memoId)}?goodsQr=${encodeURIComponent(ref)}`
+  return `${window.location.origin}/detention-memo/${encodeURIComponent(memoId)}?goodsQr=${encodeURIComponent(ref)}&view=goods`
 }
 
 function formatDate(value?: string): string {

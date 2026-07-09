@@ -100,6 +100,55 @@ def _upsert_stock_from_goods_line(
     return stock
 
 
+def _ensure_in_custody_stock_for_release(
+    *,
+    memo: DetentionMemo | None,
+    memo_id_val,
+    qr_code: str,
+    warehouse: str = "",
+    performed_by: str = "",
+) -> WarehouseStockItem | None:
+    """Create in-custody stock from a detention goods line when not yet in warehouse."""
+    qr = (qr_code or "").strip()
+    if not qr or not memo:
+        return None
+
+    stock_qs = WarehouseStockItem.objects.filter(
+        status__iexact="In Custody",
+        qr_code__iexact=qr,
+    )
+    if memo_id_val:
+        stock_qs = stock_qs.filter(detention_memo_id=memo_id_val)
+    existing = stock_qs.first()
+    if existing:
+        return existing
+
+    gl = DetentionMemoGoodsLine.objects.filter(
+        memo_id=memo.pk,
+        qr_code_number__iexact=qr,
+    ).first()
+    if not gl:
+        return None
+
+    if not SeizureRecord.objects.filter(detention_memo_id=memo.pk).exists():
+        SeizureRecord.objects.create(
+            detention_memo_id=memo.pk,
+            case_no=memo.case_no or "",
+            fir_number=memo.fir_number or "",
+            place_of_detention=memo.place_of_detention or "",
+            source=SeizureRecord.SOURCE_DETENTION,
+            seized_by=performed_by,
+            remarks="Auto-created on release",
+        )
+
+    stock = _upsert_stock_from_goods_line(memo, gl, status="In Custody")
+    wh = (warehouse or memo.where_deposited or memo.place_of_detention or "").strip()
+    if wh and stock.godown_warehouse != wh:
+        stock.godown_warehouse = wh
+        stock.save(update_fields=["godown_warehouse", "updated_at"])
+    return stock
+
+
 @transaction.atomic
 def promote_memo_to_seizure(
     memo_id: str,
@@ -344,6 +393,14 @@ def release_inventory(
                 if memo_id_val:
                     stock_qs = stock_qs.filter(detention_memo_id=memo_id_val)
                 stock = stock_qs.first()
+            if not stock and item["qr_code"]:
+                stock = _ensure_in_custody_stock_for_release(
+                    memo=memo,
+                    memo_id_val=memo_id_val,
+                    qr_code=item["qr_code"],
+                    warehouse=warehouse,
+                    performed_by=performed_by,
+                )
             if not stock:
                 label = item["qr_code"] or item["stock_item_id"] or "item"
                 raise ValueError(f"No in-custody stock found for {label}.")
@@ -390,6 +447,17 @@ def release_inventory(
             stock_qs = stock_qs.filter(case_ref__iexact=case_no)
 
         matched_stock = list(stock_qs)
+        if not matched_stock and qr_code_val and memo:
+            ensured = _ensure_in_custody_stock_for_release(
+                memo=memo,
+                memo_id_val=memo_id_val,
+                qr_code=qr_code_val,
+                warehouse=warehouse,
+                performed_by=performed_by,
+            )
+            if ensured:
+                matched_stock = [ensured]
+
         if matched_stock:
             available = sum((s.quantity for s in matched_stock), Decimal("0"))
             if qty > available:

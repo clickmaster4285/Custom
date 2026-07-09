@@ -85,7 +85,179 @@ function getQrCodeUrl(data: string, size = 180) {
 
 function getGoodsQrPayload(memoId: string, item: GoodsLineItem): string {
   const ref = item.qrCodeNumber || `${memoId}-${item.id}`
-  return `${window.location.origin}/detention-memo/${encodeURIComponent(memoId)}?goodsQr=${encodeURIComponent(ref)}`
+  return `${window.location.origin}/detention-memo/${encodeURIComponent(memoId)}?goodsQr=${encodeURIComponent(ref)}&view=goods`
+}
+
+function goodsMatchesQr(item: GoodsLineItem, memoId: string, qr: string): boolean {
+  const q = qr.trim().toLowerCase()
+  if (!q) return true
+  return (
+    (item.qrCodeNumber || "").toLowerCase() === q ||
+    item.id.toLowerCase() === q ||
+    `${memoId}-${item.id}`.toLowerCase() === q
+  )
+}
+
+function GoodsInformationBlock({
+  memoId,
+  items,
+  highlightQr,
+}: {
+  memoId: string
+  items: GoodsLineItem[]
+  highlightQr?: string
+}) {
+  const highlight = highlightQr?.trim().toLowerCase() || ""
+
+  if (!items.length) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-muted-foreground">
+          No goods line matched this QR code.
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Package className="h-4 w-4" />
+          Goods Information
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="rounded-lg border p-0">
+        <div className="space-y-3 p-3 sm:hidden">
+          {items.map((item) => {
+            const isHighlight =
+              highlight &&
+              ((item.qrCodeNumber || "").toLowerCase() === highlight ||
+                item.id.toLowerCase() === highlight)
+            return (
+              <div
+                key={item.id}
+                className={`rounded-md border bg-background p-3 ${isHighlight ? "ring-2 ring-primary" : ""}`}
+              >
+                <div className="mb-3 flex items-start gap-3">
+                  <img
+                    src={getQrCodeUrl(getGoodsQrPayload(memoId, item), 56)}
+                    alt={`Goods QR ${item.qrCodeNumber || item.id}`}
+                    className="h-14 w-14 rounded border bg-white p-1"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">QR Number</p>
+                    <p className="break-all text-xs font-medium">{item.qrCodeNumber || "—"}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div><span className="text-muted-foreground">Description: </span><span className="break-words font-medium">{item.description || "—"}</span></div>
+                  <div><span className="text-muted-foreground">PCT: </span>{item.pctCode || "—"}</div>
+                  <div><span className="text-muted-foreground">Qty/Unit: </span>{item.quantity || "—"} / {item.unit || "—"}</div>
+                  <div><span className="text-muted-foreground">Condition: </span>{item.condition || "—"}</div>
+                  <div><span className="text-muted-foreground">Assessable: </span>{item.assessableValuePkr || "—"}</div>
+                  <div><span className="text-muted-foreground">Perishable: </span>{item.perishable ? "Yes" : "No"}</div>
+                  <div><span className="text-muted-foreground">ID/Chassis: </span><span className="break-words">{item.identificationRef || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Notes: </span><span className="break-words">{item.itemNotes || "—"}</span></div>
+                </div>
+                <div className="mt-3">
+                  <p className="mb-1 text-xs text-muted-foreground">Images</p>
+                  {item.images && item.images.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.images.map((imgUrl, idx) => (
+                        <img
+                          key={idx}
+                          src={imgUrl}
+                          alt={`Goods image ${idx + 1}`}
+                          className="h-12 w-12 rounded border object-cover"
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto sm:block">
+          <ScrollArea className="w-full">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead> QR Code</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>PCT</TableHead>
+                  <TableHead>Qty</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Condition</TableHead>
+                  <TableHead>Assessable</TableHead>
+                  <TableHead>Perishable</TableHead>
+                  <TableHead>ID / Chassis</TableHead>
+                  <TableHead>Item Notes</TableHead>
+                  <TableHead>Images</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => {
+                  const isHighlight =
+                    highlight &&
+                    ((item.qrCodeNumber || "").toLowerCase() === highlight ||
+                      item.id.toLowerCase() === highlight)
+                  return (
+                    <TableRow
+                      key={item.id}
+                      className={isHighlight ? "bg-primary/5 ring-1 ring-inset ring-primary/30" : undefined}
+                    >
+                      <TableCell className="font-mono text-xs">
+                        <div className="space-y-1">
+                          <img
+                            src={getQrCodeUrl(getGoodsQrPayload(memoId, item), typeof window !== 'undefined' && window.innerWidth < 640 ? 40 : 56)}
+                            alt={`Goods QR ${item.qrCodeNumber || item.id}`}
+                            className="h-10 w-10 sm:h-14 sm:w-14 border rounded p-1 bg-white"
+                          />
+                          <span className="block text-[10px] text-muted-foreground max-w-[60px] sm:max-w-[80px] break-all">
+                            {item.qrCodeNumber || "—"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium break-words min-w-[120px]">{item.description || "—"}</TableCell>
+                      <TableCell className="font-mono break-words">{item.pctCode || "—"}</TableCell>
+                      <TableCell>{item.quantity || "—"}</TableCell>
+                      <TableCell>{item.unit || "—"}</TableCell>
+                      <TableCell>{item.condition || "—"}</TableCell>
+                      <TableCell className="break-words min-w-[80px]">{item.assessableValuePkr || "—"}</TableCell>
+                      <TableCell>{item.perishable ? "Yes" : "No"}</TableCell>
+                      <TableCell className="break-words min-w-[100px]">{item.identificationRef || "—"}</TableCell>
+                      <TableCell className="text-muted-foreground max-w-[150px] sm:max-w-[200px] truncate">{item.itemNotes || "—"}</TableCell>
+                      <TableCell>
+                        {item.images && item.images.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {item.images.map((imgUrl, idx) => (
+                              <img
+                                key={idx}
+                                src={imgUrl}
+                                alt={`Goods image ${idx + 1}`}
+                                className="h-8 w-8 sm:h-10 sm:w-10 object-cover rounded border"
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
 export default function DetentionMemoDetailPage() {
@@ -95,6 +267,8 @@ export default function DetentionMemoDetailPage() {
   const printMode = searchParams.get("print")
   const autoPrint = searchParams.get("autoprint") === "1"
   const isPrintMode = printMode === "qr" || printMode === "full"
+  const goodsQrFilter = searchParams.get("goodsQr")?.trim() || ""
+  const goodsOnlyView = searchParams.get("view") === "goods" && !!goodsQrFilter
 
   useEffect(() => {
     if (!id) {
@@ -221,6 +395,52 @@ export default function DetentionMemoDetailPage() {
         qrPayload={qrPayload}
         qrNumber={qrNumber}
       />
+    )
+  }
+
+  if (goodsOnlyView) {
+    const visibleGoods = (row.goodsItems || []).filter((item) =>
+      goodsMatchesQr(item, row.id, goodsQrFilter)
+    )
+    const goodsLabel =
+      visibleGoods[0]?.description ||
+      visibleGoods[0]?.qrCodeNumber ||
+      goodsQrFilter
+
+    return (
+      <ModulePageLayout
+        title={`Goods: ${goodsLabel}`}
+        description={`Goods line from detention memo ${row.caseNo}.`}
+        breadcrumbs={[
+          { label: "WMS" },
+          { label: "Detentions" },
+          { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
+          { label: row.caseNo, href: `${ROUTES.DETENTION_MEMO}/${encodeURIComponent(row.id)}` },
+          { label: "Goods" },
+        ]}
+      >
+        <div className="grid gap-4 sm:gap-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to={ROUTES.DETENTION_MEMO}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to list
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to={`${ROUTES.DETENTION_MEMO}/${encodeURIComponent(row.id)}`}>
+                <FileText className="h-4 w-4 mr-2" />
+                View full memo
+              </Link>
+            </Button>
+          </div>
+          <GoodsInformationBlock
+            memoId={row.id}
+            items={visibleGoods}
+            highlightQr={goodsQrFilter}
+          />
+        </div>
+      </ModulePageLayout>
     )
   }
 
@@ -436,125 +656,7 @@ export default function DetentionMemoDetailPage() {
             )}
 
             {row.goodsItems && row.goodsItems.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Goods Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="rounded-lg border p-0">
-                  <div className="space-y-3 p-3 sm:hidden">
-                    {row.goodsItems.map((item) => (
-                      <div key={item.id} className="rounded-md border bg-background p-3">
-                        <div className="mb-3 flex items-start gap-3">
-                          <img
-                            src={getQrCodeUrl(getGoodsQrPayload(row.id, item), 56)}
-                            alt={`Goods QR ${item.qrCodeNumber || item.id}`}
-                            className="h-14 w-14 rounded border bg-white p-1"
-                          />
-                          <div className="min-w-0">
-                            <p className="text-xs text-muted-foreground">QR Number</p>
-                            <p className="break-all text-xs font-medium">{item.qrCodeNumber || "—"}</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div><span className="text-muted-foreground">Description: </span><span className="break-words font-medium">{item.description || "—"}</span></div>
-                          <div><span className="text-muted-foreground">PCT: </span>{item.pctCode || "—"}</div>
-                          <div><span className="text-muted-foreground">Qty/Unit: </span>{item.quantity || "—"} / {item.unit || "—"}</div>
-                          <div><span className="text-muted-foreground">Condition: </span>{item.condition || "—"}</div>
-                          <div><span className="text-muted-foreground">Assessable: </span>{item.assessableValuePkr || "—"}</div>
-                          <div><span className="text-muted-foreground">Perishable: </span>{item.perishable ? "Yes" : "No"}</div>
-                          <div><span className="text-muted-foreground">ID/Chassis: </span><span className="break-words">{item.identificationRef || "—"}</span></div>
-                          <div><span className="text-muted-foreground">Notes: </span><span className="break-words">{item.itemNotes || "—"}</span></div>
-                        </div>
-                        <div className="mt-3">
-                          <p className="mb-1 text-xs text-muted-foreground">Images</p>
-                          {item.images && item.images.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {item.images.map((imgUrl, idx) => (
-                                <img
-                                  key={idx}
-                                  src={imgUrl}
-                                  alt={`Goods image ${idx + 1}`}
-                                  className="h-12 w-12 rounded border object-cover"
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="hidden overflow-x-auto sm:block">
-                    <ScrollArea className="w-full">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead> QR Code</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>PCT</TableHead>
-                            <TableHead>Qty</TableHead>
-                            <TableHead>Unit</TableHead>
-                            <TableHead>Condition</TableHead>
-                            <TableHead>Assessable</TableHead>
-                            <TableHead>Perishable</TableHead>
-                            <TableHead>ID / Chassis</TableHead>
-                            <TableHead>Item Notes</TableHead>
-                            <TableHead>Images</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {row.goodsItems.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell className="font-mono text-xs">
-                                <div className="space-y-1">
-                                  <img
-                                    src={getQrCodeUrl(getGoodsQrPayload(row.id, item), typeof window !== 'undefined' && window.innerWidth < 640 ? 40 : 56)}
-                                    alt={`Goods QR ${item.qrCodeNumber || item.id}`}
-                                    className="h-10 w-10 sm:h-14 sm:w-14 border rounded p-1 bg-white"
-                                  />
-                                  <span className="block text-[10px] text-muted-foreground max-w-[60px] sm:max-w-[80px] break-all">
-                                    {item.qrCodeNumber || "—"}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="font-medium break-words min-w-[120px]">{item.description || "—"}</TableCell>
-                              <TableCell className="font-mono break-words">{item.pctCode || "—"}</TableCell>
-                              <TableCell>{item.quantity || "—"}</TableCell>
-                              <TableCell>{item.unit || "—"}</TableCell>
-                              <TableCell>{item.condition || "—"}</TableCell>
-                              <TableCell className="break-words min-w-[80px]">{item.assessableValuePkr || "—"}</TableCell>
-                              <TableCell>{item.perishable ? "Yes" : "No"}</TableCell>
-                              <TableCell className="break-words min-w-[100px]">{item.identificationRef || "—"}</TableCell>
-                              <TableCell className="text-muted-foreground max-w-[150px] sm:max-w-[200px] truncate">{item.itemNotes || "—"}</TableCell>
-                              <TableCell>
-                                {item.images && item.images.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {item.images.map((imgUrl, idx) => (
-                                      <img
-                                        key={idx}
-                                        src={imgUrl}
-                                        alt={`Goods image ${idx + 1}`}
-                                        className="h-8 w-8 sm:h-10 sm:w-10 object-cover rounded border"
-                                      />
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground text-xs">—</span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </ScrollArea>
-                  </div>
-                </CardContent>
-              </Card>
+              <GoodsInformationBlock memoId={row.id} items={row.goodsItems} />
             )}
 
             <WmsFlowOverviewPanel detentionMemoId={row.id} caseNo={row.caseNo} />

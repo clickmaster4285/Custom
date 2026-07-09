@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import {
   AlertTriangle,
   CheckCircle2,
@@ -44,9 +44,11 @@ import {
   fetchReleaseRecords,
   resolveQrCode,
   releaseInventoryApi,
+  type QrResolveResult,
   type ReleaseItemLine,
   type ReleaseRecordApi,
 } from "@/lib/wms-flow-api"
+import { resolveQrNavigationTarget } from "@/lib/qr-nav"
 
 const RELEASE_ALERT_DAYS = 60
 const DEPOSIT_STATUS_RELEASED = "Released"
@@ -136,7 +138,106 @@ function formatReleasedAt(iso: string): string {
   }
 }
 
+function normalizeQrInput(raw: string): string {
+  return raw.replace(/[\r\n\u0000]+/g, "").trim()
+}
+
+function findDepositForMemo(
+  depositRows: DepositRow[],
+  memoId: string,
+  caseNo?: string
+): DepositRow | null {
+  const id = memoId.trim()
+  if (!id) return null
+  const byMemo = depositRows.find((r) => r.detentionMemoId?.trim() === id)
+  if (byMemo) return byMemo
+
+  const cn = (caseNo || "").trim().toLowerCase()
+  if (!cn) return null
+  return (
+    depositRows.find((r) => (r.linkedMemoCaseNo || "").trim().toLowerCase() === cn) ||
+    depositRows.find((r) => (r.caseSeizureRef || "").trim().toLowerCase() === cn) ||
+    null
+  )
+}
+
+function buildReleaseSourceFromResolve(
+  resolved: QrResolveResult,
+  depositRow: DepositRow | null
+): DepositRow {
+  if (depositRow) return depositRow
+  const memoId = resolved.memo?.id?.trim() || ""
+  return {
+    id: "",
+    detentionMemoId: memoId,
+    linkedMemoCaseNo: resolved.memo?.caseNo || "",
+    treasuryChallanNo: "",
+    depositType: "Detention",
+    caseSeizureRef: resolved.memo?.caseNo || "",
+    firNo: resolved.memo?.firNumber || "",
+    customsStation: resolved.memo?.placeOfDetention || "",
+    amount: "",
+    depositDate: "",
+    bankTreasuryName: "",
+    status: "",
+    remarks: "",
+  }
+}
+
+function releaseItemFromResolved(
+  resolved: QrResolveResult
+): ReleaseItemLine | null {
+  if (resolved.type === "goods_line" && resolved.goods_line?.qrCodeNumber) {
+    const gl = resolved.goods_line
+    return {
+      stockId: resolved.stock?.id || "",
+      qrCode: gl.qrCodeNumber,
+      description: gl.description || "—",
+      availableQty: gl.quantity || "0",
+      unit: gl.unit || "PCS",
+      releaseQty: "",
+      godownWarehouse: "",
+    }
+  }
+  if (resolved.type === "stock" && resolved.stock?.qrCode) {
+    const stock = resolved.stock
+    return {
+      stockId: stock.id,
+      qrCode: stock.qrCode,
+      description: stock.description || "—",
+      availableQty: stock.quantity || "0",
+      unit: "PCS",
+      releaseQty: "",
+      godownWarehouse: "",
+    }
+  }
+  return null
+}
+
+function filterReleaseItemsForResolved(
+  resolved: QrResolveResult,
+  itemsAll: ReleaseItemLine[]
+): ReleaseItemLine[] {
+  if (resolved.type === "goods_line" && resolved.goods_line?.qrCodeNumber) {
+    const q = resolved.goods_line.qrCodeNumber.trim().toLowerCase()
+    const matched = itemsAll.filter((i) => (i.qrCode || "").trim().toLowerCase() === q)
+    if (matched.length) return matched
+    const fallback = releaseItemFromResolved(resolved)
+    return fallback ? [fallback] : []
+  }
+  if (resolved.type === "stock" && resolved.stock?.qrCode) {
+    const q = resolved.stock.qrCode.trim().toLowerCase()
+    const matched = itemsAll.filter((i) => (i.qrCode || "").trim().toLowerCase() === q)
+    if (matched.length) return matched
+    const fallback = releaseItemFromResolved(resolved)
+    return fallback ? [fallback] : []
+  }
+  if (resolved.type === "memo") return itemsAll
+  return itemsAll
+}
+
 export default function ReleaseInventoryPage() {
+  const navigate = useNavigate()
   const [depositRows, setDepositRows] = useState<DepositRow[]>([])
   const [releaseRecords, setReleaseRecords] = useState<ReleaseRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -164,6 +265,11 @@ export default function ReleaseInventoryPage() {
   const [qrPickerItems, setQrPickerItems] = useState<ReleaseItemLine[]>([])
   const [qrPickerSelectedQrCodes, setQrPickerSelectedQrCodes] = useState<string[]>([])
   const [qrPickerResolvedType, setQrPickerResolvedType] = useState<string>("")
+  const [qrPickerError, setQrPickerError] = useState("")
+
+  const [scanLookupOpen, setScanLookupOpen] = useState(false)
+  const [scanLookupValue, setScanLookupValue] = useState("")
+  const [scanLookupLoading, setScanLookupLoading] = useState(false)
 
   const releaseQtyByQr = useMemo(
     () => new Map(releaseItems.map((i) => [i.qrCode, i.releaseQty] as const)),
@@ -178,6 +284,7 @@ export default function ReleaseInventoryPage() {
     setQrPickerItems([])
     setQrPickerSelectedQrCodes([])
     setQrPickerResolvedType("")
+    setQrPickerError("")
 
     // Also reset the release form state used by this page.
     setReleaseSourceDeposit(null)
@@ -278,6 +385,39 @@ export default function ReleaseInventoryPage() {
     )
   }, [releaseRecords, releaseSearch])
 
+  const handleScanLookup = useCallback(async () => {
+    const raw = scanLookupValue.trim()
+    if (!raw) {
+      toast({
+        title: "Enter a QR code",
+        description: "Scan or type a memo QR or goods QR to continue.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setScanLookupLoading(true)
+    try {
+      const target = await resolveQrNavigationTarget(raw)
+      if (!target) {
+        toast({
+          title: "QR not recognized",
+          description: "No detention memo or goods line matched this code.",
+          variant: "destructive",
+        })
+        return
+      }
+      setScanLookupOpen(false)
+      setScanLookupValue("")
+      navigate(target)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not resolve QR code."
+      toast({ title: "Scan failed", description: msg, variant: "destructive" })
+    } finally {
+      setScanLookupLoading(false)
+    }
+  }, [navigate, scanLookupValue])
+
   const openReleaseDialog = (row: DepositRow) => {
     setCloseLinkedMemoOnRelease(true)
     setReleaseSourceDeposit(row)
@@ -313,11 +453,13 @@ export default function ReleaseInventoryPage() {
       .finally(() => setReleaseItemsLoading(false))
   }
 
-  const fetchQrPickerItems = useCallback(async () => {
-    const raw = qrPickerValue.trim()
+  const fetchQrPickerItems = useCallback(async (inputValue?: string) => {
+    const raw = normalizeQrInput(inputValue ?? qrPickerValue)
     if (!raw) return
 
+    setQrPickerValue(raw)
     setQrPickerLoading(true)
+    setQrPickerError("")
     try {
       // Reset any previously entered release form details.
       setReleaseSourceDeposit(null)
@@ -327,66 +469,48 @@ export default function ReleaseInventoryPage() {
       setCloseLinkedMemoOnRelease(true)
 
       const resolved = await resolveQrCode(raw)
-      if (!resolved) {
-        toast({ title: "QR not recognized", variant: "destructive" })
+
+      const memoId = resolved.memo?.id?.trim() || ""
+      if (!memoId) {
+        const msg = "This QR is not linked to a detention memo."
+        setQrPickerError(msg)
+        toast({ title: "QR not recognized", description: msg, variant: "destructive" })
         return
       }
 
-      // Memo id is required to fetch goods lines for release.
-      const memoId = resolved.memo?.id || null
-      const depositRow = memoId
-        ? depositRows.find((r) => r.detentionMemoId?.trim() === memoId) || null
-        : resolved.deposit?.id
+      const depositRow =
+        findDepositForMemo(depositRows, memoId, resolved.memo?.caseNo) ||
+        (resolved.deposit?.id
           ? depositRows.find((r) => r.id === resolved.deposit?.id) || null
-          : null
+          : null)
 
-      const detentionMemoId = depositRow?.detentionMemoId || memoId
-      if (!detentionMemoId?.trim() || !depositRow) {
-        toast({
-          title: "Detention memo not found",
-          description: "Scan/enter a valid memo/case QR that exists in this page.",
-          variant: "destructive",
-        })
+      const releaseSource = buildReleaseSourceFromResolve(resolved, depositRow)
+      const itemsAll = await fetchReleaseItemLinesForMemo(memoId)
+      const items = filterReleaseItemsForResolved(resolved, itemsAll)
+
+      if (!items.length) {
+        const msg = "No goods line matched this QR code."
+        setQrPickerError(msg)
+        toast({ title: "Goods not found", description: msg, variant: "destructive" })
         return
-      }
-
-      const itemsAll = await fetchReleaseItemLinesForMemo(detentionMemoId)
-      let items = itemsAll
-
-      if (resolved.type === "goods_line") {
-        const goodsQr = resolved.goods_line?.qrCodeNumber
-        if (goodsQr) {
-          items = itemsAll.filter(
-            (i) => i.qrCode?.trim().toLowerCase() === goodsQr.trim().toLowerCase()
-          )
-        }
-      } else if (resolved.type === "stock") {
-        const stockQr = resolved.stock?.qrCode
-        if (stockQr) {
-          items = itemsAll.filter(
-            (i) => i.qrCode?.trim().toLowerCase() === stockQr.trim().toLowerCase()
-          )
-        }
-      } else if (resolved.type === "memo") {
-        items = itemsAll
       }
 
       const warehouseFromStock = itemsAll.find((i) => i.godownWarehouse?.trim())?.godownWarehouse?.trim()
 
-      setQrPickerTargetDeposit(depositRow)
-      setQrPickerItemsAll(itemsAll)
+      setQrPickerTargetDeposit(releaseSource)
+      setQrPickerItemsAll(itemsAll.length ? itemsAll : items)
       setQrPickerItems(items)
       setQrPickerSelectedQrCodes(items.map((i) => i.qrCode))
       setQrPickerResolvedType(resolved.type)
 
       // Populate the same release form fields (quantity, deputy, collector, etc.)
       // directly inside this QR modal.
-      setReleaseSourceDeposit(depositRow)
-      setReleaseItemsAll(itemsAll)
+      setReleaseSourceDeposit(releaseSource)
+      setReleaseItemsAll(itemsAll.length ? itemsAll : items)
       setReleaseItems(items)
       setReleaseForm({
         ...EMPTY_RELEASE_FORM,
-        remarks: depositRow.remarks || "",
+        remarks: releaseSource.remarks || "",
         warehouse: warehouseFromStock || "",
       })
       setCloseLinkedMemoOnRelease(true)
@@ -394,9 +518,11 @@ export default function ReleaseInventoryPage() {
       setScanQrValue("")
       setReleaseItemsLoading(false)
     } catch (e) {
+      const msg = e instanceof Error ? e.message : "Try again."
+      setQrPickerError(msg)
       toast({
         title: "QR lookup failed",
-        description: e instanceof Error ? e.message : "Try again.",
+        description: msg,
         variant: "destructive",
       })
     } finally {
@@ -581,7 +707,8 @@ export default function ReleaseInventoryPage() {
   )
 
   const handleReleaseSubmit = async (opts?: { closeQrPicker?: boolean }) => {
-    if (!releaseSourceDeposit) return
+    const memoId = releaseSourceDeposit?.detentionMemoId?.trim()
+    if (!memoId) return
     const { warehouse, releasedOnBehalfOf, deputyName, collectorName, releaseDescription, remarks } =
       releaseForm
 
@@ -647,7 +774,7 @@ export default function ReleaseInventoryPage() {
     const totalQty = linesToRelease.reduce((sum, item) => sum + item.qty, 0)
     const releasedAt = new Date().toISOString().slice(0, 19).replace("T", " ")
     const depositRemarkParts = [
-      releaseSourceDeposit.remarks?.trim(),
+      releaseSourceDeposit?.remarks?.trim(),
       remarks.trim(),
       `Released ${totalQty} on behalf of ${releasedOnBehalfOf.trim()}; Deputy: ${deputyName.trim()}; Collector: ${collectorName.trim()}.`,
       releaseDescription.trim(),
@@ -657,8 +784,8 @@ export default function ReleaseInventoryPage() {
     setReleaseSaving(true)
     try {
       await releaseInventoryApi({
-        depositAccountId: releaseSourceDeposit.id,
-        detentionMemoId: releaseSourceDeposit.detentionMemoId,
+        depositAccountId: releaseSourceDeposit?.id || undefined,
+        detentionMemoId: memoId,
         qrCode: linesToRelease.map((i) => i.qrCode).join(", "),
         warehouse: warehouse.trim(),
         quantityReleased: String(totalQty),
@@ -673,16 +800,16 @@ export default function ReleaseInventoryPage() {
           unit: item.unit,
           description: item.description,
         })),
-        firNumber: releaseSourceDeposit.firNo || "",
-        treasuryChallanNo: releaseSourceDeposit.treasuryChallanNo || "",
-        customsStation: releaseSourceDeposit.customsStation || "",
-        amount: releaseSourceDeposit.amount || "",
-        bankTreasuryName: releaseSourceDeposit.bankTreasuryName || "",
+        firNumber: releaseSourceDeposit?.firNo || "",
+        treasuryChallanNo: releaseSourceDeposit?.treasuryChallanNo || "",
+        customsStation: releaseSourceDeposit?.customsStation || "",
+        amount: releaseSourceDeposit?.amount || "",
+        bankTreasuryName: releaseSourceDeposit?.bankTreasuryName || "",
         remarks: depositRemarkParts.join("\n"),
         settleMemo: closeLinkedMemoOnRelease,
       })
 
-      const hadMemo = !!releaseSourceDeposit.detentionMemoId?.trim()
+      const hadMemo = !!memoId
       let description = "Deposit closed as Released."
       if (hadMemo && closeLinkedMemoOnRelease) {
         description += " Linked detention memo marked Fully Settled when all goods released."
@@ -832,18 +959,20 @@ export default function ReleaseInventoryPage() {
               type="button"
               variant="outline"
               size="sm"
-              disabled
               className="sm:ml-2"
-              title="Scan QR (not enabled)"
+              onClick={() => {
+                setScanLookupValue("")
+                setScanLookupOpen(true)
+              }}
             >
               <QrCode className="h-4 w-4 mr-2" />
               Scan QR
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="default"
               size="sm"
-              className="sm:ml-1"
+              className="sm:ml-1 bg-[#3b82f6] hover:bg-[#2563eb] text-white"
               onClick={() => {
                 setQrPickerOpen(true)
                 resetQrPicker()
@@ -1170,6 +1299,68 @@ export default function ReleaseInventoryPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Scan QR — open memo detail or goods-only view */}
+      <Dialog
+        open={scanLookupOpen}
+        onOpenChange={(o) => {
+          setScanLookupOpen(o)
+          if (!o) {
+            setScanLookupValue("")
+            setScanLookupLoading(false)
+          }
+        }}
+      >
+        <DialogContent className="w-[95vw] sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Scan QR</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Scan or enter a memo QR to open the full detention memo, or a goods QR to open only that item&apos;s information.
+            </p>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label>Memo QR or Goods QR</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={scanLookupValue}
+                  onChange={(e) => setScanLookupValue(e.target.value)}
+                  placeholder="Scan memo QR or goods QR"
+                  disabled={scanLookupLoading}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void handleScanLookup()
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={() => void handleScanLookup()}
+                  disabled={scanLookupLoading || !scanLookupValue.trim()}
+                >
+                  {scanLookupLoading ? "Opening…" : "Open"}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setScanLookupOpen(false)}
+              disabled={scanLookupLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleScanLookup()}
+              disabled={scanLookupLoading || !scanLookupValue.trim()}
+            >
+              {scanLookupLoading ? "Opening…" : "Open"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* QR picker for selecting goods/case before opening release dialog */}
       <Dialog
         open={qrPickerOpen}
@@ -1192,11 +1383,29 @@ export default function ReleaseInventoryPage() {
               <div className="flex gap-2">
                 <Input
                   value={qrPickerValue}
-                  onChange={(e) => setQrPickerValue(e.target.value)}
+                  onChange={(e) => {
+                    setQrPickerValue(e.target.value)
+                    setQrPickerError("")
+                  }}
                   placeholder="Scan goods QR or memo/case QR"
                   disabled={qrPickerLoading}
+                  autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void fetchQrPickerItems()
+                  }}
+                  onPaste={(e) => {
+                    const pasted = normalizeQrInput(e.clipboardData.getData("text"))
+                    if (!pasted) return
+                    e.preventDefault()
+                    setQrPickerValue(pasted)
+                    window.setTimeout(() => {
+                      void fetchQrPickerItems(pasted)
+                    }, 0)
+                  }}
+                  onBlur={() => {
+                    if (qrPickerValue.trim() && !qrPickerItems.length && !qrPickerLoading) {
+                      void fetchQrPickerItems()
+                    }
                   }}
                 />
                 <Button
@@ -1211,6 +1420,13 @@ export default function ReleaseInventoryPage() {
                 <p className="text-xs text-muted-foreground">
                   Detected: <span className="font-medium">{qrPickerResolvedType}</span>
                 </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  After scanning, press Enter or click Fetch to load goods.
+                </p>
+              )}
+              {qrPickerError ? (
+                <p className="text-xs text-destructive">{qrPickerError}</p>
               ) : null}
             </div>
 
@@ -1222,6 +1438,12 @@ export default function ReleaseInventoryPage() {
 
             {qrPickerItems.length ? (
               <div className="grid gap-4">
+                {qrPickerItems.some((i) => !i.stockId) ? (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                    Goods are not in warehouse stock yet. They will be added to inventory automatically when you
+                    release.
+                  </div>
+                ) : null}
                 {releaseSourceDeposit ? (
                   <div className="rounded-lg border bg-muted/30 p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                     <div>
@@ -1400,7 +1622,8 @@ export default function ReleaseInventoryPage() {
               </div>
             ) : !qrPickerLoading ? (
               <p className="text-sm text-muted-foreground border rounded-lg p-4">
-                No goods loaded yet. Scan a goods QR or memo/case QR to continue.
+                {qrPickerError ||
+                  "No goods loaded yet. Scan a goods QR or memo/case QR, then press Enter or click Fetch."}
               </p>
             ) : null}
 
@@ -1419,7 +1642,7 @@ export default function ReleaseInventoryPage() {
                 disabled={
                   qrPickerLoading ||
                   releaseSaving ||
-                  !releaseSourceDeposit?.detentionMemoId ||
+                  !releaseSourceDeposit?.detentionMemoId?.trim() ||
                   releaseItems.length === 0
                 }
               >
