@@ -19,6 +19,12 @@ class MlConfig(AppConfig):
         if "migrate" in sys.argv or "makemigrations" in sys.argv:
             return
 
+        from .client import ml_service_enabled
+
+        if not ml_service_enabled():
+            logger.info("[face-sync] ML_SERVICE_URL not set — skipping ML startup sync")
+            return
+
         def _deferred_face_reload() -> None:
             try:
                 close_old_connections = __import__(

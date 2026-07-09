@@ -224,19 +224,29 @@ def _resolve_ffmpeg_path() -> str:
 FFMPEG_PATH = _resolve_ffmpeg_path()
 
 # -----------------------------
-# ML inference service (external ml_services/ on Server 2 — HTTP client only)
+# ML inference service (external ml_services/ — optional; off unless ML_SERVICE_URL is set)
 # -----------------------------
-ML_SERVICE_URL = os.getenv("ML_SERVICE_URL", "http://127.0.0.1:8100").strip()
+ML_SERVICE_URL = os.getenv("ML_SERVICE_URL", "").strip()
 ML_SERVICE_PUBLIC_URL = os.getenv(
     "ML_SERVICE_PUBLIC_URL",
-    os.getenv("ML_SERVICE_URL", "http://127.0.0.1:8100"),
+    os.getenv("ML_SERVICE_URL", ""),
 ).strip().rstrip("/")
 ML_SERVICE_TIMEOUT = int(os.getenv("ML_SERVICE_TIMEOUT", "60"))
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173").rstrip("/")
 
-# Background detection worker (saves ML readings without browser open)
-DETECTION_WORKER_ENABLED = os.getenv("DETECTION_WORKER_ENABLED", "True").lower() in ("true", "1", "yes")
-DETECTION_WORKER_AUTO_START = os.getenv("DETECTION_WORKER_AUTO_START", "True").lower() in ("true", "1", "yes")
+_ML_ENABLED = bool(ML_SERVICE_URL)
+# Background detection worker (requires ML — off by default when ML_SERVICE_URL is empty)
+_DETECTION_WORKER_DEFAULT = "True" if _ML_ENABLED else "False"
+DETECTION_WORKER_ENABLED = os.getenv("DETECTION_WORKER_ENABLED", _DETECTION_WORKER_DEFAULT).lower() in (
+    "true",
+    "1",
+    "yes",
+)
+DETECTION_WORKER_AUTO_START = os.getenv("DETECTION_WORKER_AUTO_START", _DETECTION_WORKER_DEFAULT).lower() in (
+    "true",
+    "1",
+    "yes",
+)
 DETECTION_WORKER_INTERVAL_SEC = float(os.getenv("DETECTION_WORKER_INTERVAL_SEC", "2"))
 DETECTION_WORKER_CAMERA_REFRESH_SEC = int(os.getenv("DETECTION_WORKER_CAMERA_REFRESH_SEC", "60"))
 
