@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 import json
+import logging
 
 from typing import Any
 
@@ -40,6 +41,13 @@ from .serializers import (
 )
 
 from .image_utils import compress_image
+
+logger = logging.getLogger(__name__)
+
+SCHEMA_ERROR_DETAIL = (
+    "Database schema error for detention/deposit tables. "
+    "On the server run: python manage.py repair_detention_schema"
+)
 
 
 def _body_from_request(request) -> dict[str, Any]:
@@ -195,11 +203,13 @@ class DetentionMemoListAPIView(APIView):
 
     def get(self, request):
 
-        memos = get_memo_queryset().order_by("-created_at")
-
-        data = [memo_to_frontend_dict(m, request) for m in memos]
-
-        return Response(data)
+        try:
+            memos = get_memo_queryset().order_by("-created_at")
+            data = [memo_to_frontend_dict(m, request) for m in memos]
+            return Response(data)
+        except Exception:
+            logger.exception("detention-memos list failed")
+            return Response({"detail": SCHEMA_ERROR_DETAIL}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class DetentionMemoCreateAPIView(APIView):
@@ -339,10 +349,13 @@ class DepositAccountEntryListAPIView(APIView):
 
     def get(self, request):
 
-        qs = DepositAccountEntry.objects.select_related(
-            "detention_memo").all().order_by("-created_at")
-
-        return Response([deposit_entry_to_frontend_dict(e) for e in qs])
+        try:
+            qs = DepositAccountEntry.objects.select_related(
+                "detention_memo").all().order_by("-created_at")
+            return Response([deposit_entry_to_frontend_dict(e) for e in qs])
+        except Exception:
+            logger.exception("deposit-accounts list failed")
+            return Response({"detail": SCHEMA_ERROR_DETAIL}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class DepositAccountEntryCreateAPIView(APIView):

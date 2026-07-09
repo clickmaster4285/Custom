@@ -37,14 +37,19 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.WARNING(
                     "\nRun: python manage.py migrate detentions\n"
-                    "If migrate says 'No migrations to apply', run:\n"
-                    "  python manage.py migrate detentions 0003_ensure_child_tables"
+                    "Then: python manage.py repair_detention_schema"
                 )
             )
             return
 
         memo_count = DetentionMemo.objects.count()
         deposit_count = DepositAccountEntry.objects.count()
+        try:
+            DetentionMemo.objects.prefetch_related("goods_lines__images", "attachments").first()
+            self.stdout.write(self.style.SUCCESS("OK  prefetch goods_lines + attachments"))
+        except Exception as exc:
+            self.stdout.write(self.style.ERROR(f"FAIL prefetch: {exc}"))
+            return
         self.stdout.write(
             self.style.SUCCESS(
                 f"\nAll detention tables present. Memos: {memo_count}, deposits: {deposit_count}"
