@@ -22,7 +22,7 @@ class MLHealthAPIView(APIView):
             return Response(
                 {
                     "status": "disabled",
-                    "message": "Set ML_SERVICE_URL in backend/.env and start ml_services/api_server.py.",
+                    "message": "ML service is not configured on this server.",
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { fetchMLHealth } from "@/lib/ml-api"
+import { fetchMLHealth, isMlEnabled } from "@/lib/ml-api"
 import { fetchStreamCameras } from "@/lib/cameras-api"
 
 export function MlSystemStatus({ className = "" }: { className?: string }) {
@@ -8,6 +8,15 @@ export function MlSystemStatus({ className = "" }: { className?: string }) {
   const [cameras, setCameras] = useState<string>("")
 
   useEffect(() => {
+    if (!isMlEnabled()) {
+      setMl("ML disabled on this server")
+      fetchStreamCameras()
+        .then((streams) => {
+          if (streams) setCameras(`${streams.cameras.length} camera(s)`)
+        })
+        .catch(() => undefined)
+      return
+    }
     Promise.all([
       fetchMLHealth().catch(() => ({ status: "error" as const })),
       fetchStreamCameras().catch(() => null),
