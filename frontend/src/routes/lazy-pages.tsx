@@ -105,6 +105,15 @@ export const PAGES = {
   SeizureMgmtAssessment: lazy(() =>
     import("@/pages/seizure-management/DetentionAssessment").then((m) => ({ default: m.default }))
   ),
+  SeizureMgmtAssessmentCreate: lazy(() =>
+    import("@/pages/seizure-management/AssessmentCreate").then((m) => ({ default: m.default }))
+  ),
+  SeizureMgmtAssessmentEdit: lazy(() =>
+    import("@/pages/seizure-management/AssessmentCreate").then((m) => ({ default: m.default }))
+  ),
+  SeizureMgmtAssessmentDetail: lazy(() =>
+    import("@/pages/seizure-management/AssessmentDetail").then((m) => ({ default: m.default }))
+  ),
   SeizureMgmtDetentionReporting: lazy(() =>
     import("@/pages/seizure-management/DetentionReporting").then((m) => ({ default: m.default }))
   ),

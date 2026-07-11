@@ -13,6 +13,7 @@ from detentions.serializers import create_deposit_account_entry
 
 from .models import (
     DetentionAssessment,
+    DetentionAssessmentAttachment,
     NoteSheet,
     NoteSheetAttachment,
     NoteSheetItem,
@@ -203,8 +204,9 @@ def note_sheet_to_dict(obj: NoteSheet, request=None) -> dict:
     }
 
 
-def assessment_to_dict(obj: DetentionAssessment) -> dict:
+def assessment_to_dict(obj: DetentionAssessment, request=None) -> dict:
     memo = obj.detention_memo
+    attachments = list(obj.attachments.all()) if hasattr(obj, "attachments") else []
     return {
         "id": str(obj.id),
         "detentionMemoId": str(obj.detention_memo_id),
@@ -217,9 +219,70 @@ def assessment_to_dict(obj: DetentionAssessment) -> dict:
         "findings": obj.findings or "",
         "documentRelevance": obj.document_relevance,
         "status": obj.status,
+        "approvedBy": obj.approved_by or "",
+        "approvedAt": _iso(obj.approved_at),
+        "approvalRemarks": obj.approval_remarks or "",
+        "rejectionReason": obj.rejection_reason or "",
+        "submittedAt": _iso(obj.submitted_at),
+        "viewedAt": _iso(obj.viewed_at),
+        "createdBy": obj.created_by or "",
+        "updatedBy": obj.updated_by or "",
+        "attachments": [
+            {
+                "id": str(a.id),
+                "fileType": a.file_type,
+                "originalFilename": a.original_filename or "",
+                "url": _absolute_media_url(request, a.file),
+                "uploadedAt": _iso(a.uploaded_at),
+            }
+            for a in attachments
+        ],
         "createdAt": _iso(obj.created_at),
         "updatedAt": _iso(obj.updated_at),
+        "timeline": _assessment_timeline(obj),
     }
+
+
+def _assessment_timeline(obj: DetentionAssessment) -> list[dict]:
+    events: list[dict] = []
+    events.append(
+        {
+            "action": "created",
+            "label": "Created",
+            "at": _iso(obj.created_at),
+            "by": obj.created_by or "",
+        }
+    )
+    if obj.submitted_at:
+        events.append(
+            {
+                "action": "submitted",
+                "label": "Submitted for approval",
+                "at": _iso(obj.submitted_at),
+                "by": obj.updated_by or obj.created_by or "",
+            }
+        )
+    if obj.status == DetentionAssessment.STATUS_APPROVED and obj.approved_at:
+        events.append(
+            {
+                "action": "approved",
+                "label": "Approved",
+                "at": _iso(obj.approved_at),
+                "by": obj.approved_by or "",
+                "remarks": obj.approval_remarks or "",
+            }
+        )
+    if obj.status == DetentionAssessment.STATUS_REJECTED and obj.approved_at:
+        events.append(
+            {
+                "action": "rejected",
+                "label": "Rejected",
+                "at": _iso(obj.approved_at),
+                "by": obj.approved_by or "",
+                "remarks": obj.rejection_reason or "",
+            }
+        )
+    return events
 
 
 def recovery_memo_to_dict(obj: RecoveryMemo) -> dict:
@@ -364,6 +427,15 @@ class AssessmentWriteSerializer(serializers.Serializer):
         choices=[c[0] for c in DetentionAssessment.STATUS_CHOICES],
         required=False,
     )
+    createdBy = serializers.CharField(required=False, allow_blank=True)
+    updatedBy = serializers.CharField(required=False, allow_blank=True)
+
+
+class AssessmentApprovalSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["submit", "approve", "reject", "view"])
+    approvedBy = serializers.CharField(required=False, allow_blank=True)
+    rejectionReason = serializers.CharField(required=False, allow_blank=True)
+    approvalRemarks = serializers.CharField(required=False, allow_blank=True)
 
 
 class RecoveryMemoWriteSerializer(serializers.Serializer):
@@ -631,7 +703,11 @@ def save_note_sheet_goods_images(request, obj: NoteSheet, items_payload: list | 
             remaining -= 1
 
 
-def apply_assessment(obj: DetentionAssessment, data: dict) -> DetentionAssessment:
+def apply_assessment(
+    obj: DetentionAssessment,
+    data: dict,
+    username: str = "",
+) -> DetentionAssessment:
     if "assessmentDate" in data:
         obj.assessment_date = data.get("assessmentDate") or ""
     if "examiningOfficer" in data:
@@ -644,10 +720,56 @@ def apply_assessment(obj: DetentionAssessment, data: dict) -> DetentionAssessmen
         obj.findings = data.get("findings") or ""
     if "documentRelevance" in data and data["documentRelevance"]:
         obj.document_relevance = data["documentRelevance"]
-    if "status" in data and data["status"]:
+    # Status is controlled by approval endpoint; ignore client status except on create default
+    if not obj.pk and data.get("status") in dict(DetentionAssessment.STATUS_CHOICES):
         obj.status = data["status"]
+    actor = (data.get("updatedBy") or data.get("createdBy") or username or "").strip()
+    if actor:
+        if not obj.created_by:
+            obj.created_by = (data.get("createdBy") or actor).strip()
+        obj.updated_by = actor
     obj.save()
     return obj
+
+
+_ASSESSMENT_FILE_TYPE_KEYS = {
+    "photo": DetentionAssessmentAttachment.TYPE_PHOTO,
+    "video": DetentionAssessmentAttachment.TYPE_VIDEO,
+    "pdf": DetentionAssessmentAttachment.TYPE_PDF,
+    "invoice": DetentionAssessmentAttachment.TYPE_INVOICE,
+    "delivery_challan": DetentionAssessmentAttachment.TYPE_CHALLAN,
+    "import_document": DetentionAssessmentAttachment.TYPE_IMPORT,
+    "cnic": DetentionAssessmentAttachment.TYPE_CNIC,
+    "other": DetentionAssessmentAttachment.TYPE_OTHER,
+    "documents": DetentionAssessmentAttachment.TYPE_OTHER,
+    "attachments": DetentionAssessmentAttachment.TYPE_OTHER,
+}
+
+
+def save_assessment_uploads(request, obj: DetentionAssessment) -> list[DetentionAssessmentAttachment]:
+    created: list[DetentionAssessmentAttachment] = []
+    files = getattr(request, "FILES", None)
+    if not files:
+        return created
+
+    try:
+        from ml.image_utils import compress_image
+    except Exception:
+        compress_image = None
+
+    for key, file_type in _ASSESSMENT_FILE_TYPE_KEYS.items():
+        for uploaded in files.getlist(key):
+            if compress_image and file_type == DetentionAssessmentAttachment.TYPE_PHOTO:
+                uploaded = compress_image(uploaded, max_width=1920, max_height=1080, quality=85)
+            created.append(
+                DetentionAssessmentAttachment.objects.create(
+                    assessment=obj,
+                    file=uploaded,
+                    file_type=file_type,
+                    original_filename=(getattr(uploaded, "name", "") or "")[:255],
+                )
+            )
+    return created
 
 
 def apply_recovery(obj: RecoveryMemo, data: dict) -> RecoveryMemo:

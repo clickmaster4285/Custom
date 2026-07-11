@@ -32,7 +32,7 @@ export type RecoveryCategory = (typeof RECOVERY_CATEGORIES)[number]
 
 export type NoteSheetStatus = "Draft" | "Submitted" | "Approved" | "Rejected"
 export type ApprovalStatus = "Draft" | "Pending Approval" | "Approved" | "Rejected"
-export type AssessmentStatus = "In Progress" | "Completed"
+export type AssessmentStatus = "Draft" | "Submitted" | "Approved" | "Rejected"
 export type DocumentRelevance = "Pending" | "Relevant" | "Not Relevant"
 export type SeizureReportStatus = "Draft" | "Submitted"
 
@@ -156,6 +156,14 @@ export type NoteSheetCreateMedia = {
   other?: File[]
 }
 
+export type DetentionAssessmentAttachment = {
+  id: string
+  fileType: string
+  originalFilename: string
+  url: string
+  uploadedAt: string
+}
+
 export type DetentionAssessmentRecord = {
   id: string
   detentionMemoId: string
@@ -168,6 +176,22 @@ export type DetentionAssessmentRecord = {
   findings: string
   documentRelevance: DocumentRelevance
   status: AssessmentStatus
+  approvedBy: string
+  approvedAt: string
+  approvalRemarks: string
+  rejectionReason: string
+  submittedAt: string
+  viewedAt: string
+  createdBy: string
+  updatedBy: string
+  attachments: DetentionAssessmentAttachment[]
+  timeline?: Array<{
+    action: string
+    label: string
+    at: string
+    by?: string
+    remarks?: string
+  }>
   createdAt: string
   updatedAt: string
 }
@@ -420,7 +444,10 @@ export type NoteSheetNotificationItem = {
   createdAt: string
   noteSheetId: string
   noteSheetNo: string
+  assessmentId?: string
+  caseNo?: string
   type: string
+  hrefKind?: "note_sheet" | "assessment" | string
 }
 
 export async function fetchNoteSheetNotifications(opts?: {
@@ -473,6 +500,23 @@ export async function linkNoteSheetToDetention(noteSheetId: string, detentionMem
 
 // ——— Assessments ———
 
+export type AssessmentUploadMedia = {
+  photos?: File[]
+  videos?: File[]
+  pdfs?: File[]
+  invoices?: File[]
+  challans?: File[]
+  importDocs?: File[]
+  cnics?: File[]
+  other?: File[]
+  documents?: File[]
+}
+
+function assessmentHasMedia(media?: AssessmentUploadMedia): boolean {
+  if (!media) return false
+  return Object.values(media).some((arr) => (arr?.length ?? 0) > 0)
+}
+
 export async function fetchAssessments(detentionMemoId?: string): Promise<DetentionAssessmentRecord[]> {
   const qs = detentionMemoId ? `?detentionMemoId=${encodeURIComponent(detentionMemoId)}` : ""
   const res = await fetch(`${BASE}/assessments/list/${qs}`, { headers: getAuthHeaders(), cache: "no-store" })
@@ -481,13 +525,50 @@ export async function fetchAssessments(detentionMemoId?: string): Promise<Detent
   return body as DetentionAssessmentRecord[]
 }
 
+export async function fetchAssessmentById(id: string): Promise<DetentionAssessmentRecord> {
+  const res = await fetch(`${BASE}/assessments/${encodeURIComponent(id)}/read/`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  })
+  const body = await parseJson(res)
+  if (!res.ok) throw new Error(errorMessage(res, body))
+  return body as DetentionAssessmentRecord
+}
+
+function appendAssessmentMedia(form: FormData, media?: AssessmentUploadMedia) {
+  if (!media) return
+  for (const f of media.photos ?? []) form.append("photo", f)
+  for (const f of media.videos ?? []) form.append("video", f)
+  for (const f of media.pdfs ?? []) form.append("pdf", f)
+  for (const f of media.invoices ?? []) form.append("invoice", f)
+  for (const f of media.challans ?? []) form.append("delivery_challan", f)
+  for (const f of media.importDocs ?? []) form.append("import_document", f)
+  for (const f of media.cnics ?? []) form.append("cnic", f)
+  for (const f of media.other ?? []) form.append("other", f)
+  for (const f of media.documents ?? []) form.append("documents", f)
+}
+
 export async function createAssessment(
-  payload: Partial<DetentionAssessmentRecord> & { detentionMemoId: string }
+  payload: Partial<DetentionAssessmentRecord> & { detentionMemoId: string },
+  media?: AssessmentUploadMedia
 ): Promise<DetentionAssessmentRecord> {
+  if (!assessmentHasMedia(media)) {
+    const res = await fetch(`${BASE}/assessments/create/`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    })
+    const body = await parseJson(res)
+    if (!res.ok) throw new Error(errorMessage(res, body))
+    return body as DetentionAssessmentRecord
+  }
+  const form = new FormData()
+  form.append("payload", JSON.stringify(payload))
+  appendAssessmentMedia(form, media)
   const res = await fetch(`${BASE}/assessments/create/`, {
     method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
+    headers: getAuthHeadersFormData(),
+    body: form,
   })
   const body = await parseJson(res)
   if (!res.ok) throw new Error(errorMessage(res, body))
@@ -496,12 +577,46 @@ export async function createAssessment(
 
 export async function updateAssessment(
   id: string,
-  payload: Partial<DetentionAssessmentRecord>
+  payload: Partial<DetentionAssessmentRecord>,
+  media?: AssessmentUploadMedia
 ): Promise<DetentionAssessmentRecord> {
+  if (!assessmentHasMedia(media)) {
+    const res = await fetch(`${BASE}/assessments/${encodeURIComponent(id)}/update/`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    })
+    const body = await parseJson(res)
+    if (!res.ok) throw new Error(errorMessage(res, body))
+    return body as DetentionAssessmentRecord
+  }
+  const form = new FormData()
+  form.append("payload", JSON.stringify(payload))
+  appendAssessmentMedia(form, media)
   const res = await fetch(`${BASE}/assessments/${encodeURIComponent(id)}/update/`, {
     method: "PUT",
+    headers: getAuthHeadersFormData(),
+    body: form,
+  })
+  const body = await parseJson(res)
+  if (!res.ok) throw new Error(errorMessage(res, body))
+  return body as DetentionAssessmentRecord
+}
+
+export async function assessmentApproval(
+  id: string,
+  action: "submit" | "approve" | "reject" | "view",
+  opts?: { approvedBy?: string; approvalRemarks?: string; rejectionReason?: string }
+): Promise<DetentionAssessmentRecord> {
+  const res = await fetch(`${BASE}/assessments/${encodeURIComponent(id)}/approval/`, {
+    method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      action,
+      approvedBy: opts?.approvedBy || "",
+      approvalRemarks: opts?.approvalRemarks || "",
+      rejectionReason: opts?.rejectionReason || "",
+    }),
   })
   const body = await parseJson(res)
   if (!res.ok) throw new Error(errorMessage(res, body))

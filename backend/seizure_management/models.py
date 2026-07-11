@@ -31,6 +31,15 @@ def note_sheet_item_image_path(instance, filename: str) -> str:
     return f"note_sheets/{instance.item.note_sheet_id}/goods/{uuid.uuid4().hex}{ext}"
 
 
+def assessment_attachment_path(instance, filename: str) -> str:
+    ext = os.path.splitext(os.path.basename((filename or "").replace("\\", "/")))[1].lower()
+    ext = re.sub(r"[^\w.]", "", ext)[:10]
+    if not ext.startswith("."):
+        ext = f".{ext}" if ext else ".bin"
+    kind = getattr(instance, "file_type", "other") or "other"
+    return f"assessments/{instance.assessment_id}/{kind}/{uuid.uuid4().hex}{ext}"
+
+
 class NoteSheet(models.Model):
     """Pre-detention note sheet — first legal document; must be approved before detention memo."""
 
@@ -262,13 +271,20 @@ class NoteSheetNotification(models.Model):
 
 
 class DetentionAssessment(models.Model):
-    """Examination of detained goods/documents; drives release vs recovery path."""
+    """Examination of detained goods/documents; approval workflow mirrors note sheet."""
 
+    STATUS_DRAFT = "Draft"
+    STATUS_SUBMITTED = "Submitted"
+    STATUS_APPROVED = "Approved"
+    STATUS_REJECTED = "Rejected"
+    # Legacy aliases (migrated rows / older clients)
     STATUS_IN_PROGRESS = "In Progress"
     STATUS_COMPLETED = "Completed"
     STATUS_CHOICES = [
-        (STATUS_IN_PROGRESS, "In Progress"),
-        (STATUS_COMPLETED, "Completed"),
+        (STATUS_DRAFT, "Draft"),
+        (STATUS_SUBMITTED, "Submitted"),
+        (STATUS_APPROVED, "Approved"),
+        (STATUS_REJECTED, "Rejected"),
     ]
 
     RELEVANCE_PENDING = "Pending"
@@ -297,7 +313,18 @@ class DetentionAssessment(models.Model):
         default=RELEVANCE_PENDING,
         db_index=True,
     )
-    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_IN_PROGRESS)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_DRAFT, db_index=True)
+
+    # Approval (same pattern as note sheet)
+    approved_by = models.CharField(max_length=500, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approval_remarks = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    viewed_at = models.DateTimeField(null=True, blank=True)
+
+    created_by = models.CharField(max_length=150, blank=True)
+    updated_by = models.CharField(max_length=150, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -307,6 +334,71 @@ class DetentionAssessment(models.Model):
 
     def __str__(self):
         return f"Assessment {self.detention_memo_id}"
+
+
+class DetentionAssessmentAttachment(models.Model):
+    """Supporting documents uploaded with an assessment."""
+
+    TYPE_PHOTO = "photo"
+    TYPE_VIDEO = "video"
+    TYPE_PDF = "pdf"
+    TYPE_INVOICE = "invoice"
+    TYPE_CHALLAN = "delivery_challan"
+    TYPE_IMPORT = "import_document"
+    TYPE_CNIC = "cnic"
+    TYPE_OTHER = "other"
+    TYPE_CHOICES = [
+        (TYPE_PHOTO, "Photo"),
+        (TYPE_VIDEO, "Video"),
+        (TYPE_PDF, "PDF"),
+        (TYPE_INVOICE, "Invoice"),
+        (TYPE_CHALLAN, "Delivery Challan"),
+        (TYPE_IMPORT, "Import Document"),
+        (TYPE_CNIC, "CNIC"),
+        (TYPE_OTHER, "Other"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    assessment = models.ForeignKey(
+        DetentionAssessment,
+        on_delete=models.CASCADE,
+        related_name="attachments",
+    )
+    file = models.FileField(upload_to=assessment_attachment_path, max_length=500)
+    file_type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_OTHER)
+    original_filename = models.CharField(max_length=255, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["uploaded_at"]
+
+    def __str__(self):
+        return self.original_filename or str(self.pk)
+
+
+class AssessmentNotification(models.Model):
+    """In-app notification for assessment approval requests."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient_user_id = models.IntegerField(db_index=True)
+    assessment = models.ForeignKey(
+        DetentionAssessment,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    title = models.CharField(max_length=255)
+    message = models.TextField(blank=True)
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["recipient_user_id", "is_read", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.title} → user {self.recipient_user_id}"
 
 
 class RecoveryMemo(models.Model):

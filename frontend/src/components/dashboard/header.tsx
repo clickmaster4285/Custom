@@ -15,7 +15,7 @@ import { clearLegacyVmsLocalStorage } from "@/lib/vms-list-api"
 import { getRoleDisplayLabel } from "@/lib/role-access"
 import { isGlobalAdmin } from "@/lib/location-access"
 import { locationLabel } from "@/lib/locations"
-import { ROUTES, getSeizureMgmtNoteSheetDetailPath } from "@/routes/config"
+import { ROUTES, getSeizureMgmtAssessmentDetailPath, getSeizureMgmtNoteSheetDetailPath } from "@/routes/config"
 import {
   fetchNoteSheetNotifications,
   markAllNoteSheetNotificationsRead,
@@ -68,6 +68,10 @@ export function Header({ onMenuClick }: HeaderProps) {
     }
     setNotifOpen(false)
     loadNotifications()
+    if (n.hrefKind === "assessment" || n.assessmentId) {
+      if (n.assessmentId) navigate(getSeizureMgmtAssessmentDetailPath(n.assessmentId))
+      return
+    }
     if (n.noteSheetId) {
       navigate(getSeizureMgmtNoteSheetDetailPath(n.noteSheetId))
     }
@@ -162,7 +166,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               <DropdownMenuSeparator />
               {notifications.length === 0 ? (
                 <p className="px-3 py-6 text-sm text-muted-foreground text-center">
-                  No note sheet notifications
+                  No approval notifications
                 </p>
               ) : (
                 notifications.map((n) => (

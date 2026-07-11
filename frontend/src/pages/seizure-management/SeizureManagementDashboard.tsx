@@ -159,7 +159,7 @@ export default function SeizureManagementDashboardPage() {
             <h2 className="text-lg font-semibold text-[#101727] mb-4">Pending Actions</h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                <span className="text-sm text-[#697282]">Assessments in progress</span>
+                <span className="text-sm text-[#697282]">Assessments pending approval</span>
                 <Badge variant="secondary">{overview.assessmentsPending}</Badge>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-gray-100">

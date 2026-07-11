@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    AssessmentApprovalAPIView,
     AssessmentCreateAPIView,
     AssessmentDeleteAPIView,
     AssessmentListAPIView,
@@ -48,6 +49,7 @@ urlpatterns = [
     path("seizure-management/assessments/<uuid:pk>/read/", AssessmentReadAPIView.as_view()),
     path("seizure-management/assessments/<uuid:pk>/update/", AssessmentUpdateAPIView.as_view()),
     path("seizure-management/assessments/<uuid:pk>/delete/", AssessmentDeleteAPIView.as_view()),
+    path("seizure-management/assessments/<uuid:pk>/approval/", AssessmentApprovalAPIView.as_view()),
     # Recovery memos
     path("seizure-management/recovery-memos/list/", RecoveryMemoListAPIView.as_view()),
     path("seizure-management/recovery-memos/create/", RecoveryMemoCreateAPIView.as_view()),

@@ -8,14 +8,25 @@ from rest_framework.views import APIView
 
 from detentions.models import DetentionMemo
 
-from .models import DetentionAssessment, NoteSheet, NoteSheetNotification, RecoveryMemo, SeizureReport
+from .models import (
+    AssessmentNotification,
+    DetentionAssessment,
+    NoteSheet,
+    NoteSheetNotification,
+    RecoveryMemo,
+    SeizureReport,
+)
 from .notifications import (
     NOTE_SHEET_FORWARD_TO_LABEL,
+    mark_assessment_notifications_resolved,
     mark_note_sheet_notifications_resolved,
+    notify_assessment_submitted,
     notify_note_sheet_submitted,
+    user_can_approve_assessment,
     user_can_approve_note_sheet,
 )
 from .serializers import (
+    AssessmentApprovalSerializer,
     AssessmentWriteSerializer,
     LinkDetentionSerializer,
     NoteSheetApprovalSerializer,
@@ -33,6 +44,7 @@ from .serializers import (
     maybe_create_deposit_for_recovery,
     note_sheet_to_dict,
     recovery_memo_to_dict,
+    save_assessment_uploads,
     save_note_sheet_goods_images,
     save_note_sheet_uploads,
     seizure_report_to_dict,
@@ -56,8 +68,30 @@ def _notification_to_dict(n: NoteSheetNotification) -> dict:
         "createdAt": n.created_at.isoformat() if n.created_at else "",
         "noteSheetId": str(n.note_sheet_id),
         "noteSheetNo": (sheet.note_sheet_no or sheet.reference_number or "") if sheet else "",
+        "assessmentId": "",
         "type": "note_sheet_approval",
+        "hrefKind": "note_sheet",
     }
+
+
+def _assessment_notification_to_dict(n: AssessmentNotification) -> dict:
+    assessment = n.assessment
+    memo = assessment.detention_memo if assessment else None
+    return {
+        "id": str(n.id),
+        "title": n.title,
+        "message": n.message,
+        "isRead": n.is_read,
+        "createdAt": n.created_at.isoformat() if n.created_at else "",
+        "noteSheetId": "",
+        "noteSheetNo": "",
+        "assessmentId": str(n.assessment_id),
+        "caseNo": (memo.case_no if memo else "") or "",
+        "type": "assessment_approval",
+        "hrefKind": "assessment",
+    }
+
+
 class NoteSheetListAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -313,10 +347,15 @@ class AssessmentListAPIView(APIView):
 
     def get(self, request):
         memo_id = (request.query_params.get("detentionMemoId") or "").strip()
-        qs = DetentionAssessment.objects.select_related("detention_memo").all()
+        status_filter = (request.query_params.get("status") or "").strip()
+        qs = DetentionAssessment.objects.select_related("detention_memo").prefetch_related(
+            "attachments"
+        )
         if memo_id:
             qs = qs.filter(detention_memo_id=memo_id)
-        return Response([assessment_to_dict(o) for o in qs])
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return Response([assessment_to_dict(o, request) for o in qs])
 
 
 class AssessmentCreateAPIView(APIView):
@@ -324,7 +363,8 @@ class AssessmentCreateAPIView(APIView):
 
     def post(self, request):
         try:
-            ser = AssessmentWriteSerializer(data=request.data)
+            body = body_from_request(request)
+            ser = AssessmentWriteSerializer(data=body)
             ser.is_valid(raise_exception=True)
             data = ser.validated_data
             memo_id = data.get("detentionMemoId")
@@ -336,9 +376,16 @@ class AssessmentCreateAPIView(APIView):
                     {"detail": "Assessment already exists for this detention memo."},
                     status=400,
                 )
-            obj = DetentionAssessment(detention_memo=memo)
-            apply_assessment(obj, data)
-            return Response(assessment_to_dict(obj), status=status.HTTP_201_CREATED)
+            obj = DetentionAssessment(
+                detention_memo=memo,
+                status=DetentionAssessment.STATUS_DRAFT,
+            )
+            apply_assessment(obj, data, username=_username(request))
+            save_assessment_uploads(request, obj)
+            obj = DetentionAssessment.objects.select_related("detention_memo").prefetch_related(
+                "attachments"
+            ).get(pk=obj.pk)
+            return Response(assessment_to_dict(obj, request), status=status.HTTP_201_CREATED)
         except Exception as exc:
             from rest_framework.exceptions import ValidationError as DRFValidationError
             from django.http import Http404
@@ -355,20 +402,40 @@ class AssessmentReadAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
-        obj = get_object_or_404(DetentionAssessment.objects.select_related("detention_memo"), pk=pk)
-        return Response(assessment_to_dict(obj))
+        obj = get_object_or_404(
+            DetentionAssessment.objects.select_related("detention_memo").prefetch_related(
+                "attachments"
+            ),
+            pk=pk,
+        )
+        if obj.status == DetentionAssessment.STATUS_SUBMITTED and not obj.viewed_at:
+            obj.viewed_at = timezone.now()
+            obj.save(update_fields=["viewed_at", "updated_at"])
+        return Response(assessment_to_dict(obj, request))
 
 
 class AssessmentUpdateAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def put(self, request, pk):
-        obj = get_object_or_404(DetentionAssessment.objects.select_related("detention_memo"), pk=pk)
-        ser = AssessmentWriteSerializer(data=request.data, partial=True)
+        obj = get_object_or_404(DetentionAssessment, pk=pk)
+        if obj.status not in (
+            DetentionAssessment.STATUS_DRAFT,
+            DetentionAssessment.STATUS_REJECTED,
+        ):
+            return Response(
+                {"detail": "Only draft or rejected assessments can be edited."},
+                status=400,
+            )
+        body = body_from_request(request)
+        ser = AssessmentWriteSerializer(data=body, partial=True)
         ser.is_valid(raise_exception=True)
-        apply_assessment(obj, ser.validated_data)
-        obj.refresh_from_db()
-        return Response(assessment_to_dict(obj))
+        apply_assessment(obj, ser.validated_data, username=_username(request))
+        save_assessment_uploads(request, obj)
+        obj = DetentionAssessment.objects.select_related("detention_memo").prefetch_related(
+            "attachments"
+        ).get(pk=obj.pk)
+        return Response(assessment_to_dict(obj, request))
 
 
 class AssessmentDeleteAPIView(APIView):
@@ -376,8 +443,155 @@ class AssessmentDeleteAPIView(APIView):
 
     def delete(self, request, pk):
         obj = get_object_or_404(DetentionAssessment, pk=pk)
+        if obj.status == DetentionAssessment.STATUS_APPROVED:
+            return Response(
+                {"detail": "Cannot delete an approved assessment."},
+                status=400,
+            )
         obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AssessmentApprovalAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        obj = get_object_or_404(
+            DetentionAssessment.objects.select_related("detention_memo").prefetch_related(
+                "attachments"
+            ),
+            pk=pk,
+        )
+        ser = AssessmentApprovalSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        action = ser.validated_data["action"]
+        remarks = (
+            ser.validated_data.get("approvalRemarks")
+            or ser.validated_data.get("rejectionReason")
+            or ""
+        )
+
+        if action == "submit":
+            if obj.status not in (
+                DetentionAssessment.STATUS_DRAFT,
+                DetentionAssessment.STATUS_REJECTED,
+            ):
+                return Response(
+                    {"detail": "Only draft/rejected assessments can be submitted."},
+                    status=400,
+                )
+            if not (obj.examining_officer or "").strip():
+                return Response(
+                    {"detail": "Examining officer is required before submit."},
+                    status=400,
+                )
+            if obj.document_relevance == DetentionAssessment.RELEVANCE_PENDING:
+                return Response(
+                    {"detail": "Set document relevance (Relevant / Not Relevant) before submit."},
+                    status=400,
+                )
+            obj.status = DetentionAssessment.STATUS_SUBMITTED
+            obj.submitted_at = timezone.now()
+            obj.rejection_reason = ""
+            obj.approval_remarks = ""
+            obj.viewed_at = None
+            obj.updated_by = _username(request) or obj.updated_by
+            obj.save(
+                update_fields=[
+                    "status",
+                    "submitted_at",
+                    "rejection_reason",
+                    "approval_remarks",
+                    "viewed_at",
+                    "updated_by",
+                    "updated_at",
+                ]
+            )
+            notify_assessment_submitted(
+                obj,
+                submitted_by_user_id=getattr(request.user, "id", None),
+            )
+        elif action == "view":
+            if obj.status == DetentionAssessment.STATUS_SUBMITTED and not obj.viewed_at:
+                obj.viewed_at = timezone.now()
+                obj.save(update_fields=["viewed_at", "updated_at"])
+        elif action == "approve":
+            if obj.status != DetentionAssessment.STATUS_SUBMITTED:
+                return Response(
+                    {"detail": "Only submitted assessments can be approved."},
+                    status=400,
+                )
+            if not user_can_approve_assessment(request.user, obj):
+                return Response(
+                    {
+                        "detail": (
+                            "Only Assistant Collector, Deputy Collector, "
+                            "Location Admin, or Super Admin can approve this assessment."
+                        )
+                    },
+                    status=403,
+                )
+            obj.status = DetentionAssessment.STATUS_APPROVED
+            obj.approved_by = (
+                (getattr(request.user, "full_name", None) or "").strip()
+                or ser.validated_data.get("approvedBy")
+                or _username(request)
+            )
+            obj.approved_at = timezone.now()
+            obj.approval_remarks = remarks
+            obj.rejection_reason = ""
+            obj.save(
+                update_fields=[
+                    "status",
+                    "approved_by",
+                    "approved_at",
+                    "approval_remarks",
+                    "rejection_reason",
+                    "updated_at",
+                ]
+            )
+            mark_assessment_notifications_resolved(obj)
+        elif action == "reject":
+            if obj.status != DetentionAssessment.STATUS_SUBMITTED:
+                return Response(
+                    {"detail": "Only submitted assessments can be rejected."},
+                    status=400,
+                )
+            if not user_can_approve_assessment(request.user, obj):
+                return Response(
+                    {
+                        "detail": (
+                            "Only Assistant Collector, Deputy Collector, "
+                            "Location Admin, or Super Admin can reject this assessment."
+                        )
+                    },
+                    status=403,
+                )
+            obj.status = DetentionAssessment.STATUS_REJECTED
+            obj.approved_by = (
+                (getattr(request.user, "full_name", None) or "").strip()
+                or ser.validated_data.get("approvedBy")
+                or _username(request)
+            )
+            obj.approved_at = timezone.now()
+            obj.rejection_reason = remarks
+            obj.approval_remarks = remarks
+            obj.save(
+                update_fields=[
+                    "status",
+                    "approved_by",
+                    "approved_at",
+                    "rejection_reason",
+                    "approval_remarks",
+                    "updated_at",
+                ]
+            )
+            mark_assessment_notifications_resolved(obj)
+
+        obj = DetentionAssessment.objects.select_related("detention_memo").prefetch_related(
+            "attachments"
+        ).get(pk=obj.pk)
+        return Response(assessment_to_dict(obj, request))
 
 
 class RecoveryMemoListAPIView(APIView):
@@ -515,8 +729,8 @@ class SeizureReportCreateAPIView(APIView):
                 .first()
             )
         if data.get("status") == SeizureReport.STATUS_SUBMITTED:
-            if not assessment or assessment.status != DetentionAssessment.STATUS_COMPLETED:
-                return Response({"detail": "Completed assessment is required to submit."}, status=400)
+            if not assessment or assessment.status != DetentionAssessment.STATUS_APPROVED:
+                return Response({"detail": "Approved assessment is required to submit."}, status=400)
             if not recovery or recovery.approval_status != RecoveryMemo.STATUS_APPROVED:
                 return Response({"detail": "Approved recovery memo is required to submit."}, status=400)
 
@@ -562,8 +776,8 @@ class SeizureReportUpdateAPIView(APIView):
                 assessment = get_object_or_404(DetentionAssessment, pk=data["assessmentId"])
             if data.get("recoveryMemoId"):
                 recovery = get_object_or_404(RecoveryMemo, pk=data["recoveryMemoId"])
-            if not assessment or assessment.status != DetentionAssessment.STATUS_COMPLETED:
-                return Response({"detail": "Completed assessment is required to submit."}, status=400)
+            if not assessment or assessment.status != DetentionAssessment.STATUS_APPROVED:
+                return Response({"detail": "Approved assessment is required to submit."}, status=400)
             if not recovery or recovery.approval_status != RecoveryMemo.STATUS_APPROVED:
                 return Response({"detail": "Approved recovery memo is required to submit."}, status=400)
         apply_seizure_report(obj, data)
@@ -593,7 +807,7 @@ class SeizureManagementOverviewAPIView(APIView):
                 ).count(),
                 "assessments": DetentionAssessment.objects.count(),
                 "assessmentsPending": DetentionAssessment.objects.filter(
-                    status=DetentionAssessment.STATUS_IN_PROGRESS
+                    status=DetentionAssessment.STATUS_SUBMITTED
                 ).count(),
                 "recoveryMemos": RecoveryMemo.objects.count(),
                 "recoveryPendingApproval": RecoveryMemo.objects.filter(
@@ -608,26 +822,36 @@ class SeizureManagementOverviewAPIView(APIView):
 
 
 class NoteSheetNotificationListAPIView(APIView):
-    """List in-app notifications for the logged-in official."""
+    """List in-app notifications for the logged-in official (note sheets + assessments)."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         unread_only = (request.query_params.get("unread") or "").strip() in ("1", "true", "yes")
-        qs = NoteSheetNotification.objects.filter(
-            recipient_user_id=request.user.id
-        ).select_related("note_sheet")
+        uid = request.user.id
+
+        ns_qs = NoteSheetNotification.objects.filter(recipient_user_id=uid).select_related("note_sheet")
+        as_qs = AssessmentNotification.objects.filter(recipient_user_id=uid).select_related(
+            "assessment__detention_memo"
+        )
         if unread_only:
-            qs = qs.filter(is_read=False)
-        qs = qs[:50]
-        unread_count = NoteSheetNotification.objects.filter(
-            recipient_user_id=request.user.id,
-            is_read=False,
-        ).count()
+            ns_qs = ns_qs.filter(is_read=False)
+            as_qs = as_qs.filter(is_read=False)
+
+        combined = [_notification_to_dict(n) for n in ns_qs[:50]] + [
+            _assessment_notification_to_dict(n) for n in as_qs[:50]
+        ]
+        combined.sort(key=lambda x: x.get("createdAt") or "", reverse=True)
+        combined = combined[:50]
+
+        unread_count = (
+            NoteSheetNotification.objects.filter(recipient_user_id=uid, is_read=False).count()
+            + AssessmentNotification.objects.filter(recipient_user_id=uid, is_read=False).count()
+        )
         return Response(
             {
                 "unreadCount": unread_count,
-                "results": [_notification_to_dict(n) for n in qs],
+                "results": combined,
             }
         )
 
@@ -646,15 +870,27 @@ class NoteSheetNotificationMarkReadAPIView(APIView):
                 recipient_user_id=request.user.id,
                 is_read=False,
             ).update(is_read=True)
+            AssessmentNotification.objects.filter(
+                recipient_user_id=request.user.id,
+                is_read=False,
+            ).update(is_read=True)
             return Response({"detail": "All notifications marked as read."})
         if pk:
-            n = get_object_or_404(
-                NoteSheetNotification,
+            ns = NoteSheetNotification.objects.filter(
+                pk=pk, recipient_user_id=request.user.id
+            ).first()
+            if ns:
+                if not ns.is_read:
+                    ns.is_read = True
+                    ns.save(update_fields=["is_read"])
+                return Response(_notification_to_dict(ns))
+            an = get_object_or_404(
+                AssessmentNotification,
                 pk=pk,
                 recipient_user_id=request.user.id,
             )
-            if not n.is_read:
-                n.is_read = True
-                n.save(update_fields=["is_read"])
-            return Response(_notification_to_dict(n))
+            if not an.is_read:
+                an.is_read = True
+                an.save(update_fields=["is_read"])
+            return Response(_assessment_notification_to_dict(an))
         return Response({"detail": "Provide notification id or {\"all\": true}."}, status=400)

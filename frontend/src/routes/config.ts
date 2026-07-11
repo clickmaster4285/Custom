@@ -111,6 +111,9 @@ export const ROUTES = {
   SEIZURE_MGMT_NOTE_SHEET_EDIT: "/seizure-management/note-sheet/:id/edit",
   SEIZURE_MGMT_NOTE_SHEET_DETAIL: "/seizure-management/note-sheet/:id",
   SEIZURE_MGMT_ASSESSMENT: "/seizure-management/assessment",
+  SEIZURE_MGMT_ASSESSMENT_CREATE: "/seizure-management/assessment/create",
+  SEIZURE_MGMT_ASSESSMENT_EDIT: "/seizure-management/assessment/:id/edit",
+  SEIZURE_MGMT_ASSESSMENT_DETAIL: "/seizure-management/assessment/:id",
   SEIZURE_MGMT_DETENTION_REPORTING: "/seizure-management/detention-reporting",
   SEIZURE_MGMT_RECOVERY_MEMO: "/seizure-management/recovery-memo",
   SEIZURE_MGMT_RECOVERY_MEMO_CREATE: "/seizure-management/recovery-memo/create",
@@ -270,6 +273,12 @@ export function getSeizureMgmtNoteSheetDetailPath(id: string): string {
 }
 export function getSeizureMgmtNoteSheetEditPath(id: string): string {
   return `${ROUTES.SEIZURE_MGMT_NOTE_SHEET}/${encodeURIComponent(id)}/edit`
+}
+export function getSeizureMgmtAssessmentDetailPath(id: string): string {
+  return `${ROUTES.SEIZURE_MGMT_ASSESSMENT}/${encodeURIComponent(id)}`
+}
+export function getSeizureMgmtAssessmentEditPath(id: string): string {
+  return `${ROUTES.SEIZURE_MGMT_ASSESSMENT}/${encodeURIComponent(id)}/edit`
 }
 export function getActivityLogDetailPath(id: number | string): string {
   return `${ROUTES.LOGS}/${encodeURIComponent(String(id))}`
