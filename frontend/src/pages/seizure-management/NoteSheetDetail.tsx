@@ -50,25 +50,23 @@ function Field({ label, value, className }: { label: string; value?: string | nu
 
 function canUserApproveNoteSheet(
   row: NoteSheetRecord,
-  user: Pick<AuthUser, "id" | "username" | "full_name"> | null
+  user: Pick<AuthUser, "id" | "username" | "full_name" | "role" | "location"> | null
 ): boolean {
   if (row.status !== "Submitted" || !user) return false
-  if (row.forwardToUserId != null && user.id != null) {
-    return Number(row.forwardToUserId) === Number(user.id)
-  }
-  const target = (row.forwardTo || "").trim().toLowerCase()
-  if (!target) return false
-  const fullName = (user.full_name || "").trim().toLowerCase()
-  const username = (user.username || "").trim().toLowerCase()
-  const targetBase = target.split(/[—@·|]/)[0]?.trim() || target
-  return (
-    target === fullName ||
-    target === username ||
-    targetBase === fullName ||
-    targetBase === username ||
-    (username.length > 0 && target.includes(`@${username}`)) ||
-    (fullName.length > 0 && target.startsWith(fullName))
-  )
+  const role = (user.role || "").trim().toUpperCase()
+  const approverRoles = new Set([
+    "ADMIN",
+    "LOCATION_ADMIN",
+    "DEPUTY_COLLECTOR",
+    "ASSISTANT_COLLECTOR",
+  ])
+  if (!approverRoles.has(role)) return false
+  if (role === "ADMIN") return true
+  // Location-scoped officials: same location as sheet office when known
+  const userLoc = (user.location || "").trim().toUpperCase()
+  const office = (row.office || "").trim().toUpperCase()
+  if (!userLoc || !office) return true
+  return office.includes(userLoc) || userLoc.includes(office.split("(")[0].trim())
 }
 
 export default function NoteSheetDetailPage() {
@@ -243,9 +241,9 @@ export default function NoteSheetDetailPage() {
         <div className="mb-4 rounded-[10px] border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
           Prepared by <span className="font-medium">{row.preparedBy || row.createdBy || "—"}</span>
           {" · "}
-          Forwarded to you (
-          <span className="font-medium">{currentUser?.full_name || currentUser?.username || "you"}</span>
-          ) for approval.
+          Pending approval by Assistant Collector, Deputy Collector, Location Admin, or Super Admin.
+          You can approve or reject as{" "}
+          <span className="font-medium">{currentUser?.full_name || currentUser?.username || "you"}</span>.
         </div>
       )}
 
@@ -253,11 +251,8 @@ export default function NoteSheetDetailPage() {
         <div className="mb-4 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           Prepared by <span className="font-medium">{row.preparedBy || row.createdBy || "—"}</span>
           {" · "}
-          Waiting for approval from{" "}
-          <span className="font-medium">
-            {row.forwardTo?.trim() || "the designated approving officer"}
-          </span>
-          .
+          Waiting for approval from Assistant Collector, Deputy Collector, Location Admin, or Super
+          Admin.
         </div>
       )}
 
@@ -508,7 +503,13 @@ export default function NoteSheetDetailPage() {
             <div>
               <p className="text-sm font-medium mb-3">Forward To</p>
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Approving Officer" value={row.forwardTo} />
+                <Field
+                  label="Approving Officials"
+                  value={
+                    row.forwardTo?.trim() ||
+                    "Assistant Collector, Deputy Collector, Location Admin, Super Admin"
+                  }
+                />
                 <Field label="Status" value={approvalStatusLabel} />
                 <Field label="Approval Date" value={row.approvedAt} />
                 <Field label="Approving Officer (decision)" value={row.approvedBy} />
@@ -640,9 +641,9 @@ export default function NoteSheetDetailPage() {
               <p className="text-sm text-muted-foreground">
                 Waiting for approval from{" "}
                 <span className="font-medium text-foreground">
-                  {row.forwardTo?.trim() || "the designated approving officer"}
+                  Assistant Collector, Deputy Collector, Location Admin, or Super Admin
                 </span>
-                . Only that officer can approve or reject this note sheet.
+                . Only those officials can approve or reject this note sheet.
               </p>
             </CardContent>
           </Card>

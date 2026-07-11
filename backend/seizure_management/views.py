@@ -8,7 +8,13 @@ from rest_framework.views import APIView
 
 from detentions.models import DetentionMemo
 
-from .models import DetentionAssessment, NoteSheet, RecoveryMemo, SeizureReport
+from .models import DetentionAssessment, NoteSheet, NoteSheetNotification, RecoveryMemo, SeizureReport
+from .notifications import (
+    NOTE_SHEET_FORWARD_TO_LABEL,
+    mark_note_sheet_notifications_resolved,
+    notify_note_sheet_submitted,
+    user_can_approve_note_sheet,
+)
 from .serializers import (
     AssessmentWriteSerializer,
     LinkDetentionSerializer,
@@ -40,33 +46,18 @@ def _username(request) -> str:
     return ""
 
 
-def _user_matches_forward_to(request, obj: NoteSheet) -> bool:
-    """True if the logged-in user is the designated approving officer."""
-    user = getattr(request, "user", None)
-    if not user or not getattr(user, "is_authenticated", False):
-        return False
-    # Prefer user-id match when Forward To was selected from colleagues list.
-    if obj.forward_to_user_id:
-        try:
-            return int(obj.forward_to_user_id) == int(user.id)
-        except (TypeError, ValueError):
-            return False
-    target = (obj.forward_to or "").strip().lower()
-    if not target:
-        return False
-    full_name = (getattr(user, "full_name", None) or "").strip().lower()
-    username = (user.get_username() or "").strip().lower()
-    email = (getattr(user, "email", None) or "").strip().lower()
-    target_base = target.split("—")[0].split("@")[0].split("·")[0].split("|")[0].strip()
-    if target in {full_name, username, email}:
-        return True
-    if target_base and target_base in {full_name, username}:
-        return True
-    if username and f"@{username}" in target:
-        return True
-    if full_name and target.startswith(full_name):
-        return True
-    return False
+def _notification_to_dict(n: NoteSheetNotification) -> dict:
+    sheet = n.note_sheet
+    return {
+        "id": str(n.id),
+        "title": n.title,
+        "message": n.message,
+        "isRead": n.is_read,
+        "createdAt": n.created_at.isoformat() if n.created_at else "",
+        "noteSheetId": str(n.note_sheet_id),
+        "noteSheetNo": (sheet.note_sheet_no or sheet.reference_number or "") if sheet else "",
+        "type": "note_sheet_approval",
+    }
 class NoteSheetListAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -184,11 +175,9 @@ class NoteSheetApprovalAPIView(APIView):
                     {"detail": "Only draft/rejected sheets can be submitted."},
                     status=400,
                 )
-            if not (obj.forward_to or "").strip() and not obj.forward_to_user_id:
-                return Response(
-                    {"detail": "Select an Approving Officer (Forward To) before submitting."},
-                    status=400,
-                )
+            # Auto-route to Assistant Collector, Deputy Collector, Location Admin, Super Admin
+            obj.forward_to = NOTE_SHEET_FORWARD_TO_LABEL
+            obj.forward_to_user_id = None
             obj.status = NoteSheet.STATUS_SUBMITTED
             obj.submitted_at = timezone.now()
             obj.rejection_reason = ""
@@ -196,6 +185,8 @@ class NoteSheetApprovalAPIView(APIView):
             obj.viewed_at = None
             obj.save(
                 update_fields=[
+                    "forward_to",
+                    "forward_to_user_id",
                     "status",
                     "submitted_at",
                     "rejection_reason",
@@ -203,6 +194,10 @@ class NoteSheetApprovalAPIView(APIView):
                     "viewed_at",
                     "updated_at",
                 ]
+            )
+            notify_note_sheet_submitted(
+                obj,
+                submitted_by_user_id=getattr(request.user, "id", None),
             )
         elif action == "view":
             if obj.status == NoteSheet.STATUS_SUBMITTED and not obj.viewed_at:
@@ -214,12 +209,12 @@ class NoteSheetApprovalAPIView(APIView):
                     {"detail": "Only submitted sheets can be approved."},
                     status=400,
                 )
-            if not _user_matches_forward_to(request, obj):
+            if not user_can_approve_note_sheet(request.user, obj):
                 return Response(
                     {
                         "detail": (
-                            f"Only the designated approving officer "
-                            f"({obj.forward_to or 'not set'}) can approve this note sheet."
+                            "Only Assistant Collector, Deputy Collector, "
+                            "Location Admin, or Super Admin can approve this note sheet."
                         )
                     },
                     status=403,
@@ -243,18 +238,19 @@ class NoteSheetApprovalAPIView(APIView):
                     "updated_at",
                 ]
             )
+            mark_note_sheet_notifications_resolved(obj)
         elif action == "reject":
             if obj.status != NoteSheet.STATUS_SUBMITTED:
                 return Response(
                     {"detail": "Only submitted sheets can be rejected."},
                     status=400,
                 )
-            if not _user_matches_forward_to(request, obj):
+            if not user_can_approve_note_sheet(request.user, obj):
                 return Response(
                     {
                         "detail": (
-                            f"Only the designated approving officer "
-                            f"({obj.forward_to or 'not set'}) can reject this note sheet."
+                            "Only Assistant Collector, Deputy Collector, "
+                            "Location Admin, or Super Admin can reject this note sheet."
                         )
                     },
                     status=403,
@@ -278,6 +274,7 @@ class NoteSheetApprovalAPIView(APIView):
                     "updated_at",
                 ]
             )
+            mark_note_sheet_notifications_resolved(obj)
         return Response(note_sheet_to_dict(obj, request))
 
 
@@ -326,18 +323,32 @@ class AssessmentCreateAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        ser = AssessmentWriteSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
-        data = ser.validated_data
-        memo_id = data.get("detentionMemoId")
-        if not memo_id:
-            return Response({"detail": "detentionMemoId is required."}, status=400)
-        memo = get_object_or_404(DetentionMemo, pk=memo_id)
-        if DetentionAssessment.objects.filter(detention_memo=memo).exists():
-            return Response({"detail": "Assessment already exists for this detention memo."}, status=400)
-        obj = DetentionAssessment(detention_memo=memo)
-        apply_assessment(obj, data)
-        return Response(assessment_to_dict(obj), status=status.HTTP_201_CREATED)
+        try:
+            ser = AssessmentWriteSerializer(data=request.data)
+            ser.is_valid(raise_exception=True)
+            data = ser.validated_data
+            memo_id = data.get("detentionMemoId")
+            if not memo_id:
+                return Response({"detail": "detentionMemoId is required."}, status=400)
+            memo = get_object_or_404(DetentionMemo, pk=memo_id)
+            if DetentionAssessment.objects.filter(detention_memo=memo).exists():
+                return Response(
+                    {"detail": "Assessment already exists for this detention memo."},
+                    status=400,
+                )
+            obj = DetentionAssessment(detention_memo=memo)
+            apply_assessment(obj, data)
+            return Response(assessment_to_dict(obj), status=status.HTTP_201_CREATED)
+        except Exception as exc:
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+            from django.http import Http404
+
+            if isinstance(exc, (DRFValidationError, Http404)):
+                raise
+            return Response(
+                {"detail": f"{type(exc).__name__}: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class AssessmentReadAPIView(APIView):
@@ -594,3 +605,56 @@ class SeizureManagementOverviewAPIView(APIView):
                 ).count(),
             }
         )
+
+
+class NoteSheetNotificationListAPIView(APIView):
+    """List in-app notifications for the logged-in official."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        unread_only = (request.query_params.get("unread") or "").strip() in ("1", "true", "yes")
+        qs = NoteSheetNotification.objects.filter(
+            recipient_user_id=request.user.id
+        ).select_related("note_sheet")
+        if unread_only:
+            qs = qs.filter(is_read=False)
+        qs = qs[:50]
+        unread_count = NoteSheetNotification.objects.filter(
+            recipient_user_id=request.user.id,
+            is_read=False,
+        ).count()
+        return Response(
+            {
+                "unreadCount": unread_count,
+                "results": [_notification_to_dict(n) for n in qs],
+            }
+        )
+
+
+class NoteSheetNotificationMarkReadAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk=None):
+        mark_all = False
+        if isinstance(getattr(request, "data", None), dict):
+            mark_all = request.data.get("all") in (True, "1", "true", "yes")
+        if not mark_all:
+            mark_all = request.query_params.get("all") in ("1", "true", "yes")
+        if mark_all:
+            NoteSheetNotification.objects.filter(
+                recipient_user_id=request.user.id,
+                is_read=False,
+            ).update(is_read=True)
+            return Response({"detail": "All notifications marked as read."})
+        if pk:
+            n = get_object_or_404(
+                NoteSheetNotification,
+                pk=pk,
+                recipient_user_id=request.user.id,
+            )
+            if not n.is_read:
+                n.is_read = True
+                n.save(update_fields=["is_read"])
+            return Response(_notification_to_dict(n))
+        return Response({"detail": "Provide notification id or {\"all\": true}."}, status=400)

@@ -11,6 +11,8 @@ from .views import (
     NoteSheetDeleteAPIView,
     NoteSheetLinkDetentionAPIView,
     NoteSheetListAPIView,
+    NoteSheetNotificationListAPIView,
+    NoteSheetNotificationMarkReadAPIView,
     NoteSheetReadAPIView,
     NoteSheetUpdateAPIView,
     RecoveryMemoApprovalAPIView,
@@ -37,6 +39,9 @@ urlpatterns = [
     path("seizure-management/note-sheets/<uuid:pk>/delete/", NoteSheetDeleteAPIView.as_view()),
     path("seizure-management/note-sheets/<uuid:pk>/approval/", NoteSheetApprovalAPIView.as_view()),
     path("seizure-management/note-sheets/<uuid:pk>/link-detention/", NoteSheetLinkDetentionAPIView.as_view()),
+    path("seizure-management/notifications/", NoteSheetNotificationListAPIView.as_view()),
+    path("seizure-management/notifications/mark-read/", NoteSheetNotificationMarkReadAPIView.as_view()),
+    path("seizure-management/notifications/<uuid:pk>/mark-read/", NoteSheetNotificationMarkReadAPIView.as_view()),
     # Assessments
     path("seizure-management/assessments/list/", AssessmentListAPIView.as_view()),
     path("seizure-management/assessments/create/", AssessmentCreateAPIView.as_view()),

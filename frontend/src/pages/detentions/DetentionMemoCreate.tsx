@@ -503,10 +503,10 @@ export default function DetentionMemoCreatePage() {
                     <Label>Reference Number</Label>
                     <Input value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="Reference No" />
                   </div>
-                  <div className="grid gap-2">
+                  {/* <div className="grid gap-2">
                     <Label>FIR Number</Label>
                     <Input value={firNumber} onChange={(e) => setFirNumber(e.target.value)} placeholder="e.g. FIR-2024-001" />
-                  </div>
+                  </div> */}
                   <div className="grid gap-2">
                     <Label>Date/Time of occurrence</Label>
                     <Input
@@ -537,13 +537,13 @@ export default function DetentionMemoCreatePage() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label>Detention Type</Label>
+                    {/* <Label>Detention Type</Label>
                     <Select value={detentionType} onValueChange={setDetentionType}>
                       <SelectTrigger><SelectValue placeholder="Select Detention Type" /></SelectTrigger>
                       <SelectContent>
                         {DETENTION_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                       </SelectContent>
-                    </Select>
+                    </Select> */}
                   </div>
                 </CardContent>
               </CollapsibleContent>
@@ -555,7 +555,7 @@ export default function DetentionMemoCreatePage() {
             <Card>
               <CollapsibleTrigger asChild>
                 <CardHeader className="cursor-pointer flex flex-row items-center justify-between hover:bg-muted/50 rounded-t-lg">
-                  <CardTitle className="text-base">Owner & Driver Details</CardTitle>
+                  <CardTitle className="text-base">Owner & Driver Details (Optional)</CardTitle>
                   <ChevronDown className="h-4 w-4 shrink-0" />
                 </CardHeader>
               </CollapsibleTrigger>
@@ -673,7 +673,7 @@ export default function DetentionMemoCreatePage() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label>Where detained goods deposited</Label>
+                    <Label>Good Detained at</Label>
                     <Select value={whereDeposited} onValueChange={setWhereDeposited}>
                       <SelectTrigger><SelectValue placeholder="Select Warehouse" /></SelectTrigger>
                       <SelectContent>

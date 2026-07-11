@@ -90,12 +90,21 @@ export default function DetentionAssessmentPage() {
   const load = () => {
     setLoading(true)
     Promise.all([
-      fetchDetentionMemos().catch(() => [] as DetentionMemoApiRecord[]),
-      fetchAssessments().catch(() => [] as DetentionAssessmentRecord[]),
+      fetchDetentionMemos(),
+      fetchAssessments(),
     ])
       .then(([m, a]) => {
         setMemos(m)
         setAssessments(a)
+      })
+      .catch((e) => {
+        setMemos([])
+        setAssessments([])
+        toast({
+          title: "Failed to load assessments",
+          description: e instanceof Error ? e.message : "Could not load data",
+          variant: "destructive",
+        })
       })
       .finally(() => setLoading(false))
   }

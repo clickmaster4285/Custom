@@ -412,6 +412,54 @@ export async function noteSheetApproval(
   return body as NoteSheetRecord
 }
 
+export type NoteSheetNotificationItem = {
+  id: string
+  title: string
+  message: string
+  isRead: boolean
+  createdAt: string
+  noteSheetId: string
+  noteSheetNo: string
+  type: string
+}
+
+export async function fetchNoteSheetNotifications(opts?: {
+  unread?: boolean
+}): Promise<{ unreadCount: number; results: NoteSheetNotificationItem[] }> {
+  const qs = opts?.unread ? "?unread=1" : ""
+  const res = await fetch(`${BASE}/notifications/${qs}`, {
+    headers: getAuthHeaders(),
+    cache: "no-store",
+  })
+  const body = await parseJson(res)
+  if (!res.ok) throw new Error(errorMessage(res, body))
+  return body as { unreadCount: number; results: NoteSheetNotificationItem[] }
+}
+
+export async function markNoteSheetNotificationRead(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/notifications/${encodeURIComponent(id)}/mark-read/`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({}),
+  })
+  if (!res.ok) {
+    const body = await parseJson(res)
+    throw new Error(errorMessage(res, body))
+  }
+}
+
+export async function markAllNoteSheetNotificationsRead(): Promise<void> {
+  const res = await fetch(`${BASE}/notifications/mark-read/`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ all: true }),
+  })
+  if (!res.ok) {
+    const body = await parseJson(res)
+    throw new Error(errorMessage(res, body))
+  }
+}
+
 export async function linkNoteSheetToDetention(noteSheetId: string, detentionMemoId: string): Promise<NoteSheetRecord> {
   const res = await fetch(`${BASE}/note-sheets/${encodeURIComponent(noteSheetId)}/link-detention/`, {
     method: "POST",

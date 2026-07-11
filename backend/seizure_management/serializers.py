@@ -350,7 +350,7 @@ class NoteSheetApprovalSerializer(serializers.Serializer):
 
 
 class AssessmentWriteSerializer(serializers.Serializer):
-    detentionMemoId = serializers.UUIDField()
+    detentionMemoId = serializers.UUIDField(required=False)
     assessmentDate = serializers.CharField(required=False, allow_blank=True)
     examiningOfficer = serializers.CharField(required=False, allow_blank=True)
     goodsCondition = serializers.CharField(required=False, allow_blank=True)

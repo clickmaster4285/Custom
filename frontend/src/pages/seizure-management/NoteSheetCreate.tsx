@@ -35,7 +35,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ROUTES, getSeizureMgmtNoteSheetDetailPath } from "@/routes/config"
 import { getStoredUser } from "@/lib/auth"
 import { locationLabel } from "@/lib/locations"
-import { fetchCurrentUser, fetchLocationColleagues, pickUserContact, type ApiUser } from "@/lib/users-api"
+import { fetchCurrentUser, pickUserContact } from "@/lib/users-api"
 import {
   EVIDENCE_OPTIONS,
   RECOMMENDATION_OPTIONS,
@@ -49,23 +49,8 @@ import {
 } from "@/lib/seizure-management-api"
 import { toast } from "@/components/ui/use-toast"
 
-function userDisplayName(u: {
-  full_name?: string
-  username: string
-  designation?: string
-}): string {
-  return (u.full_name || "").trim() || u.username
-}
-
-function userOptionLabel(u: {
-  full_name?: string
-  username: string
-  designation?: string
-}): string {
-  const name = userDisplayName(u)
-  const base = name.toLowerCase() === u.username.toLowerCase() ? name : `${name} (@${u.username})`
-  return u.designation?.trim() ? `${base} — ${u.designation}` : base
-}
+const NOTE_SHEET_APPROVER_LABEL =
+  "Assistant Collector, Deputy Collector, Location Admin, Super Admin"
 
 function nowLocalDatetime(): string {
   const d = new Date()
@@ -187,12 +172,8 @@ export default function NoteSheetCreatePage() {
 
   const [preparedSignature, setPreparedSignature] = useState("")
   const [preparedDate, setPreparedDate] = useState(nowLocalDatetime)
-  const [forwardTo, setForwardTo] = useState("")
-  const [forwardToUserId, setForwardToUserId] = useState<number | null>(null)
-  const [locationUsers, setLocationUsers] = useState<ApiUser[]>([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
 
-  // Prefill logged-in officer on create; load same-location users for Forward To
+  // Prefill logged-in officer on create
   useEffect(() => {
     const applyOfficerProfile = (user: {
       full_name?: string
@@ -231,19 +212,6 @@ export default function NoteSheetCreatePage() {
         .then((profile) => applyOfficerProfile(profile))
         .catch(() => undefined)
     }
-
-    setLoadingUsers(true)
-    fetchLocationColleagues({ excludeSelf: true })
-      .then((users) => setLocationUsers(users.filter((u) => u.is_active !== false)))
-      .catch((e) => {
-        setLocationUsers([])
-        toast({
-          title: "Could not load location officers",
-          description: e instanceof Error ? e.message : "Failed to load users",
-          variant: "destructive",
-        })
-      })
-      .finally(() => setLoadingUsers(false))
   }, [isEdit])
 
   useEffect(() => {
@@ -308,8 +276,6 @@ export default function NoteSheetCreatePage() {
         setRecommendation(row.recommendation || RECOMMENDATION_OPTIONS[3])
         setPreparedSignature(row.preparedSignature || "")
         setPreparedDate(toDatetimeLocal(row.preparedDate))
-        setForwardTo(row.forwardTo || "")
-        setForwardToUserId(row.forwardToUserId ?? null)
         setExistingAttachments(row.attachments || [])
       })
       .catch((e) => {
@@ -396,8 +362,8 @@ export default function NoteSheetCreatePage() {
       recommendation,
       preparedSignature: preparedSignature.trim() || officerName,
       preparedDate: preparedDate.replace("T", " "),
-      forwardTo,
-      forwardToUserId,
+      forwardTo: NOTE_SHEET_APPROVER_LABEL,
+      forwardToUserId: null,
       ...(user ? { createdBy: user.username } : {}),
     }
   }
@@ -408,14 +374,6 @@ export default function NoteSheetCreatePage() {
       toast({
         title: "Preparing Officer is required",
         description: "Log in again if officer details did not load.",
-        variant: "destructive",
-      })
-      return
-    }
-    if (submit && !forwardTo.trim() && !forwardToUserId) {
-      toast({
-        title: "Approving Officer required",
-        description: "Select who this note sheet should be forwarded to.",
         variant: "destructive",
       })
       return
@@ -1150,59 +1108,19 @@ export default function NoteSheetCreatePage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-3">Forward To</p>
-                  <div className="grid gap-2">
-                    <Label>Approving Officer</Label>
-                    <Select
-                      value={forwardToUserId ? String(forwardToUserId) : undefined}
-                      onValueChange={(v) => {
-                        const selected = locationUsers.find((u) => String(u.id) === v)
-                        if (selected) {
-                          setForwardToUserId(selected.id)
-                          setForwardTo(userDisplayName(selected))
-                        } else {
-                          setForwardToUserId(Number(v) || null)
-                          setForwardTo(v)
-                        }
-                      }}
-                      disabled={loadingUsers}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            loadingUsers
-                              ? "Loading officers…"
-                              : locationUsers.length
-                                ? "Select approving officer"
-                                : "No officers found for your location"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {forwardToUserId &&
-                          !locationUsers.some((u) => u.id === forwardToUserId) && (
-                            <SelectItem value={String(forwardToUserId)}>
-                              {forwardTo || `User #${forwardToUserId}`}
-                            </SelectItem>
-                          )}
-                        {locationUsers.map((u) => (
-                          <SelectItem key={u.id} value={String(u.id)}>
-                            {userOptionLabel(u)}
-                            {u.location ? ` · ${locationLabel(u.location)}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="rounded-md border bg-muted/40 px-3 py-3 space-y-1">
+                    <p className="text-sm font-medium">Approving officials (automatic)</p>
+                    <p className="text-sm text-foreground">{NOTE_SHEET_APPROVER_LABEL}</p>
                     <p className="text-xs text-muted-foreground">
-                      Officers at your location
-                      {getStoredUser()?.location
-                        ? ` (${locationLabel(getStoredUser()?.location)})`
-                        : ""}
-                      .
+                      On submit, all of these roles are notified. Location Admin, Deputy Collector,
+                      and Assistant Collector at your location, plus Super Admin, can approve or
+                      reject.
                     </p>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Approval status (Pending / Approved / Rejected) is set by the senior officer on the note sheet detail page.
+                  Approval status (Pending / Approved / Rejected) is set by an approving official on
+                  the note sheet detail page.
                 </p>
               </CardContent>
             </CollapsibleContent>

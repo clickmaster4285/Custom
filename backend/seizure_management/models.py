@@ -236,6 +236,31 @@ class NoteSheetAttachment(models.Model):
         return self.original_filename or str(self.pk)
 
 
+class NoteSheetNotification(models.Model):
+    """In-app notification for note sheet approval requests."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient_user_id = models.IntegerField(db_index=True)
+    note_sheet = models.ForeignKey(
+        NoteSheet,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    title = models.CharField(max_length=255)
+    message = models.TextField(blank=True)
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["recipient_user_id", "is_read", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.title} → user {self.recipient_user_id}"
+
+
 class DetentionAssessment(models.Model):
     """Examination of detained goods/documents; drives release vs recovery path."""
 
