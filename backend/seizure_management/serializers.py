@@ -472,6 +472,7 @@ class SeizureReportWriteSerializer(serializers.Serializer):
     detentionMemoId = serializers.UUIDField()
     assessmentId = serializers.UUIDField(required=False, allow_null=True)
     recoveryMemoId = serializers.UUIDField(required=False, allow_null=True)
+    caseNo = serializers.CharField(required=False, allow_blank=True)
     reportDate = serializers.CharField(required=False, allow_blank=True)
     preparedBy = serializers.CharField(required=False, allow_blank=True)
     summary = serializers.CharField(required=False, allow_blank=True)
@@ -825,6 +826,46 @@ def maybe_create_deposit_for_recovery(recovery: RecoveryMemo) -> DepositAccountE
     return entry
 
 
+def _sync_seizure_report_legacy_columns(obj: SeizureReport, data: dict | None = None) -> None:
+    """Keep live-DB legacy NOT NULL columns filled (not on the Django model)."""
+    from django.db import connection
+
+    memo = getattr(obj, "detention_memo", None)
+    ref = ""
+    if data and data.get("caseNo"):
+        ref = str(data.get("caseNo") or "")
+    elif memo is not None:
+        ref = (getattr(memo, "case_no", None) or getattr(memo, "reference_number", None) or "") or ""
+
+    pk = str(obj.pk)
+    updates = [
+        ("reference_number", ref),
+        ("executive_summary", obj.summary or ""),
+        ("recovery_summary", obj.recovery_assessment_notes or ""),
+        ("created_by", obj.prepared_by or ""),
+    ]
+    with connection.cursor() as cursor:
+        for column, value in updates:
+            cursor.execute(
+                """
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'seizure_management_seizurereport'
+                  AND column_name = %s
+                """,
+                [column],
+            )
+            if not cursor.fetchone():
+                continue
+            cursor.execute(
+                f"""
+                UPDATE seizure_management_seizurereport
+                SET {column} = COALESCE(NULLIF(%s, ''), {column}, '')
+                WHERE id = %s::uuid
+                """,
+                [value, pk],
+            )
+
+
 def apply_seizure_report(obj: SeizureReport, data: dict) -> SeizureReport:
     if "reportDate" in data:
         obj.report_date = data.get("reportDate") or ""
@@ -843,6 +884,7 @@ def apply_seizure_report(obj: SeizureReport, data: dict) -> SeizureReport:
         if obj.status == SeizureReport.STATUS_SUBMITTED and not obj.submitted_at:
             obj.submitted_at = timezone.now()
     obj.save()
+    _sync_seizure_report_legacy_columns(obj, data)
     return obj
 
 

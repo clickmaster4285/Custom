@@ -49,7 +49,6 @@ export default function SeizureReportPage() {
       breadcrumbs={[
         { label: "Seizure Management", href: ROUTES.SEIZURE_MANAGEMENT },
         { label: "Seizure Report" },
-        { label: "Create Seizure Report" },
       ]}
     >
       <Card className="rounded-[10px] border-gray-200">
