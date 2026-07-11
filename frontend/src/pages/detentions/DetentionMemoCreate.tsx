@@ -306,8 +306,7 @@ export default function DetentionMemoCreatePage() {
       title="Detention Memo / Create"
       description="Add a new detention memo (prepared after the detention). All fields as per Pakistan Customs detention memo. Data is saved to the server database."
       breadcrumbs={[
-        { label: "WMS" },
-        { label: "Detentions" },
+        { label: "Seizure Management", href: ROUTES.SEIZURE_MANAGEMENT },
         { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
         { label: "Create" },
       ]}

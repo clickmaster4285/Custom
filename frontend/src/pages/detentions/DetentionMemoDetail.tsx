@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ROUTES } from "@/routes/config"
+import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import DetentionMemoReportPrint from "@/components/detention/DetentionMemoReportPrint"
 import DetentionMemoQRPrint from "@/components/detention/DetentionMemoQRPrint"
@@ -85,7 +85,7 @@ function getQrCodeUrl(data: string, size = 180) {
 
 function getGoodsQrPayload(memoId: string, item: GoodsLineItem): string {
   const ref = item.qrCodeNumber || `${memoId}-${item.id}`
-  return `${window.location.origin}/detention-memo/${encodeURIComponent(memoId)}?goodsQr=${encodeURIComponent(ref)}&view=goods`
+  return `${window.location.origin}${getDetentionMemoDetailPath(memoId)}?goodsQr=${encodeURIComponent(ref)}&view=goods`
 }
 
 function goodsMatchesQr(item: GoodsLineItem, memoId: string, qr: string): boolean {
@@ -302,8 +302,7 @@ export default function DetentionMemoDetailPage() {
         title="Detention Memo Not Found"
         description="The requested record could not be found."
         breadcrumbs={[
-          { label: "WMS" },
-          { label: "Detentions" },
+          { label: "Seizure Management", href: ROUTES.SEIZURE_MANAGEMENT },
           { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
           { label: "Detail" },
         ]}
@@ -329,8 +328,7 @@ export default function DetentionMemoDetailPage() {
         title="Detention Memo"
         description="Loading record…"
         breadcrumbs={[
-          { label: "WMS" },
-          { label: "Detentions" },
+          { label: "Seizure Management", href: ROUTES.SEIZURE_MANAGEMENT },
           { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
           { label: "Detail" },
         ]}
@@ -350,8 +348,7 @@ export default function DetentionMemoDetailPage() {
         title="Detention Memo Not Found"
         description="The requested record could not be found."
         breadcrumbs={[
-          { label: "WMS" },
-          { label: "Detentions" },
+          { label: "Seizure Management", href: ROUTES.SEIZURE_MANAGEMENT },
           { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
           { label: "Detail" },
         ]}
@@ -371,7 +368,7 @@ export default function DetentionMemoDetailPage() {
     )
   }
 
-  const qrPayload = row.memoQrCodePayload || `${window.location.origin}/detention-memo/${encodeURIComponent(row.id)}?print=full`
+  const qrPayload = row.memoQrCodePayload || `${window.location.origin}${getDetentionMemoDetailPath(row.id)}?print=full`
   const qrNumber = row.memoQrCodeNumber || `DM-${row.caseNo}`
   const reportRow = row as unknown as DetentionMemoRow
 
@@ -412,8 +409,7 @@ export default function DetentionMemoDetailPage() {
         title={`Goods: ${goodsLabel}`}
         description={`Goods line from detention memo ${row.caseNo}.`}
         breadcrumbs={[
-          { label: "WMS" },
-          { label: "Detentions" },
+          { label: "Seizure Management", href: ROUTES.SEIZURE_MANAGEMENT },
           { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
           { label: row.caseNo, href: `${ROUTES.DETENTION_MEMO}/${encodeURIComponent(row.id)}` },
           { label: "Goods" },
@@ -448,10 +444,13 @@ export default function DetentionMemoDetailPage() {
   return (
     <ModulePageLayout
       title={`Detention Memo: ${row.caseNo}`}
-      description="Pakistan Customs detention memo details. Data from the database."
+      description={
+        row.referenceNumber
+          ? `Memo No. ${row.referenceNumber} · Pakistan Customs detention memo details.`
+          : "Pakistan Customs detention memo details. Data from the database."
+      }
       breadcrumbs={[
-        { label: "WMS" },
-        { label: "Detentions" },
+        { label: "Seizure Management", href: ROUTES.SEIZURE_MANAGEMENT },
         { label: "Detention Memo", href: ROUTES.DETENTION_MEMO },
         { label: row.caseNo },
       ]}
@@ -477,7 +476,16 @@ export default function DetentionMemoDetailPage() {
                 <FileText className="h-5 w-5 flex-shrink-0" />
                 <span className="break-words">{row.caseNo}</span>
               </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">Detention memo details and printable report.</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {row.referenceNumber ? (
+                  <>
+                    Detention Memo No.{" "}
+                    <span className="font-semibold text-foreground">{row.referenceNumber}</span>
+                  </>
+                ) : (
+                  "Detention memo details and printable report."
+                )}
+              </p>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <Badge variant={row.verificationStatus === "Verified" ? "default" : "secondary"} className="w-fit">
@@ -504,8 +512,8 @@ export default function DetentionMemoDetailPage() {
                   <h4 className="text-sm font-semibold mb-3">Basic Information</h4>
                   <div className="grid grid-cols-1 gap-x-5 md:grid-cols-2">
                     <DetailRow label="Case No." value={row.caseNo} />
+                    <DetailRow label="Detention Memo No." value={row.referenceNumber || "—"} />
                     <DetailRow label="FIR Number" value={row.firNumber} />
-                    <DetailRow label="Reference Number" value={row.referenceNumber} />
                     <DetailRow label="Date/Time of occurrence" value={row.dateTimeOccurrence} />
                     <DetailRow label="Place of occurrence" value={row.placeOfOccurrence} />
                     <DetailRow label="Date/Time of detention" value={row.dateTimeDetention} />

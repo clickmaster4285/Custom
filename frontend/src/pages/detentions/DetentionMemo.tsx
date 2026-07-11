@@ -127,7 +127,12 @@ export default function DetentionMemoPage() {
   const filteredRows = useMemo(() => {
     if (!caseNumberSearch.trim()) return rows
     const q = caseNumberSearch.trim().toLowerCase()
-    return rows.filter((r) => r.caseNo.toLowerCase().includes(q))
+    return rows.filter(
+      (r) =>
+        r.caseNo.toLowerCase().includes(q) ||
+        (r.referenceNumber ?? "").toLowerCase().includes(q) ||
+        (r.firNumber ?? "").toLowerCase().includes(q)
+    )
   }, [rows, caseNumberSearch])
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
@@ -213,7 +218,10 @@ export default function DetentionMemoPage() {
     <ModulePageLayout
       title="Detention Memo"
       description="Create, view, and print detention memo records with QR-enabled report access. Deposit is available once per memo (disabled after a linked Deposit Account Register entry exists)."
-      breadcrumbs={[{ label: "WMS" }, { label: "Detentions" }, { label: "Detention Memo" }]}
+      breadcrumbs={[
+        { label: "Seizure Management", href: ROUTES.SEIZURE_MANAGEMENT },
+        { label: "Detention Memo" },
+      ]}
     >
       <div className="grid gap-6">
         <Card className="w-full min-w-0 border-0 shadow-sm">
@@ -305,6 +313,10 @@ export default function DetentionMemoPage() {
                           <p className="font-medium">{row.caseNo}</p>
                         </div>
                         <div>
+                          <p className="text-xs text-muted-foreground">Detention Memo No</p>
+                          <p className="font-mono text-xs">{row.referenceNumber || "—"}</p>
+                        </div>
+                        <div>
                           <p className="text-xs text-muted-foreground">FIR Number</p>
                           <p className="font-mono text-xs">{row.firNumber || "—"}</p>
                         </div>
@@ -384,6 +396,7 @@ export default function DetentionMemoPage() {
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="w-[80px] font-semibold">Sr.No</TableHead>
                       <TableHead className="font-semibold">Case Number</TableHead>
+                      <TableHead className="font-semibold">Detention Memo No</TableHead>
                       <TableHead className="font-semibold">FIR Number</TableHead>
                       <TableHead className="font-semibold">Detention Date/Time</TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
@@ -397,7 +410,7 @@ export default function DetentionMemoPage() {
                   <TableBody>
                     {pageRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                           <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
                           No detention memos found
                         </TableCell>
@@ -412,6 +425,7 @@ export default function DetentionMemoPage() {
                               {serialInfo ? `${serialInfo.serialNo}/${serialInfo.year}` : row.serialNo ?? index + 1}
                             </TableCell>
                             <TableCell className="font-medium">{row.caseNo}</TableCell>
+                            <TableCell className="font-mono text-xs">{row.referenceNumber || "—"}</TableCell>
                             <TableCell className="font-mono text-xs">{row.firNumber || "—"}</TableCell>
                             <TableCell className="whitespace-nowrap text-sm">{row.dateTimeDetention || "—"}</TableCell>
                             <TableCell>

@@ -2,6 +2,7 @@ import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Printer, FileDown } from "lucide-react"
 import html2pdf from "html2pdf.js"
+import { getDetentionMemoDetailPath } from "@/routes/config"
 
 type GoodsLineItem = {
     id: string
@@ -61,7 +62,7 @@ function getQrCodeUrl(data: string, size = 180) {
 
 function getGoodsQrPayload(memoId: string, item: GoodsLineItem): string {
     const ref = item.qrCodeNumber || `${memoId}-${item.id}`
-    return `${window.location.origin}/detention-memo/${encodeURIComponent(memoId)}?goodsQr=${encodeURIComponent(ref)}&view=goods`
+    return `${window.location.origin}${getDetentionMemoDetailPath(memoId)}?goodsQr=${encodeURIComponent(ref)}&view=goods`
 }
 
 function formatDate(value?: string): string {
