@@ -124,6 +124,7 @@ export type NoteSheetRecord = {
   preparedSignature: string
   preparedDate: string
   forwardTo: string
+  forwardToUserId: number | null
   approvedBy: string
   approvedAt: string
   approvalRemarks: string
@@ -301,20 +302,23 @@ function noteSheetHasUploads(media?: NoteSheetCreateMedia, items?: NoteSheetItem
 }
 
 function serializeNoteSheetItems(items?: NoteSheetItem[]) {
-  return (items ?? []).map((it) => {
-    const { imageFiles: _files, ...rest } = it
-    return {
-      ...rest,
-      clientLineId: it.clientLineId || it.id || "",
-      product: it.product || it.description || "",
-      description: it.description || it.product || "",
-      estimatedValue: it.estimatedValue || it.assessableValuePkr || "",
-      assessableValuePkr: it.assessableValuePkr || it.estimatedValue || "",
-      remarks: it.remarks || it.itemNotes || "",
-      itemNotes: it.itemNotes || it.remarks || "",
-      images: [],
-    }
-  })
+  return (items ?? []).map((it, idx) => ({
+    clientLineId: it.clientLineId || it.id || "",
+    qrCodeNumber: it.qrCodeNumber || "",
+    product: it.product || it.description || "",
+    description: it.description || it.product || "",
+    pctCode: it.pctCode || "",
+    quantity: it.quantity || "",
+    unit: it.unit || "",
+    condition: it.condition || "",
+    estimatedValue: it.estimatedValue || it.assessableValuePkr || "",
+    assessableValuePkr: it.assessableValuePkr || it.estimatedValue || "",
+    perishable: Boolean(it.perishable),
+    identificationRef: it.identificationRef || "",
+    remarks: it.remarks || it.itemNotes || "",
+    itemNotes: it.itemNotes || it.remarks || "",
+    sortOrder: idx,
+  }))
 }
 
 export async function createNoteSheet(

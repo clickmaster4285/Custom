@@ -6,18 +6,29 @@ from django.db import models
 
 
 def _sanitize_filename(filename: str) -> str:
-    base = os.path.basename(filename)
-    return re.sub(r"[^\w.\-]", "_", base)[:180]
+    """Keep a short, storage-safe basename (FileField default max_length is 100)."""
+    base = os.path.basename((filename or "file").replace("\\", "/"))
+    name, ext = os.path.splitext(base)
+    safe_name = re.sub(r"[^\w.\-]", "_", name).strip("._")[:40] or "file"
+    safe_ext = re.sub(r"[^\w.]", "", ext).lower()[:10]
+    if safe_ext and not safe_ext.startswith("."):
+        safe_ext = f".{safe_ext}"
+    return f"{safe_name}{safe_ext}"
 
 
 def note_sheet_attachment_path(instance, filename: str) -> str:
     safe = _sanitize_filename(filename)
+    # Short path: avoid Windows long-path / DB max_length issues
     return f"note_sheets/{instance.note_sheet_id}/{instance.file_type}/{uuid.uuid4().hex}_{safe}"
 
 
 def note_sheet_item_image_path(instance, filename: str) -> str:
-    safe = _sanitize_filename(filename)
-    return f"note_sheets/{instance.item.note_sheet_id}/goods/{instance.item_id}/{uuid.uuid4().hex}_{safe}"
+    ext = os.path.splitext(os.path.basename((filename or "").replace("\\", "/")))[1].lower()
+    ext = re.sub(r"[^\w.]", "", ext)[:10]
+    if not ext.startswith("."):
+        ext = f".{ext}" if ext else ".jpg"
+    # Flat under goods/ — item id already unique; keeps stored path under max_length
+    return f"note_sheets/{instance.item.note_sheet_id}/goods/{uuid.uuid4().hex}{ext}"
 
 
 class NoteSheet(models.Model):
@@ -59,7 +70,7 @@ class NoteSheet(models.Model):
     # 1. Basic Information
     note_sheet_no = models.CharField(max_length=80, blank=True, db_index=True)
     date_time = models.CharField(max_length=80, blank=True)
-    office = models.CharField(max_length=200, blank=True)
+    office = models.CharField(max_length=500, blank=True)
     case_no = models.CharField(max_length=120, blank=True, db_index=True)
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_NORMAL)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_DRAFT, db_index=True)
@@ -69,24 +80,24 @@ class NoteSheet(models.Model):
     reference_number = models.CharField(max_length=200, blank=True, db_index=True)
 
     # 2. Officer Information
-    prepared_by = models.CharField(max_length=200, blank=True)
+    prepared_by = models.CharField(max_length=500, blank=True)
     badge_id = models.CharField(max_length=80, blank=True)
-    designation = models.CharField(max_length=120, blank=True)
-    department = models.CharField(max_length=200, blank=True)
-    officer_contact = models.CharField(max_length=50, blank=True)
+    designation = models.CharField(max_length=200, blank=True)
+    department = models.CharField(max_length=500, blank=True)
+    officer_contact = models.CharField(max_length=80, blank=True)
 
     # 3. Suspect / Accused
-    accused_name = models.CharField(max_length=200, blank=True)
-    accused_father_name = models.CharField(max_length=200, blank=True)
+    accused_name = models.CharField(max_length=500, blank=True)
+    accused_father_name = models.CharField(max_length=500, blank=True)
     accused_cnic = models.CharField(max_length=40, blank=True)
     accused_mobile = models.CharField(max_length=50, blank=True)
     accused_address = models.TextField(blank=True)
-    business_name = models.CharField(max_length=200, blank=True)
+    business_name = models.CharField(max_length=500, blank=True)
     ntn_strn = models.CharField(max_length=80, blank=True)
 
     # 5. Location
-    place_of_inspection = models.CharField(max_length=300, blank=True)
-    warehouse_shop = models.CharField(max_length=300, blank=True)
+    place_of_inspection = models.CharField(max_length=500, blank=True)
+    warehouse_shop = models.CharField(max_length=500, blank=True)
     gps_location = models.CharField(max_length=120, blank=True)
     inspection_date = models.CharField(max_length=80, blank=True)
 
@@ -105,10 +116,11 @@ class NoteSheet(models.Model):
     content = models.TextField(blank=True)
 
     # 11–12 Approval
-    prepared_signature = models.CharField(max_length=200, blank=True)
+    prepared_signature = models.CharField(max_length=500, blank=True)
     prepared_date = models.CharField(max_length=80, blank=True)
-    forward_to = models.CharField(max_length=200, blank=True)
-    approved_by = models.CharField(max_length=200, blank=True)
+    forward_to = models.CharField(max_length=500, blank=True)
+    forward_to_user_id = models.IntegerField(null=True, blank=True, db_index=True)
+    approved_by = models.CharField(max_length=500, blank=True)
     approved_at = models.DateTimeField(null=True, blank=True)
     approval_remarks = models.TextField(blank=True)
     rejection_reason = models.TextField(blank=True)
@@ -161,7 +173,7 @@ class NoteSheetItem(models.Model):
     condition = models.CharField(max_length=80, blank=True)
     estimated_value = models.CharField(max_length=120, blank=True)  # Assessable Value (PKR)
     perishable = models.BooleanField(default=False)
-    identification_ref = models.CharField(max_length=200, blank=True)  # ID / Chassis No.
+    identification_ref = models.CharField(max_length=500, blank=True)  # ID / Chassis No.
     remarks = models.CharField(max_length=400, blank=True)  # Item Notes
     sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -178,7 +190,7 @@ class NoteSheetItemImage(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     item = models.ForeignKey(NoteSheetItem, on_delete=models.CASCADE, related_name="images")
-    image = models.FileField(upload_to=note_sheet_item_image_path)
+    image = models.FileField(upload_to=note_sheet_item_image_path, max_length=500)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -212,7 +224,7 @@ class NoteSheetAttachment(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     note_sheet = models.ForeignKey(NoteSheet, on_delete=models.CASCADE, related_name="attachments")
-    file = models.FileField(upload_to=note_sheet_attachment_path)
+    file = models.FileField(upload_to=note_sheet_attachment_path, max_length=500)
     file_type = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_OTHER)
     original_filename = models.CharField(max_length=255, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)

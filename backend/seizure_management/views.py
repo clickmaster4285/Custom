@@ -40,6 +40,33 @@ def _username(request) -> str:
     return ""
 
 
+def _user_matches_forward_to(request, obj: NoteSheet) -> bool:
+    """True if the logged-in user is the designated approving officer."""
+    user = getattr(request, "user", None)
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    # Prefer user-id match when Forward To was selected from colleagues list.
+    if obj.forward_to_user_id:
+        try:
+            return int(obj.forward_to_user_id) == int(user.id)
+        except (TypeError, ValueError):
+            return False
+    target = (obj.forward_to or "").strip().lower()
+    if not target:
+        return False
+    full_name = (getattr(user, "full_name", None) or "").strip().lower()
+    username = (user.get_username() or "").strip().lower()
+    email = (getattr(user, "email", None) or "").strip().lower()
+    target_base = target.split("—")[0].split("@")[0].split("·")[0].split("|")[0].strip()
+    if target in {full_name, username, email}:
+        return True
+    if target_base and target_base in {full_name, username}:
+        return True
+    if username and f"@{username}" in target:
+        return True
+    if full_name and target.startswith(full_name):
+        return True
+    return False
 class NoteSheetListAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -58,15 +85,26 @@ class NoteSheetCreateAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        body = body_from_request(request)
-        ser = NoteSheetWriteSerializer(data=body)
-        ser.is_valid(raise_exception=True)
-        obj = NoteSheet()
-        apply_note_sheet(obj, ser.validated_data, username=_username(request))
-        save_note_sheet_uploads(request, obj)
-        save_note_sheet_goods_images(request, obj, ser.validated_data.get("items"))
-        obj = NoteSheet.objects.prefetch_related("items__images", "attachments").get(pk=obj.pk)
-        return Response(note_sheet_to_dict(obj, request), status=status.HTTP_201_CREATED)
+        try:
+            body = body_from_request(request)
+            ser = NoteSheetWriteSerializer(data=body)
+            ser.is_valid(raise_exception=True)
+            obj = NoteSheet()
+            apply_note_sheet(obj, ser.validated_data, username=_username(request))
+            save_note_sheet_uploads(request, obj)
+            save_note_sheet_goods_images(request, obj, ser.validated_data.get("items"))
+            obj = NoteSheet.objects.prefetch_related("items__images", "attachments").get(pk=obj.pk)
+            return Response(note_sheet_to_dict(obj, request), status=status.HTTP_201_CREATED)
+        except Exception as exc:
+            # Surface actionable error for note-sheet create failures (validation already raises).
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+
+            if isinstance(exc, DRFValidationError):
+                raise
+            return Response(
+                {"detail": f"{type(exc).__name__}: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class NoteSheetReadAPIView(APIView):
@@ -87,15 +125,26 @@ class NoteSheetUpdateAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def put(self, request, pk):
-        obj = get_object_or_404(NoteSheet, pk=pk)
-        body = body_from_request(request)
-        ser = NoteSheetWriteSerializer(data=body, partial=True)
-        ser.is_valid(raise_exception=True)
-        apply_note_sheet(obj, ser.validated_data, username=_username(request))
-        save_note_sheet_uploads(request, obj)
-        save_note_sheet_goods_images(request, obj, ser.validated_data.get("items"))
-        obj = NoteSheet.objects.prefetch_related("items__images", "attachments").get(pk=obj.pk)
-        return Response(note_sheet_to_dict(obj, request))
+        try:
+            obj = get_object_or_404(NoteSheet, pk=pk)
+            body = body_from_request(request)
+            ser = NoteSheetWriteSerializer(data=body, partial=True)
+            ser.is_valid(raise_exception=True)
+            apply_note_sheet(obj, ser.validated_data, username=_username(request))
+            save_note_sheet_uploads(request, obj)
+            save_note_sheet_goods_images(request, obj, ser.validated_data.get("items"))
+            obj = NoteSheet.objects.prefetch_related("items__images", "attachments").get(pk=obj.pk)
+            return Response(note_sheet_to_dict(obj, request))
+        except Exception as exc:
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+            from django.http import Http404
+
+            if isinstance(exc, (DRFValidationError, Http404)):
+                raise
+            return Response(
+                {"detail": f"{type(exc).__name__}: {exc}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class NoteSheetDeleteAPIView(APIView):
@@ -135,6 +184,11 @@ class NoteSheetApprovalAPIView(APIView):
                     {"detail": "Only draft/rejected sheets can be submitted."},
                     status=400,
                 )
+            if not (obj.forward_to or "").strip() and not obj.forward_to_user_id:
+                return Response(
+                    {"detail": "Select an Approving Officer (Forward To) before submitting."},
+                    status=400,
+                )
             obj.status = NoteSheet.STATUS_SUBMITTED
             obj.submitted_at = timezone.now()
             obj.rejection_reason = ""
@@ -160,8 +214,22 @@ class NoteSheetApprovalAPIView(APIView):
                     {"detail": "Only submitted sheets can be approved."},
                     status=400,
                 )
+            if not _user_matches_forward_to(request, obj):
+                return Response(
+                    {
+                        "detail": (
+                            f"Only the designated approving officer "
+                            f"({obj.forward_to or 'not set'}) can approve this note sheet."
+                        )
+                    },
+                    status=403,
+                )
             obj.status = NoteSheet.STATUS_APPROVED
-            obj.approved_by = ser.validated_data.get("approvedBy") or _username(request)
+            obj.approved_by = (
+                (getattr(request.user, "full_name", None) or "").strip()
+                or ser.validated_data.get("approvedBy")
+                or _username(request)
+            )
             obj.approved_at = timezone.now()
             obj.approval_remarks = remarks
             obj.rejection_reason = ""
@@ -181,8 +249,22 @@ class NoteSheetApprovalAPIView(APIView):
                     {"detail": "Only submitted sheets can be rejected."},
                     status=400,
                 )
+            if not _user_matches_forward_to(request, obj):
+                return Response(
+                    {
+                        "detail": (
+                            f"Only the designated approving officer "
+                            f"({obj.forward_to or 'not set'}) can reject this note sheet."
+                        )
+                    },
+                    status=403,
+                )
             obj.status = NoteSheet.STATUS_REJECTED
-            obj.approved_by = ser.validated_data.get("approvedBy") or _username(request)
+            obj.approved_by = (
+                (getattr(request.user, "full_name", None) or "").strip()
+                or ser.validated_data.get("approvedBy")
+                or _username(request)
+            )
             obj.approved_at = timezone.now()
             obj.rejection_reason = remarks
             obj.approval_remarks = remarks

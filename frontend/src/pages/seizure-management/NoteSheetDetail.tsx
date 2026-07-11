@@ -27,7 +27,9 @@ import {
   type NoteSheetRecord,
   type NoteSheetStatus,
 } from "@/lib/seizure-management-api"
-import { getStoredUser } from "@/lib/auth"
+import { getStoredUser, setAuthenticatedWithToken, type AuthUser } from "@/lib/auth"
+import { getStoredToken } from "@/lib/api"
+import { fetchCurrentUser } from "@/lib/users-api"
 import { toast } from "@/components/ui/use-toast"
 
 function statusBadge(status: NoteSheetStatus) {
@@ -46,16 +48,37 @@ function Field({ label, value, className }: { label: string; value?: string | nu
   )
 }
 
+function canUserApproveNoteSheet(
+  row: NoteSheetRecord,
+  user: Pick<AuthUser, "id" | "username" | "full_name"> | null
+): boolean {
+  if (row.status !== "Submitted" || !user) return false
+  if (row.forwardToUserId != null && user.id != null) {
+    return Number(row.forwardToUserId) === Number(user.id)
+  }
+  const target = (row.forwardTo || "").trim().toLowerCase()
+  if (!target) return false
+  const fullName = (user.full_name || "").trim().toLowerCase()
+  const username = (user.username || "").trim().toLowerCase()
+  const targetBase = target.split(/[—@·|]/)[0]?.trim() || target
+  return (
+    target === fullName ||
+    target === username ||
+    targetBase === fullName ||
+    targetBase === username ||
+    (username.length > 0 && target.includes(`@${username}`)) ||
+    (fullName.length > 0 && target.startsWith(fullName))
+  )
+}
+
 export default function NoteSheetDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [row, setRow] = useState<NoteSheetRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState(false)
-  const [approver, setApprover] = useState(() => {
-    const u = getStoredUser()
-    return (u?.full_name || "").trim() || u?.username || ""
-  })
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredUser())
+  const [approver, setApprover] = useState("")
   const [approvalRemarks, setApprovalRemarks] = useState("")
   const [rejectionReason, setRejectionReason] = useState("")
 
@@ -74,6 +97,44 @@ export default function NoteSheetDetailPage() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per id
+  }, [id])
+
+  useEffect(() => {
+    let cancelled = false
+    const stored = getStoredUser()
+    if (stored) {
+      setCurrentUser(stored)
+      setApprover((stored.full_name || "").trim() || stored.username || "")
+    }
+    fetchCurrentUser()
+      .then((profile) => {
+        if (cancelled || !profile) return
+        const base = getStoredUser()
+        const merged: AuthUser = {
+          id: profile.id,
+          username: profile.username,
+          email: profile.email || base?.email || "",
+          role: profile.role || base?.role || "",
+          phone: profile.phone || base?.phone || "",
+          location: profile.location || base?.location,
+          full_name: profile.full_name || "",
+          designation: profile.designation || base?.designation,
+          employee_id: profile.employee_id || base?.employee_id,
+          cell_no: profile.cell_no || base?.cell_no,
+          office_phone_1: profile.office_phone_1 || base?.office_phone_1,
+          office_phone_2: profile.office_phone_2 || base?.office_phone_2,
+          collectorate: profile.collectorate || base?.collectorate,
+          is_active: profile.is_active,
+        }
+        setCurrentUser(merged)
+        setApprover((merged.full_name || "").trim() || merged.username || "")
+        const token = getStoredToken()
+        if (token) setAuthenticatedWithToken(token, merged)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
   }, [id])
 
   if (loading) {
@@ -139,6 +200,7 @@ export default function NoteSheetDetailPage() {
 
   const title = row.noteSheetNo || row.referenceNumber || row.subject || "Note Sheet"
   const canEdit = row.status === "Draft" || row.status === "Rejected"
+  const canApprove = canUserApproveNoteSheet(row, currentUser)
   const approvalStatusLabel =
     row.status === "Approved"
       ? "Approved"
@@ -176,6 +238,28 @@ export default function NoteSheetDetailPage() {
           </Button>
         )}
       </div>
+
+      {row.status === "Submitted" && canApprove && (
+        <div className="mb-4 rounded-[10px] border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          Prepared by <span className="font-medium">{row.preparedBy || row.createdBy || "—"}</span>
+          {" · "}
+          Forwarded to you (
+          <span className="font-medium">{currentUser?.full_name || currentUser?.username || "you"}</span>
+          ) for approval.
+        </div>
+      )}
+
+      {row.status === "Submitted" && !canApprove && (
+        <div className="mb-4 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Prepared by <span className="font-medium">{row.preparedBy || row.createdBy || "—"}</span>
+          {" · "}
+          Waiting for approval from{" "}
+          <span className="font-medium">
+            {row.forwardTo?.trim() || "the designated approving officer"}
+          </span>
+          .
+        </div>
+      )}
 
       <div className="space-y-4 max-w-[1600px]">
         {/* 13. Timeline */}
@@ -225,7 +309,10 @@ export default function NoteSheetDetailPage() {
         {/* 2. Officer Information */}
         <Card className="rounded-[10px] border-gray-200">
           <CardHeader>
-            <CardTitle className="text-base">2. Officer Information</CardTitle>
+            <CardTitle className="text-base">2. Preparing Officer Information</CardTitle>
+            <p className="text-sm text-muted-foreground font-normal">
+              Officer who created this note sheet (not the current login).
+            </p>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -493,21 +580,23 @@ export default function NoteSheetDetailPage() {
           </Card>
         )}
 
-        {row.status === "Submitted" && (
+        {row.status === "Submitted" && canApprove && (
           <Card className="rounded-[10px]">
             <CardHeader>
               <CardTitle className="text-base">Senior Officer Decision</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2 max-w-sm">
-                <Label>Approving Officer *</Label>
+                <Label>Approving Officer (you) *</Label>
                 <Input
                   value={approver}
                   onChange={(e) => setApprover(e.target.value)}
                   className="bg-muted"
                   readOnly
                 />
-                <p className="text-xs text-muted-foreground">Filled from the logged-in user.</p>
+                <p className="text-xs text-muted-foreground">
+                  Filled from your login — not the preparing officer above.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Approval Remarks</Label>
@@ -541,6 +630,20 @@ export default function NoteSheetDetailPage() {
                   Reject
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {row.status === "Submitted" && !canApprove && (
+          <Card className="rounded-[10px]">
+            <CardContent className="p-6">
+              <p className="text-sm text-muted-foreground">
+                Waiting for approval from{" "}
+                <span className="font-medium text-foreground">
+                  {row.forwardTo?.trim() || "the designated approving officer"}
+                </span>
+                . Only that officer can approve or reject this note sheet.
+              </p>
             </CardContent>
           </Card>
         )}

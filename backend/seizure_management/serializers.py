@@ -186,6 +186,7 @@ def note_sheet_to_dict(obj: NoteSheet, request=None) -> dict:
         "preparedSignature": obj.prepared_signature or "",
         "preparedDate": obj.prepared_date or "",
         "forwardTo": obj.forward_to or "",
+        "forwardToUserId": obj.forward_to_user_id or None,
         "approvedBy": obj.approved_by or "",
         "approvedAt": _iso(obj.approved_at),
         "approvalRemarks": obj.approval_remarks or "",
@@ -335,6 +336,7 @@ class NoteSheetWriteSerializer(serializers.Serializer):
     preparedSignature = serializers.CharField(required=False, allow_blank=True)
     preparedDate = serializers.CharField(required=False, allow_blank=True)
     forwardTo = serializers.CharField(required=False, allow_blank=True)
+    forwardToUserId = serializers.IntegerField(required=False, allow_null=True)
     approvalRemarks = serializers.CharField(required=False, allow_blank=True)
 
     items = NoteSheetItemWriteSerializer(many=True, required=False)
@@ -521,6 +523,13 @@ def apply_note_sheet(obj: NoteSheet, data: dict, username: str = "") -> NoteShee
         if camel in ("priority", "status", "recommendation") and not value:
             continue
         setattr(obj, attr, value if value is not None else "")
+
+    if "forwardToUserId" in data:
+        raw_id = data.get("forwardToUserId")
+        try:
+            obj.forward_to_user_id = int(raw_id) if raw_id not in (None, "") else None
+        except (TypeError, ValueError):
+            obj.forward_to_user_id = None
 
     if "evidenceCollected" in data:
         evidence = data.get("evidenceCollected")

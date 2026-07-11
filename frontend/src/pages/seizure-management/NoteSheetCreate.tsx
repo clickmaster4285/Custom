@@ -54,8 +54,17 @@ function userDisplayName(u: {
   username: string
   designation?: string
 }): string {
-  const name = (u.full_name || "").trim() || u.username
-  return u.designation?.trim() ? `${name} — ${u.designation}` : name
+  return (u.full_name || "").trim() || u.username
+}
+
+function userOptionLabel(u: {
+  full_name?: string
+  username: string
+  designation?: string
+}): string {
+  const name = userDisplayName(u)
+  const base = name.toLowerCase() === u.username.toLowerCase() ? name : `${name} (@${u.username})`
+  return u.designation?.trim() ? `${base} — ${u.designation}` : base
 }
 
 function nowLocalDatetime(): string {
@@ -179,6 +188,7 @@ export default function NoteSheetCreatePage() {
   const [preparedSignature, setPreparedSignature] = useState("")
   const [preparedDate, setPreparedDate] = useState(nowLocalDatetime)
   const [forwardTo, setForwardTo] = useState("")
+  const [forwardToUserId, setForwardToUserId] = useState<number | null>(null)
   const [locationUsers, setLocationUsers] = useState<ApiUser[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
 
@@ -299,6 +309,7 @@ export default function NoteSheetCreatePage() {
         setPreparedSignature(row.preparedSignature || "")
         setPreparedDate(toDatetimeLocal(row.preparedDate))
         setForwardTo(row.forwardTo || "")
+        setForwardToUserId(row.forwardToUserId ?? null)
         setExistingAttachments(row.attachments || [])
       })
       .catch((e) => {
@@ -339,6 +350,11 @@ export default function NoteSheetCreatePage() {
 
   const buildPayload = (): NoteSheetWritePayload => {
     const user = getStoredUser()
+    const officerName =
+      preparedBy.trim() ||
+      (user?.full_name || "").trim() ||
+      user?.username ||
+      ""
     return {
       dateTime: dateTime.replace("T", " "),
       office,
@@ -346,7 +362,7 @@ export default function NoteSheetCreatePage() {
       priority,
       status: "Draft",
       subject,
-      preparedBy,
+      preparedBy: officerName,
       badgeId,
       designation,
       department,
@@ -358,18 +374,18 @@ export default function NoteSheetCreatePage() {
       accusedAddress,
       businessName,
       ntnStrn,
-      items: items.filter(
-        (it) =>
+      items: items.filter((it) => {
+        const hasContent =
           it.product.trim() ||
           it.quantity.trim() ||
-          it.unit.trim() ||
           it.estimatedValue.trim() ||
           it.remarks.trim() ||
           it.pctCode.trim() ||
           it.identificationRef.trim() ||
           (it.imageFiles?.length ?? 0) > 0 ||
           (it.images?.length ?? 0) > 0
-      ),
+        return Boolean(hasContent)
+      }),
       placeOfInspection,
       warehouseShop,
       gpsLocation,
@@ -378,16 +394,30 @@ export default function NoteSheetCreatePage() {
       evidenceCollected,
       preliminaryFindings,
       recommendation,
-      preparedSignature,
+      preparedSignature: preparedSignature.trim() || officerName,
       preparedDate: preparedDate.replace("T", " "),
       forwardTo,
+      forwardToUserId,
       ...(user ? { createdBy: user.username } : {}),
     }
   }
 
   const handleSave = async (submit: boolean) => {
-    if (!preparedBy.trim()) {
-      toast({ title: "Preparing Officer is required", variant: "destructive" })
+    const payload = buildPayload()
+    if (!payload.preparedBy?.trim()) {
+      toast({
+        title: "Preparing Officer is required",
+        description: "Log in again if officer details did not load.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (submit && !forwardTo.trim() && !forwardToUserId) {
+      toast({
+        title: "Approving Officer required",
+        description: "Select who this note sheet should be forwarded to.",
+        variant: "destructive",
+      })
       return
     }
     if (submit && !groundsOfSuspicion.trim() && !preliminaryFindings.trim()) {
@@ -400,7 +430,6 @@ export default function NoteSheetCreatePage() {
 
     setSaving(true)
     try {
-      const payload = buildPayload()
       const hasDocMedia = Object.values(media).some((arr) => Array.isArray(arr) && arr.length > 0)
       const hasGoodsImages = (payload.items ?? []).some((it) => (it.imageFiles?.length ?? 0) > 0)
       const mediaToSend = hasDocMedia || hasGoodsImages ? media : undefined
@@ -415,8 +444,10 @@ export default function NoteSheetCreatePage() {
       }
       navigate(getSeizureMgmtNoteSheetDetailPath(saved.id))
     } catch (e) {
+      console.error("Note sheet save failed", e)
       toast({
-        title: e instanceof Error ? e.message : "Failed to save",
+        title: "Save failed",
+        description: e instanceof Error ? e.message : "Failed to save note sheet",
         variant: "destructive",
       })
     } finally {
@@ -1122,8 +1153,17 @@ export default function NoteSheetCreatePage() {
                   <div className="grid gap-2">
                     <Label>Approving Officer</Label>
                     <Select
-                      value={forwardTo || undefined}
-                      onValueChange={setForwardTo}
+                      value={forwardToUserId ? String(forwardToUserId) : undefined}
+                      onValueChange={(v) => {
+                        const selected = locationUsers.find((u) => String(u.id) === v)
+                        if (selected) {
+                          setForwardToUserId(selected.id)
+                          setForwardTo(userDisplayName(selected))
+                        } else {
+                          setForwardToUserId(Number(v) || null)
+                          setForwardTo(v)
+                        }
+                      }}
                       disabled={loadingUsers}
                     >
                       <SelectTrigger>
@@ -1138,19 +1178,18 @@ export default function NoteSheetCreatePage() {
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        {forwardTo &&
-                          !locationUsers.some((u) => userDisplayName(u) === forwardTo) && (
-                            <SelectItem value={forwardTo}>{forwardTo}</SelectItem>
-                          )}
-                        {locationUsers.map((u) => {
-                          const label = userDisplayName(u)
-                          return (
-                            <SelectItem key={u.id} value={label}>
-                              {label}
-                              {u.location ? ` · ${locationLabel(u.location)}` : ""}
+                        {forwardToUserId &&
+                          !locationUsers.some((u) => u.id === forwardToUserId) && (
+                            <SelectItem value={String(forwardToUserId)}>
+                              {forwardTo || `User #${forwardToUserId}`}
                             </SelectItem>
-                          )
-                        })}
+                          )}
+                        {locationUsers.map((u) => (
+                          <SelectItem key={u.id} value={String(u.id)}>
+                            {userOptionLabel(u)}
+                            {u.location ? ` · ${locationLabel(u.location)}` : ""}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
@@ -1171,12 +1210,12 @@ export default function NoteSheetCreatePage() {
         </Collapsible>
 
         <div className="flex flex-wrap gap-2 pb-8">
-          <Button variant="outline" disabled={saving} onClick={() => void handleSave(false)}>
-            Save Draft
+          <Button type="button" variant="outline" disabled={saving} onClick={() => void handleSave(false)}>
+            {saving ? "Saving…" : "Save Draft"}
           </Button>
-          <Button disabled={saving} onClick={() => void handleSave(true)}>
+          <Button type="button" disabled={saving} onClick={() => void handleSave(true)}>
             <Send className="h-4 w-4 mr-2" />
-            Send for Approval
+            {saving ? "Submitting…" : "Send for Approval"}
           </Button>
         </div>
       </div>
