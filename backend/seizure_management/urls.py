@@ -1,0 +1,59 @@
+from django.urls import path
+
+from .views import (
+    AssessmentCreateAPIView,
+    AssessmentDeleteAPIView,
+    AssessmentListAPIView,
+    AssessmentReadAPIView,
+    AssessmentUpdateAPIView,
+    NoteSheetApprovalAPIView,
+    NoteSheetCreateAPIView,
+    NoteSheetDeleteAPIView,
+    NoteSheetLinkDetentionAPIView,
+    NoteSheetListAPIView,
+    NoteSheetReadAPIView,
+    NoteSheetUpdateAPIView,
+    RecoveryMemoApprovalAPIView,
+    RecoveryMemoCreateAPIView,
+    RecoveryMemoDeleteAPIView,
+    RecoveryMemoListAPIView,
+    RecoveryMemoReadAPIView,
+    RecoveryMemoUpdateAPIView,
+    SeizureManagementOverviewAPIView,
+    SeizureReportCreateAPIView,
+    SeizureReportDeleteAPIView,
+    SeizureReportListAPIView,
+    SeizureReportReadAPIView,
+    SeizureReportUpdateAPIView,
+)
+
+urlpatterns = [
+    path("seizure-management/overview/", SeizureManagementOverviewAPIView.as_view()),
+    # Note sheets
+    path("seizure-management/note-sheets/list/", NoteSheetListAPIView.as_view()),
+    path("seizure-management/note-sheets/create/", NoteSheetCreateAPIView.as_view()),
+    path("seizure-management/note-sheets/<uuid:pk>/read/", NoteSheetReadAPIView.as_view()),
+    path("seizure-management/note-sheets/<uuid:pk>/update/", NoteSheetUpdateAPIView.as_view()),
+    path("seizure-management/note-sheets/<uuid:pk>/delete/", NoteSheetDeleteAPIView.as_view()),
+    path("seizure-management/note-sheets/<uuid:pk>/approval/", NoteSheetApprovalAPIView.as_view()),
+    path("seizure-management/note-sheets/<uuid:pk>/link-detention/", NoteSheetLinkDetentionAPIView.as_view()),
+    # Assessments
+    path("seizure-management/assessments/list/", AssessmentListAPIView.as_view()),
+    path("seizure-management/assessments/create/", AssessmentCreateAPIView.as_view()),
+    path("seizure-management/assessments/<uuid:pk>/read/", AssessmentReadAPIView.as_view()),
+    path("seizure-management/assessments/<uuid:pk>/update/", AssessmentUpdateAPIView.as_view()),
+    path("seizure-management/assessments/<uuid:pk>/delete/", AssessmentDeleteAPIView.as_view()),
+    # Recovery memos
+    path("seizure-management/recovery-memos/list/", RecoveryMemoListAPIView.as_view()),
+    path("seizure-management/recovery-memos/create/", RecoveryMemoCreateAPIView.as_view()),
+    path("seizure-management/recovery-memos/<uuid:pk>/read/", RecoveryMemoReadAPIView.as_view()),
+    path("seizure-management/recovery-memos/<uuid:pk>/update/", RecoveryMemoUpdateAPIView.as_view()),
+    path("seizure-management/recovery-memos/<uuid:pk>/delete/", RecoveryMemoDeleteAPIView.as_view()),
+    path("seizure-management/recovery-memos/<uuid:pk>/approval/", RecoveryMemoApprovalAPIView.as_view()),
+    # Seizure reports
+    path("seizure-management/seizure-reports/list/", SeizureReportListAPIView.as_view()),
+    path("seizure-management/seizure-reports/create/", SeizureReportCreateAPIView.as_view()),
+    path("seizure-management/seizure-reports/<uuid:pk>/read/", SeizureReportReadAPIView.as_view()),
+    path("seizure-management/seizure-reports/<uuid:pk>/update/", SeizureReportUpdateAPIView.as_view()),
+    path("seizure-management/seizure-reports/<uuid:pk>/delete/", SeizureReportDeleteAPIView.as_view()),
+]

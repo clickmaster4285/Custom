@@ -1,26 +1,52 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, CheckCircle, XCircle } from "lucide-react"
+import { ArrowLeft, CheckCircle, Loader2, XCircle } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
 import {
-  getRecoveryMemoById,
-  saveRecoveryMemo,
+  fetchRecoveryMemoById,
+  recoveryMemoApproval,
   type RecoveryMemoRecord,
-} from "@/lib/seizure-management-storage"
+} from "@/lib/seizure-management-api"
 import { toast } from "@/components/ui/use-toast"
 
 export default function RecoveryMemoDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [row, setRow] = useState<RecoveryMemoRecord | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [acting, setActing] = useState(false)
+  const [approver, setApprover] = useState("")
+  const [rejectionReason, setRejectionReason] = useState("")
+
+  const load = () => {
+    if (!id) return
+    setLoading(true)
+    fetchRecoveryMemoById(id)
+      .then(setRow)
+      .catch(() => setRow(null))
+      .finally(() => setLoading(false))
+  }
 
   useEffect(() => {
-    if (id) setRow(getRecoveryMemoById(id) ?? null)
+    load()
   }, [id])
+
+  if (loading) {
+    return (
+      <ModulePageLayout title="Recovery Memo" description="Loading..." breadcrumbs={[]}>
+        <p className="text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+        </p>
+      </ModulePageLayout>
+    )
+  }
 
   if (!row) {
     return (
@@ -40,10 +66,23 @@ export default function RecoveryMemoDetailPage() {
     )
   }
 
-  const updateApproval = (status: RecoveryMemoRecord["approvalStatus"]) => {
-    const updated = saveRecoveryMemo({ ...row, approvalStatus: status })
-    setRow(updated)
-    toast({ title: `Status updated to ${status}` })
+  const runApproval = async (action: "approve" | "reject") => {
+    setActing(true)
+    try {
+      const updated = await recoveryMemoApproval(row.id, action, {
+        approvedBy: approver,
+        rejectionReason,
+      })
+      setRow(updated)
+      toast({ title: `Status updated to ${updated.approvalStatus}` })
+    } catch (e) {
+      toast({
+        title: e instanceof Error ? e.message : "Action failed",
+        variant: "destructive",
+      })
+    } finally {
+      setActing(false)
+    }
   }
 
   return (
@@ -104,25 +143,53 @@ export default function RecoveryMemoDetailPage() {
                 </Link>
               </dd>
             </div>
+            {row.depositAccountId && (
+              <div>
+                <dt className="text-muted-foreground">Deposit Account</dt>
+                <dd className="font-mono text-xs">{row.depositAccountId}</dd>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <dt className="text-muted-foreground">Remarks</dt>
               <dd>{row.remarks || "—"}</dd>
             </div>
+            {row.rejectionReason && (
+              <div className="sm:col-span-2">
+                <dt className="text-muted-foreground">Rejection Reason</dt>
+                <dd className="text-destructive">{row.rejectionReason}</dd>
+              </div>
+            )}
           </dl>
         </CardContent>
       </Card>
 
       {row.approvalStatus === "Pending Approval" && (
         <Card className="rounded-[10px] border-gray-200">
-          <CardContent className="p-6 flex flex-wrap gap-2">
-            <Button onClick={() => updateApproval("Approved")}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
-            </Button>
-            <Button variant="destructive" onClick={() => updateApproval("Rejected")}>
-              <XCircle className="h-4 w-4 mr-2" />
-              Reject
-            </Button>
+          <CardContent className="p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Approver name</Label>
+                <Input value={approver} onChange={(e) => setApprover(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Rejection reason (if rejecting)</Label>
+                <Textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={2}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => runApproval("approve")} disabled={acting}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Approve
+              </Button>
+              <Button variant="destructive" onClick={() => runApproval("reject")} disabled={acting}>
+                <XCircle className="h-4 w-4 mr-2" />
+                Reject
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

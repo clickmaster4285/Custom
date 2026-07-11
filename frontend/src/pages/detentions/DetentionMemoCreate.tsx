@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { ArrowLeft, ChevronDown, Plus, Trash2, Copy, Eye, Camera, X } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,6 +37,12 @@ import { CUSTOMS_STATIONS } from "@/lib/case-fir-spec"
 import { toast } from "@/components/ui/use-toast"
 import { getStoredUser } from "@/lib/auth"
 import { createDetentionMemo } from "@/lib/detention-memo-api"
+import {
+  fetchNoteSheetById,
+  fetchNoteSheets,
+  linkNoteSheetToDetention,
+  type NoteSheetRecord,
+} from "@/lib/seizure-management-api"
 
 const DETENTION_TYPES = ["Claimed", "Un-Claimed"] as const
 const REASONS = [
@@ -111,8 +117,44 @@ const emptyGoodsItem = (): GoodsLineItem => ({
   imageFiles: [],
 })
 
+function noteSheetDateTime(value: string | undefined | null): string {
+  if (!value?.trim()) return ""
+  return value.trim().replace("T", " ").slice(0, 16)
+}
+
+function goodsFromNoteSheet(ns: NoteSheetRecord): GoodsLineItem[] {
+  if (!ns.items?.length) return []
+  return ns.items
+    .filter(
+      (it) =>
+        (it.product || it.description || "").trim() ||
+        it.quantity.trim() ||
+        (it.estimatedValue || it.assessableValuePkr || "").trim()
+    )
+    .map((it) => ({
+      ...emptyGoodsItem(),
+      description: it.product || it.description || "",
+      pctCode: it.pctCode || "",
+      quantity: it.quantity || "",
+      unit: it.unit?.trim() || "PCS",
+      condition: it.condition || "Detained",
+      assessableValuePkr: it.estimatedValue || it.assessableValuePkr || "",
+      identificationRef: it.identificationRef || "",
+      itemNotes: it.remarks || it.itemNotes || "",
+      perishable: Boolean(it.perishable),
+      images: it.images || [],
+      imageFiles: [],
+      ...(it.qrCodeNumber ? { qrCodeNumber: it.qrCodeNumber } : {}),
+    }))
+}
+
 export default function DetentionMemoCreatePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const noteSheetIdParam = searchParams.get("noteSheetId")?.trim() || ""
+  const [noteSheetId, setNoteSheetId] = useState(noteSheetIdParam)
+  const [availableNoteSheets, setAvailableNoteSheets] = useState<NoteSheetRecord[]>([])
+  const [linkedNoteSheet, setLinkedNoteSheet] = useState<NoteSheetRecord | null>(null)
   const [caseNo, setCaseNo] = useState("")
   const [dateTimeOccurrence, setDateTimeOccurrence] = useState(() => {
     const d = new Date()
@@ -171,6 +213,56 @@ export default function DetentionMemoCreatePage() {
       if (driverPhotoPreviewUrl) URL.revokeObjectURL(driverPhotoPreviewUrl)
     }
   }, [ownerPhotoPreviewUrl, driverPhotoPreviewUrl])
+
+  const applyNoteSheetPrefill = (ns: NoteSheetRecord) => {
+    setLinkedNoteSheet(ns)
+    setNoteSheetId(ns.id)
+    if (ns.caseNo) setCaseNo(ns.caseNo)
+    if (ns.accusedName) setOwnerName(ns.accusedName)
+    if (ns.accusedCnic) setOwnerCnic(sanitizeCnicInput(ns.accusedCnic))
+    if (ns.accusedMobile) setOwnerContact(ns.accusedMobile)
+    const place = ns.placeOfInspection || ns.warehouseShop || ""
+    if (place) {
+      setPlaceOfOccurrence(place)
+      setPlaceOfDetention(place)
+      setLocationOfDetention(ns.warehouseShop || place)
+    }
+    const inspectionDt = noteSheetDateTime(ns.inspectionDate || ns.dateTime)
+    if (inspectionDt) {
+      setDateTimeOccurrence(inspectionDt)
+      setDateTimeDetention(inspectionDt)
+    }
+    if (ns.groundsOfSuspicion) {
+      setReasonForDetention("Others")
+    }
+    const findings =
+      [ns.preliminaryFindings, ns.content, ns.groundsOfSuspicion].filter((x) => x?.trim()).join("\n\n") ||
+      ""
+    if (findings) {
+      setBriefFacts(findings)
+      setPurposeOfDetention(findings)
+    }
+    if (ns.preparedBy) setReceiptOfficer(ns.preparedBy)
+    const goods = goodsFromNoteSheet(ns)
+    if (goods.length) setGoodsItems(goods)
+  }
+
+  useEffect(() => {
+    fetchNoteSheets({ available: true })
+      .then((list) => {
+        setAvailableNoteSheets(list)
+        if (noteSheetIdParam && !list.find((n) => n.id === noteSheetIdParam)) {
+          fetchNoteSheetById(noteSheetIdParam)
+            .then((ns) => applyNoteSheetPrefill(ns))
+            .catch(() => undefined)
+        } else if (noteSheetIdParam) {
+          const ns = list.find((n) => n.id === noteSheetIdParam)
+          if (ns) applyNoteSheetPrefill(ns)
+        }
+      })
+      .catch(() => setAvailableNoteSheets([]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount / noteSheetIdParam
+  }, [noteSheetIdParam])
 
   const addGoodsLine = () => setGoodsItems((prev) => [...prev, emptyGoodsItem()])
   const removeGoodsLine = (id: string) => setGoodsItems((prev) => prev.filter((i) => i.id !== id))
@@ -277,14 +369,34 @@ export default function DetentionMemoCreatePage() {
 
     setSaving(true)
     try {
-      await createDetentionMemo(payload, {
+      if (!noteSheetId) {
+        toast({
+          title: "Approved note sheet required",
+          description: "Select an approved note sheet before creating the detention memo.",
+          variant: "destructive",
+        })
+        setSaving(false)
+        return
+      }
+      const created = await createDetentionMemo(payload, {
         ownerPhoto: ownerPhotoFile,
         driverPhoto: driverPhotoFile,
         documents: documentFiles,
         videos: videoFiles,
         goodsImages: goodsImagesMap,
       })
-      toast({ title: "Saved", description: "Detention memo saved to the database." })
+      try {
+        await linkNoteSheetToDetention(noteSheetId, created.id)
+      } catch (linkErr) {
+        toast({
+          title: "Memo saved, but note sheet link failed",
+          description: linkErr instanceof Error ? linkErr.message : "Link failed",
+          variant: "destructive",
+        })
+        navigate(ROUTES.DETENTION_MEMO)
+        return
+      }
+      toast({ title: "Saved", description: "Detention memo saved and linked to approved note sheet." })
       navigate(ROUTES.DETENTION_MEMO)
     } catch (e) {
       toast({
@@ -321,8 +433,55 @@ export default function DetentionMemoCreatePage() {
           </Button>
         </div>
         <p className="mb-4 text-sm text-muted-foreground rounded-md bg-muted/60 px-3 py-2 border border-border/50">
-          This detention memo is prepared <strong>after</strong> the detention. Record all details of the detention event and goods for customs record.
+          Detention memo is created only after an approved note sheet. Upload supporting documents below.
         </p>
+
+        <Card className="mb-6 border-blue-100 bg-blue-50/40">
+          <CardContent className="pt-6 space-y-3">
+            <Label>Approved Note Sheet *</Label>
+            <Select
+              value={noteSheetId}
+              onValueChange={(v) => {
+                const ns =
+                  availableNoteSheets.find((n) => n.id === v) ||
+                  (linkedNoteSheet?.id === v ? linkedNoteSheet : null)
+                if (ns) {
+                  applyNoteSheetPrefill(ns)
+                } else {
+                  setNoteSheetId(v)
+                  fetchNoteSheetById(v)
+                    .then((full) => applyNoteSheetPrefill(full))
+                    .catch(() => undefined)
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select approved note sheet" />
+              </SelectTrigger>
+              <SelectContent>
+                {linkedNoteSheet && !availableNoteSheets.find((n) => n.id === linkedNoteSheet.id) && (
+                  <SelectItem value={linkedNoteSheet.id}>
+                    {linkedNoteSheet.noteSheetNo || linkedNoteSheet.referenceNumber || linkedNoteSheet.subject} ({linkedNoteSheet.status})
+                  </SelectItem>
+                )}
+                {availableNoteSheets.map((n) => (
+                  <SelectItem key={n.id} value={n.id}>
+                    {n.noteSheetNo || n.referenceNumber || n.subject || n.id} — {n.preparedBy || "—"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {availableNoteSheets.length === 0 && !linkedNoteSheet && (
+              <p className="text-sm text-amber-800">
+                No approved note sheets available.{" "}
+                <Link to={ROUTES.SEIZURE_MGMT_NOTE_SHEET} className="text-primary underline">
+                  Create / approve a note sheet
+                </Link>{" "}
+                first.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="space-y-4 w-full">
           {/* Basic Information */}

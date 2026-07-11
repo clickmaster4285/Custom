@@ -90,6 +90,18 @@ export const PAGES = {
   SeizureManagementDashboard: lazy(() =>
     import("@/pages/seizure-management/SeizureManagementDashboard").then((m) => ({ default: m.default }))
   ),
+  SeizureMgmtNoteSheet: lazy(() =>
+    import("@/pages/seizure-management/NoteSheet").then((m) => ({ default: m.default }))
+  ),
+  SeizureMgmtNoteSheetCreate: lazy(() =>
+    import("@/pages/seizure-management/NoteSheetCreate").then((m) => ({ default: m.default }))
+  ),
+  SeizureMgmtNoteSheetEdit: lazy(() =>
+    import("@/pages/seizure-management/NoteSheetCreate").then((m) => ({ default: m.default }))
+  ),
+  SeizureMgmtNoteSheetDetail: lazy(() =>
+    import("@/pages/seizure-management/NoteSheetDetail").then((m) => ({ default: m.default }))
+  ),
   SeizureMgmtAssessment: lazy(() =>
     import("@/pages/seizure-management/DetentionAssessment").then((m) => ({ default: m.default }))
   ),

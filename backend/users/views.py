@@ -123,6 +123,58 @@ class UserViewSet(viewsets.ModelViewSet):
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated], url_path="me")
+    def me(self, request):
+        """Current authenticated user profile (any role)."""
+        u = request.user
+        return Response(
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email or "",
+                "role": u.role or "",
+                "phone": u.phone or "",
+                "location": u.location or "",
+                "full_name": u.full_name or "",
+                "designation": u.designation or "",
+                "employee_id": u.employee_id or "",
+                "cell_no": u.cell_no or "",
+                "office_phone_1": u.office_phone_1 or "",
+                "office_phone_2": u.office_phone_2 or "",
+                "collectorate": u.collectorate or "",
+                "is_active": u.is_active,
+            }
+        )
+
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated], url_path="colleagues")
+    def colleagues(self, request):
+        """
+        Active users at the caller's location (for Forward To / approver pickers).
+        Available to any authenticated user — not only Admin/HR.
+        """
+        qs = User.objects.filter(is_deleted=False, is_active=True).order_by("full_name", "username")
+        qs = apply_location_filter(qs, request.user, field="location")
+        exclude_self = request.query_params.get("excludeSelf", "1") != "0"
+        if exclude_self:
+            qs = qs.exclude(pk=request.user.pk)
+        rows = [
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email or "",
+                "role": u.role or "",
+                "phone": u.phone or "",
+                "location": u.location or "",
+                "full_name": u.full_name or "",
+                "designation": u.designation or "",
+                "employee_id": u.employee_id or "",
+                "cell_no": u.cell_no or u.phone or "",
+                "is_active": u.is_active,
+            }
+            for u in qs
+        ]
+        return Response(rows)
+
     @action(detail=False, methods=["get"])
     def unlinked(self, request):
         """Get users that are not linked to any staff"""

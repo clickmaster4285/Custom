@@ -1,21 +1,37 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
-import { getSeizureReportById, type SeizureReportRecord } from "@/lib/seizure-management-storage"
+import { fetchSeizureReportById, type SeizureReportRecord } from "@/lib/seizure-management-api"
 
 export default function SeizureReportDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [row, setRow] = useState<SeizureReportRecord | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (id) setRow(getSeizureReportById(id) ?? null)
+    if (!id) return
+    setLoading(true)
+    fetchSeizureReportById(id)
+      .then(setRow)
+      .catch(() => setRow(null))
+      .finally(() => setLoading(false))
   }, [id])
+
+  if (loading) {
+    return (
+      <ModulePageLayout title="Seizure Report" description="Loading..." breadcrumbs={[]}>
+        <p className="text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+        </p>
+      </ModulePageLayout>
+    )
+  }
 
   if (!row) {
     return (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, Send } from "lucide-react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { ArrowLeft, Loader2, Send } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,16 +18,20 @@ import { ROUTES, getSeizureMgmtRecoveryMemoDetailPath } from "@/routes/config"
 import { fetchDetentionMemos, type DetentionMemoApiRecord } from "@/lib/detention-memo-api"
 import {
   RECOVERY_CATEGORIES,
+  createRecoveryMemo,
   isWithinDetentionWindow,
-  saveRecoveryMemo,
-} from "@/lib/seizure-management-storage"
+  recoveryMemoApproval,
+} from "@/lib/seizure-management-api"
 import { toast } from "@/components/ui/use-toast"
 
 export default function RecoveryMemoCreatePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [memos, setMemos] = useState<DetentionMemoApiRecord[]>([])
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    detentionMemoId: "",
+    detentionMemoId: searchParams.get("detentionMemoId") ?? "",
+    assessmentId: searchParams.get("assessmentId") ?? "",
     caseNo: "",
     category: RECOVERY_CATEGORIES[0],
     recoveryDate: new Date().toISOString().slice(0, 10),
@@ -35,12 +39,27 @@ export default function RecoveryMemoCreatePage() {
     goodsDescription: "",
     quantity: "",
     remarks: "",
-    approvalStatus: "Draft" as const,
   })
 
   useEffect(() => {
-    fetchDetentionMemos().then(setMemos).catch(() => setMemos([]))
-  }, [])
+    fetchDetentionMemos()
+      .then((list) => {
+        setMemos(list)
+        const memoId = searchParams.get("detentionMemoId")
+        if (memoId) {
+          const memo = list.find((m) => m.id === memoId)
+          if (memo) {
+            setForm((f) => ({
+              ...f,
+              detentionMemoId: memoId,
+              caseNo: memo.caseNo,
+              assessmentId: searchParams.get("assessmentId") ?? f.assessmentId,
+            }))
+          }
+        }
+      })
+      .catch(() => setMemos([]))
+  }, [searchParams])
 
   const selectedMemo = memos.find((m) => m.id === form.detentionMemoId)
   const withinWindow = selectedMemo ? isWithinDetentionWindow(selectedMemo.dateTimeDetention) : true
@@ -54,19 +73,40 @@ export default function RecoveryMemoCreatePage() {
     }))
   }
 
-  const handleSave = (submitForApproval: boolean) => {
+  const handleSave = async (submitForApproval: boolean) => {
     if (!form.detentionMemoId || !form.recoveryOfficer.trim()) {
       toast({ title: "Detention memo and recovery officer are required", variant: "destructive" })
       return
     }
-    const saved = saveRecoveryMemo({
-      ...form,
-      approvalStatus: submitForApproval ? "Pending Approval" : "Draft",
-    })
-    toast({
-      title: submitForApproval ? "Recovery memo sent for approval" : "Recovery memo saved as draft",
-    })
-    navigate(getSeizureMgmtRecoveryMemoDetailPath(saved.id))
+    setSaving(true)
+    try {
+      const created = await createRecoveryMemo({
+        detentionMemoId: form.detentionMemoId,
+        assessmentId: form.assessmentId || undefined,
+        caseNo: form.caseNo,
+        category: form.category,
+        recoveryDate: form.recoveryDate,
+        recoveryOfficer: form.recoveryOfficer,
+        goodsDescription: form.goodsDescription,
+        quantity: form.quantity,
+        remarks: form.remarks,
+        createDeposit: true,
+      })
+      if (submitForApproval) {
+        await recoveryMemoApproval(created.id, "submit")
+        toast({ title: "Recovery memo sent for approval" })
+      } else {
+        toast({ title: "Recovery memo saved as draft" })
+      }
+      navigate(getSeizureMgmtRecoveryMemoDetailPath(created.id))
+    } catch (e) {
+      toast({
+        title: e instanceof Error ? e.message : "Failed to save",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -181,10 +221,11 @@ export default function RecoveryMemoCreatePage() {
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">
-            <Button variant="outline" onClick={() => handleSave(false)}>
+            <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Save Draft
             </Button>
-            <Button onClick={() => handleSave(true)}>
+            <Button onClick={() => handleSave(true)} disabled={saving}>
               <Send className="h-4 w-4 mr-2" />
               Send for Approval
             </Button>

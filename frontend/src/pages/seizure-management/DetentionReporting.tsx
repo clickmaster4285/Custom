@@ -19,20 +19,34 @@ import { fetchDetentionMemos, type DetentionMemoApiRecord } from "@/lib/detentio
 import {
   DETENTION_WINDOW_DAYS,
   daysSinceDetention,
-  getAssessmentByDetentionMemoId,
-} from "@/lib/seizure-management-storage"
+  fetchAssessments,
+  type DetentionAssessmentRecord,
+} from "@/lib/seizure-management-api"
 
 export default function DetentionReportingPage() {
   const [rows, setRows] = useState<DetentionMemoApiRecord[]>([])
+  const [assessments, setAssessments] = useState<DetentionAssessmentRecord[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchDetentionMemos()
-      .then(setRows)
-      .catch(() => setRows([]))
+    setLoading(true)
+    Promise.all([
+      fetchDetentionMemos().catch(() => [] as DetentionMemoApiRecord[]),
+      fetchAssessments().catch(() => [] as DetentionAssessmentRecord[]),
+    ])
+      .then(([memos, assess]) => {
+        setRows(memos)
+        setAssessments(assess)
+      })
       .finally(() => setLoading(false))
   }, [])
+
+  const assessedMemoIds = useMemo(() => {
+    const set = new Set<string>()
+    for (const a of assessments) set.add(a.detentionMemoId)
+    return set
+  }, [assessments])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -50,15 +64,15 @@ export default function DetentionReportingPage() {
       const days = daysSinceDetention(r.dateTimeDetention)
       return days !== null && days > DETENTION_WINDOW_DAYS
     }).length
-    const withAssessment = rows.filter((r) => getAssessmentByDetentionMemoId(r.id)).length
+    const withAssessment = rows.filter((r) => assessedMemoIds.has(r.id)).length
     return { total: rows.length, overdue, withAssessment }
-  }, [rows])
+  }, [rows, assessedMemoIds])
 
   const exportCsv = () => {
     const header = ["Case No", "Detention Date", "Place", "Verification", "Days", "Assessment", "60-Day Status"]
     const lines = filtered.map((r) => {
       const days = daysSinceDetention(r.dateTimeDetention)
-      const hasAssessment = !!getAssessmentByDetentionMemoId(r.id)
+      const hasAssessment = assessedMemoIds.has(r.id)
       const windowStatus =
         days === null ? "" : days > DETENTION_WINDOW_DAYS ? "Overdue" : "Within window"
       return [
@@ -160,7 +174,7 @@ export default function DetentionReportingPage() {
                 filtered.map((row) => {
                   const days = daysSinceDetention(row.dateTimeDetention)
                   const overdue = days !== null && days > DETENTION_WINDOW_DAYS
-                  const hasAssessment = !!getAssessmentByDetentionMemoId(row.id)
+                  const hasAssessment = assessedMemoIds.has(row.id)
                   return (
                     <TableRow key={row.id}>
                       <TableCell className="font-medium">{row.caseNo}</TableCell>

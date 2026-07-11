@@ -96,6 +96,10 @@ export const DASHBOARD_ROUTES: { index?: true; path?: string; page: string }[] =
   { path: toChildPath(ROUTES.CASE_STATUS_TRACKING), page: "CaseStatusTracking" },
   // Seizure Management
   { path: toChildPath(ROUTES.SEIZURE_MANAGEMENT), page: "SeizureManagementDashboard" },
+  { path: toChildPath(ROUTES.SEIZURE_MGMT_NOTE_SHEET), page: "SeizureMgmtNoteSheet" },
+  { path: "seizure-management/note-sheet/create", page: "SeizureMgmtNoteSheetCreate" },
+  { path: "seizure-management/note-sheet/:id/edit", page: "SeizureMgmtNoteSheetEdit" },
+  { path: "seizure-management/note-sheet/:id", page: "SeizureMgmtNoteSheetDetail" },
   { path: toChildPath(ROUTES.SEIZURE_MGMT_ASSESSMENT), page: "SeizureMgmtAssessment" },
   { path: toChildPath(ROUTES.SEIZURE_MGMT_DETENTION_REPORTING), page: "SeizureMgmtDetentionReporting" },
   { path: toChildPath(ROUTES.SEIZURE_MGMT_RECOVERY_MEMO), page: "SeizureMgmtRecoveryMemo" },

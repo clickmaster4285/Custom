@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
-import { ClipboardCheck, Eye, Loader2, Plus, Search, Trash2 } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { ClipboardCheck, Eye, Loader2, Package, Plus, Search, Trash2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -29,15 +29,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ToastAction } from "@/components/ui/toast"
 import { ROUTES, getDetentionMemoDetailPath } from "@/routes/config"
 import { fetchDetentionMemos, type DetentionMemoApiRecord } from "@/lib/detention-memo-api"
 import {
+  createAssessment,
   deleteAssessment,
-  getAssessmentByDetentionMemoId,
-  listAssessments,
-  saveAssessment,
+  fetchAssessments,
+  updateAssessment,
   type DetentionAssessmentRecord,
-} from "@/lib/seizure-management-storage"
+  type DocumentRelevance,
+} from "@/lib/seizure-management-api"
 import { toast } from "@/components/ui/use-toast"
 
 const emptyForm = {
@@ -48,6 +50,7 @@ const emptyForm = {
   goodsCondition: "",
   valuationNotes: "",
   findings: "",
+  documentRelevance: "Pending" as DocumentRelevance,
   status: "In Progress" as const,
 }
 
@@ -68,22 +71,32 @@ function goodsValue(memo: DetentionMemoApiRecord): string {
   return total > 0 ? `PKR ${total.toLocaleString()}` : "—"
 }
 
+function recoveryMemoCreateHref(detentionMemoId: string, assessmentId: string) {
+  return `${ROUTES.SEIZURE_MGMT_RECOVERY_MEMO_CREATE}?detentionMemoId=${encodeURIComponent(detentionMemoId)}&assessmentId=${encodeURIComponent(assessmentId)}`
+}
+
 export default function DetentionAssessmentPage() {
+  const navigate = useNavigate()
   const [memos, setMemos] = useState<DetentionMemoApiRecord[]>([])
   const [assessments, setAssessments] = useState<DetentionAssessmentRecord[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedMemo, setSelectedMemo] = useState<DetentionMemoApiRecord | null>(null)
 
   const load = () => {
-    setAssessments(listAssessments())
     setLoading(true)
-    fetchDetentionMemos()
-      .then(setMemos)
-      .catch(() => setMemos([]))
+    Promise.all([
+      fetchDetentionMemos().catch(() => [] as DetentionMemoApiRecord[]),
+      fetchAssessments().catch(() => [] as DetentionAssessmentRecord[]),
+    ])
+      .then(([m, a]) => {
+        setMemos(m)
+        setAssessments(a)
+      })
       .finally(() => setLoading(false))
   }
 
@@ -110,7 +123,8 @@ export default function DetentionAssessmentPage() {
         (m.owner?.name ?? "").toLowerCase().includes(q) ||
         (m.verificationStatus ?? "").toLowerCase().includes(q) ||
         (assessment?.examiningOfficer ?? "").toLowerCase().includes(q) ||
-        (assessment?.findings ?? "").toLowerCase().includes(q)
+        (assessment?.findings ?? "").toLowerCase().includes(q) ||
+        (assessment?.documentRelevance ?? "").toLowerCase().includes(q)
       )
     })
   }, [memos, search, assessmentByMemoId])
@@ -154,6 +168,7 @@ export default function DetentionAssessmentPage() {
       goodsCondition: assessment.goodsCondition,
       valuationNotes: assessment.valuationNotes,
       findings: assessment.findings,
+      documentRelevance: assessment.documentRelevance || "Pending",
       status: assessment.status,
     })
     setShowForm(true)
@@ -169,12 +184,38 @@ export default function DetentionAssessmentPage() {
     }))
   }
 
-  const handleSave = () => {
+  const notifyNextStep = (saved: DetentionAssessmentRecord) => {
+    if (saved.status !== "Completed") return
+    if (saved.documentRelevance === "Relevant") {
+      toast({
+        title: "Assessment completed — documents relevant",
+        description: "Proceed to Release Inventory.",
+        action: (
+          <ToastAction altText="Open Release Inventory" onClick={() => navigate(ROUTES.RELEASE_INVENTORY)}>
+            Release Inventory
+          </ToastAction>
+        ),
+      })
+    } else if (saved.documentRelevance === "Not Relevant") {
+      const href = recoveryMemoCreateHref(saved.detentionMemoId, saved.id)
+      toast({
+        title: "Assessment completed — not relevant",
+        description: "Create a recovery memo for this detention.",
+        action: (
+          <ToastAction altText="Create recovery memo" onClick={() => navigate(href)}>
+            Recovery Memo
+          </ToastAction>
+        ),
+      })
+    }
+  }
+
+  const handleSave = async () => {
     if (!form.detentionMemoId || !form.examiningOfficer.trim()) {
       toast({ title: "Detention memo and examining officer are required", variant: "destructive" })
       return
     }
-    const existing = getAssessmentByDetentionMemoId(form.detentionMemoId)
+    const existing = assessmentByMemoId.get(form.detentionMemoId)
     if (!editingId && existing) {
       toast({
         title: "Assessment already exists for this memo",
@@ -183,16 +224,47 @@ export default function DetentionAssessmentPage() {
       })
       return
     }
-    saveAssessment({ ...form, id: editingId ?? undefined })
-    toast({ title: editingId ? "Assessment updated" : "Assessment created" })
-    setShowForm(false)
-    load()
+    setSaving(true)
+    try {
+      const payload = {
+        detentionMemoId: form.detentionMemoId,
+        caseNo: form.caseNo,
+        assessmentDate: form.assessmentDate,
+        examiningOfficer: form.examiningOfficer,
+        goodsCondition: form.goodsCondition,
+        valuationNotes: form.valuationNotes,
+        findings: form.findings,
+        documentRelevance: form.documentRelevance,
+        status: form.status,
+      }
+      const saved = editingId
+        ? await updateAssessment(editingId, payload)
+        : await createAssessment(payload)
+      toast({ title: editingId ? "Assessment updated" : "Assessment created" })
+      notifyNextStep(saved)
+      setShowForm(false)
+      load()
+    } catch (e) {
+      toast({
+        title: e instanceof Error ? e.message : "Failed to save assessment",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleDelete = (id: string) => {
-    deleteAssessment(id)
-    toast({ title: "Assessment deleted" })
-    load()
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteAssessment(id)
+      toast({ title: "Assessment deleted" })
+      load()
+    } catch (e) {
+      toast({
+        title: e instanceof Error ? e.message : "Failed to delete",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -320,6 +392,11 @@ export default function DetentionAssessmentPage() {
                               <Badge variant={assessment.status === "Completed" ? "default" : "secondary"}>
                                 {assessment.status}
                               </Badge>
+                              {assessment.documentRelevance && assessment.documentRelevance !== "Pending" && (
+                                <p className="text-xs text-muted-foreground">
+                                  {assessment.documentRelevance}
+                                </p>
+                              )}
                               {assessment.examiningOfficer && (
                                 <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                                   {assessment.examiningOfficer}
@@ -333,7 +410,7 @@ export default function DetentionAssessmentPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
+                          <div className="flex justify-end gap-1 flex-wrap">
                             <Button variant="ghost" size="sm" asChild title="View memo">
                               <Link to={getDetentionMemoDetailPath(memo.id)}>
                                 <Eye className="h-4 w-4" />
@@ -341,6 +418,23 @@ export default function DetentionAssessmentPage() {
                             </Button>
                             {assessment ? (
                               <>
+                                {assessment.status === "Completed" &&
+                                  assessment.documentRelevance === "Relevant" && (
+                                    <Button variant="outline" size="sm" asChild>
+                                      <Link to={ROUTES.RELEASE_INVENTORY}>Release</Link>
+                                    </Button>
+                                  )}
+                                {assessment.status === "Completed" &&
+                                  assessment.documentRelevance === "Not Relevant" && (
+                                    <Button variant="outline" size="sm" asChild>
+                                      <Link
+                                        to={recoveryMemoCreateHref(assessment.detentionMemoId, assessment.id)}
+                                      >
+                                        <Package className="h-4 w-4 mr-1" />
+                                        Recovery
+                                      </Link>
+                                    </Button>
+                                  )}
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -506,6 +600,24 @@ export default function DetentionAssessmentPage() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>Document Relevance</Label>
+              <Select
+                value={form.documentRelevance}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, documentRelevance: v as DocumentRelevance }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Relevant">Relevant</SelectItem>
+                  <SelectItem value="Not Relevant">Not Relevant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Examining Officer *</Label>
               <Input
                 value={form.examiningOfficer}
@@ -536,10 +648,13 @@ export default function DetentionAssessmentPage() {
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowForm(false)}>
+              <Button variant="outline" onClick={() => setShowForm(false)} disabled={saving}>
                 Cancel
               </Button>
-              <Button onClick={handleSave}>Save Assessment</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Assessment
+              </Button>
             </div>
           </div>
         </DialogContent>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Download, Search } from "lucide-react"
+import { Download, Loader2, Search } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,14 +15,19 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { ROUTES, getSeizureMgmtRecoveryMemoDetailPath } from "@/routes/config"
-import { listRecoveryMemos, type RecoveryMemoRecord } from "@/lib/seizure-management-storage"
+import { fetchRecoveryMemos, type RecoveryMemoRecord } from "@/lib/seizure-management-api"
 
 export default function RecoveryReportingPage() {
   const [rows, setRows] = useState<RecoveryMemoRecord[]>([])
   const [search, setSearch] = useState("")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setRows(listRecoveryMemos())
+    setLoading(true)
+    fetchRecoveryMemos()
+      .then(setRows)
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = useMemo(() => {
@@ -79,7 +84,7 @@ export default function RecoveryReportingPage() {
             </CardContent>
           </Card>
         ))}
-        {Object.keys(byCategory).length === 0 && (
+        {!loading && Object.keys(byCategory).length === 0 && (
           <Card className="rounded-[10px] sm:col-span-3">
             <CardContent className="p-4 text-sm text-muted-foreground">No recovery memos yet.</CardContent>
           </Card>
@@ -116,24 +121,33 @@ export default function RecoveryReportingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.caseNo}</TableCell>
-                  <TableCell>{row.category}</TableCell>
-                  <TableCell>{row.recoveryDate}</TableCell>
-                  <TableCell>{row.recoveryOfficer}</TableCell>
-                  <TableCell>
-                    <Badge variant={row.approvalStatus === "Approved" ? "default" : "secondary"}>
-                      {row.approvalStatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="link" size="sm" asChild>
-                      <Link to={getSeizureMgmtRecoveryMemoDetailPath(row.id)}>View</Link>
-                    </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
+                    Loading...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filtered.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">{row.caseNo}</TableCell>
+                    <TableCell>{row.category}</TableCell>
+                    <TableCell>{row.recoveryDate}</TableCell>
+                    <TableCell>{row.recoveryOfficer}</TableCell>
+                    <TableCell>
+                      <Badge variant={row.approvalStatus === "Approved" ? "default" : "secondary"}>
+                        {row.approvalStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="link" size="sm" asChild>
+                        <Link to={getSeizureMgmtRecoveryMemoDetailPath(row.id)}>View</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

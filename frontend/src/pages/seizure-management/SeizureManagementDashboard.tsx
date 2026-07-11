@@ -15,34 +15,48 @@ import { Badge } from "@/components/ui/badge"
 import { ROUTES } from "@/routes/config"
 import { fetchDetentionMemos } from "@/lib/detention-memo-api"
 import {
-  listAssessments,
-  listRecoveryMemos,
-  listSeizureReports,
+  fetchSeizureMgmtOverview,
   DETENTION_WINDOW_DAYS,
   daysSinceDetention,
-} from "@/lib/seizure-management-storage"
+  type SeizureMgmtOverview,
+} from "@/lib/seizure-management-api"
 
 const quickLinks = [
-  { label: "New Detention Memo", href: ROUTES.DETENTION_MEMO, description: "Create after approval" },
-  { label: "Assessment", href: ROUTES.SEIZURE_MGMT_ASSESSMENT, description: "Record examination findings" },
-  { label: "Recovery Memo", href: ROUTES.SEIZURE_MGMT_RECOVERY_MEMO, description: "Submit for approval" },
-  { label: "Seizure Report", href: ROUTES.SEIZURE_MGMT_SEIZURE_REPORT, description: "Final submission" },
+  { label: "Note Sheet", href: ROUTES.SEIZURE_MGMT_NOTE_SHEET, description: "Create & get officer approval" },
+  { label: "Detention Memo", href: ROUTES.DETENTION_MEMO, description: "After note sheet approval" },
+  { label: "Assessment", href: ROUTES.SEIZURE_MGMT_ASSESSMENT, description: "Docs relevant → release / else recovery" },
+  { label: "Recovery Memo", href: ROUTES.SEIZURE_MGMT_RECOVERY_MEMO, description: "Submit for approval + deposit" },
+  { label: "Seizure Report", href: ROUTES.SEIZURE_MGMT_SEIZURE_REPORT, description: "From recovery + assessment" },
 ]
+
+const emptyOverview: SeizureMgmtOverview = {
+  noteSheets: 0,
+  noteSheetsPending: 0,
+  noteSheetsApprovedAvailable: 0,
+  assessments: 0,
+  assessmentsPending: 0,
+  recoveryMemos: 0,
+  recoveryPendingApproval: 0,
+  seizureReports: 0,
+  seizureReportsSubmitted: 0,
+}
 
 export default function SeizureManagementDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [detentionCount, setDetentionCount] = useState(0)
   const [overdueCount, setOverdueCount] = useState(0)
-
-  const assessments = listAssessments()
-  const recoveryMemos = listRecoveryMemos()
-  const seizureReports = listSeizureReports()
+  const [overview, setOverview] = useState<SeizureMgmtOverview>(emptyOverview)
 
   useEffect(() => {
     let cancelled = false
-    fetchDetentionMemos()
-      .then((memos) => {
+    setLoading(true)
+    Promise.all([
+      fetchSeizureMgmtOverview().catch(() => emptyOverview),
+      fetchDetentionMemos().catch(() => []),
+    ])
+      .then(([ov, memos]) => {
         if (cancelled) return
+        setOverview(ov)
         setDetentionCount(memos.length)
         setOverdueCount(
           memos.filter((m) => {
@@ -50,9 +64,6 @@ export default function SeizureManagementDashboardPage() {
             return days !== null && days > DETENTION_WINDOW_DAYS
           }).length
         )
-      })
-      .catch(() => {
-        if (!cancelled) setDetentionCount(0)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -73,31 +84,28 @@ export default function SeizureManagementDashboardPage() {
       },
       {
         label: "Assessments",
-        value: String(assessments.length),
+        value: loading ? "—" : String(overview.assessments),
         icon: ClipboardCheck,
         color: "text-green-600",
         bg: "bg-green-50",
       },
       {
         label: "Recovery Memos",
-        value: String(recoveryMemos.length),
+        value: loading ? "—" : String(overview.recoveryMemos),
         icon: Package,
         color: "text-violet-600",
         bg: "bg-violet-50",
       },
       {
         label: "Seizure Reports",
-        value: String(seizureReports.filter((r) => r.status === "Submitted").length),
+        value: loading ? "—" : String(overview.seizureReportsSubmitted),
         icon: FileText,
         color: "text-amber-600",
         bg: "bg-amber-50",
       },
     ],
-    [assessments.length, detentionCount, loading, recoveryMemos.length, seizureReports]
+    [detentionCount, loading, overview]
   )
-
-  const pendingRecovery = recoveryMemos.filter((r) => r.approvalStatus === "Pending Approval").length
-  const pendingAssessment = assessments.filter((a) => a.status === "In Progress").length
 
   return (
     <div className="flex flex-col gap-8">
@@ -133,7 +141,7 @@ export default function SeizureManagementDashboardPage() {
               <div>
                 <p className="text-[#697282] text-sm">{stat.label}</p>
                 <p className="text-2xl font-bold text-[#101727]">
-                  {loading && stat.label === "Detention Memos" ? (
+                  {loading ? (
                     <Loader2 className="h-5 w-5 animate-spin inline" />
                   ) : (
                     stat.value
@@ -152,11 +160,11 @@ export default function SeizureManagementDashboardPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between py-2 border-b border-gray-100">
                 <span className="text-sm text-[#697282]">Assessments in progress</span>
-                <Badge variant="secondary">{pendingAssessment}</Badge>
+                <Badge variant="secondary">{overview.assessmentsPending}</Badge>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-gray-100">
                 <span className="text-sm text-[#697282]">Recovery memos pending approval</span>
-                <Badge variant="secondary">{pendingRecovery}</Badge>
+                <Badge variant="secondary">{overview.recoveryPendingApproval}</Badge>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-[#697282] flex items-center gap-1">

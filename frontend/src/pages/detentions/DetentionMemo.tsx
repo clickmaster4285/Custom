@@ -236,16 +236,24 @@ export default function DetentionMemoPage() {
             )}
             {/* Header with Add Button */}
             <div className="mb-6 flex flex-wrap items-start justify-between gap-3 sm:items-center sm:gap-4">
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" asChild>
-                <Link to={ROUTES.DETENTION_MEMO_CREATE}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add New Detention Memo
-                </Link>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" asChild>
+                  <Link to={ROUTES.SEIZURE_MGMT_NOTE_SHEET}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Note Sheet / New Detention
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to={ROUTES.DETENTION_MEMO_CREATE}>
+                    Create Detention Memo
+                  </Link>
+                </Button>
+              </div>
               <div className="flex w-full flex-col gap-1 text-sm text-muted-foreground sm:w-auto sm:items-end">
                 <span>
                   Total Records: <span className="font-semibold text-foreground">{filteredRows.length}</span>
                 </span>
+                <p className="text-xs">Detention memo requires an approved note sheet.</p>
                 <Link className="text-primary hover:underline" to={ROUTES.DEPOSIT_ACCOUNT_REGISTER}>
                   Open Deposit Account Register
                 </Link>

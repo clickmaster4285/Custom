@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Search } from "lucide-react"
+import { Loader2, Plus, Search } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { ROUTES, getSeizureMgmtRecoveryMemoDetailPath } from "@/routes/config"
-import { listRecoveryMemos, type RecoveryMemoRecord } from "@/lib/seizure-management-storage"
+import { fetchRecoveryMemos, type RecoveryMemoRecord } from "@/lib/seizure-management-api"
 
 function approvalBadge(status: RecoveryMemoRecord["approvalStatus"]) {
   if (status === "Approved") return <Badge>Approved</Badge>
@@ -28,9 +28,14 @@ export default function RecoveryMemoPage() {
   const navigate = useNavigate()
   const [rows, setRows] = useState<RecoveryMemoRecord[]>([])
   const [search, setSearch] = useState("")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setRows(listRecoveryMemos())
+    setLoading(true)
+    fetchRecoveryMemos()
+      .then(setRows)
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = useMemo(() => {
@@ -86,7 +91,14 @@ export default function RecoveryMemoPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No recovery memos yet.

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, Send } from "lucide-react"
+import { ArrowLeft, Loader2, Send } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,15 +17,20 @@ import {
 import { ROUTES, getSeizureMgmtSeizureReportDetailPath } from "@/routes/config"
 import { fetchDetentionMemos, type DetentionMemoApiRecord } from "@/lib/detention-memo-api"
 import {
-  getAssessmentByDetentionMemoId,
-  listRecoveryMemos,
-  saveSeizureReport,
-} from "@/lib/seizure-management-storage"
+  createSeizureReport,
+  fetchAssessments,
+  fetchRecoveryMemos,
+  type DetentionAssessmentRecord,
+  type RecoveryMemoRecord,
+} from "@/lib/seizure-management-api"
 import { toast } from "@/components/ui/use-toast"
 
 export default function SeizureReportCreatePage() {
   const navigate = useNavigate()
   const [memos, setMemos] = useState<DetentionMemoApiRecord[]>([])
+  const [assessments, setAssessments] = useState<DetentionAssessmentRecord[]>([])
+  const [recoveryMemos, setRecoveryMemos] = useState<RecoveryMemoRecord[]>([])
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     detentionMemoId: "",
     caseNo: "",
@@ -39,27 +44,36 @@ export default function SeizureReportCreatePage() {
   })
 
   useEffect(() => {
-    fetchDetentionMemos().then(setMemos).catch(() => setMemos([]))
+    Promise.all([
+      fetchDetentionMemos().catch(() => [] as DetentionMemoApiRecord[]),
+      fetchAssessments().catch(() => [] as DetentionAssessmentRecord[]),
+      fetchRecoveryMemos().catch(() => [] as RecoveryMemoRecord[]),
+    ]).then(([m, a, r]) => {
+      setMemos(m)
+      setAssessments(a)
+      setRecoveryMemos(r)
+    })
   }, [])
 
   const recoveryOptions = useMemo(
     () =>
-      listRecoveryMemos().filter(
+      recoveryMemos.filter(
         (r) => r.detentionMemoId === form.detentionMemoId && r.approvalStatus === "Approved"
       ),
-    [form.detentionMemoId]
+    [form.detentionMemoId, recoveryMemos]
   )
 
-  const assessment = form.detentionMemoId
-    ? getAssessmentByDetentionMemoId(form.detentionMemoId)
-    : undefined
+  const assessment = useMemo(
+    () => assessments.find((a) => a.detentionMemoId === form.detentionMemoId),
+    [assessments, form.detentionMemoId]
+  )
 
   const selectedRecovery = recoveryOptions.find((r) => r.id === form.recoveryMemoId)
 
   const onMemoSelect = (memoId: string) => {
     const memo = memos.find((m) => m.id === memoId)
-    const assess = getAssessmentByDetentionMemoId(memoId)
-    const approvedRecovery = listRecoveryMemos().find(
+    const assess = assessments.find((a) => a.detentionMemoId === memoId)
+    const approvedRecovery = recoveryMemos.find(
       (r) => r.detentionMemoId === memoId && r.approvalStatus === "Approved"
     )
     const sheetNotes = [
@@ -81,7 +95,7 @@ export default function SeizureReportCreatePage() {
     }))
   }
 
-  const handleSave = (submit: boolean) => {
+  const handleSave = async (submit: boolean) => {
     if (!form.detentionMemoId || !form.preparedBy.trim()) {
       toast({ title: "Detention memo and prepared by are required", variant: "destructive" })
       return
@@ -93,12 +107,29 @@ export default function SeizureReportCreatePage() {
       })
       return
     }
-    const saved = saveSeizureReport({
-      ...form,
-      status: submit ? "Submitted" : "Draft",
-    })
-    toast({ title: submit ? "Seizure report submitted" : "Draft saved" })
-    navigate(getSeizureMgmtSeizureReportDetailPath(saved.id))
+    setSaving(true)
+    try {
+      const saved = await createSeizureReport({
+        detentionMemoId: form.detentionMemoId,
+        caseNo: form.caseNo,
+        assessmentId: form.assessmentId || undefined,
+        recoveryMemoId: form.recoveryMemoId || undefined,
+        reportDate: form.reportDate,
+        preparedBy: form.preparedBy,
+        summary: form.summary,
+        recoveryAssessmentNotes: form.recoveryAssessmentNotes,
+        status: submit ? "Submitted" : "Draft",
+      })
+      toast({ title: submit ? "Seizure report submitted" : "Draft saved" })
+      navigate(getSeizureMgmtSeizureReportDetailPath(saved.id))
+    } catch (e) {
+      toast({
+        title: e instanceof Error ? e.message : "Failed to save",
+        variant: "destructive",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -186,10 +217,11 @@ export default function SeizureReportCreatePage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => handleSave(false)}>
+              <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Save Draft
               </Button>
-              <Button onClick={() => handleSave(true)}>
+              <Button onClick={() => handleSave(true)} disabled={saving}>
                 <Send className="h-4 w-4 mr-2" />
                 Submit Report
               </Button>

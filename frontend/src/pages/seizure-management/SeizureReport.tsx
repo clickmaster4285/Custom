@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Search } from "lucide-react"
+import { Loader2, Plus, Search } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,15 +15,20 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { ROUTES, getSeizureMgmtSeizureReportDetailPath } from "@/routes/config"
-import { listSeizureReports, type SeizureReportRecord } from "@/lib/seizure-management-storage"
+import { fetchSeizureReports, type SeizureReportRecord } from "@/lib/seizure-management-api"
 
 export default function SeizureReportPage() {
   const navigate = useNavigate()
   const [rows, setRows] = useState<SeizureReportRecord[]>([])
   const [search, setSearch] = useState("")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setRows(listSeizureReports())
+    setLoading(true)
+    fetchSeizureReports()
+      .then(setRows)
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = useMemo(() => {
@@ -78,7 +83,14 @@ export default function SeizureReportPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     No seizure reports yet.

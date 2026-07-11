@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "visitors",
     'logs',
     "detentions",
+    "seizure_management",
     "cameras",
     "warehouse",
     "ml.apps.MlConfig",

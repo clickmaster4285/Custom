@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { FileText, ClipboardCheck, Package, BarChart3 } from "lucide-react"
+import { FileText, ClipboardCheck, Package, BarChart3, Loader2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ROUTES } from "@/routes/config"
 import { fetchDetentionMemos } from "@/lib/detention-memo-api"
 import {
-  listAssessments,
-  listRecoveryMemos,
-  listSeizureReports,
-} from "@/lib/seizure-management-storage"
+  fetchSeizureMgmtOverview,
+  type SeizureMgmtOverview,
+} from "@/lib/seizure-management-api"
 
 const reportLinks = [
   {
@@ -39,18 +38,35 @@ const reportLinks = [
   },
 ]
 
+const emptyOverview: SeizureMgmtOverview = {
+  noteSheets: 0,
+  noteSheetsPending: 0,
+  noteSheetsApprovedAvailable: 0,
+  assessments: 0,
+  assessmentsPending: 0,
+  recoveryMemos: 0,
+  recoveryPendingApproval: 0,
+  seizureReports: 0,
+  seizureReportsSubmitted: 0,
+}
+
 export default function SeizureManagementReportsPage() {
   const [detentionTotal, setDetentionTotal] = useState(0)
+  const [overview, setOverview] = useState<SeizureMgmtOverview>(emptyOverview)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchDetentionMemos()
-      .then((m) => setDetentionTotal(m.length))
-      .catch(() => setDetentionTotal(0))
+    setLoading(true)
+    Promise.all([
+      fetchDetentionMemos().catch(() => []),
+      fetchSeizureMgmtOverview().catch(() => emptyOverview),
+    ])
+      .then(([memos, ov]) => {
+        setDetentionTotal(memos.length)
+        setOverview(ov)
+      })
+      .finally(() => setLoading(false))
   }, [])
-
-  const assessments = listAssessments().length
-  const recoveries = listRecoveryMemos().length
-  const submitted = listSeizureReports().filter((r) => r.status === "Submitted").length
 
   return (
     <ModulePageLayout
@@ -65,25 +81,37 @@ export default function SeizureManagementReportsPage() {
         <Card className="rounded-[10px]">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Detentions</p>
-            <p className="text-xl font-bold">{detentionTotal}</p>
+            <p className="text-xl font-bold">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : detentionTotal}
+            </p>
           </CardContent>
         </Card>
         <Card className="rounded-[10px]">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Assessments</p>
-            <p className="text-xl font-bold">{assessments}</p>
+            <p className="text-xl font-bold">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : overview.assessments}
+            </p>
           </CardContent>
         </Card>
         <Card className="rounded-[10px]">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Recovery Memos</p>
-            <p className="text-xl font-bold">{recoveries}</p>
+            <p className="text-xl font-bold">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : overview.recoveryMemos}
+            </p>
           </CardContent>
         </Card>
         <Card className="rounded-[10px]">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Submitted Reports</p>
-            <p className="text-xl font-bold">{submitted}</p>
+            <p className="text-xl font-bold">
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                overview.seizureReportsSubmitted
+              )}
+            </p>
           </CardContent>
         </Card>
       </div>

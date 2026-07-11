@@ -106,6 +106,10 @@ export const ROUTES = {
 
   // Seizure Management
   SEIZURE_MANAGEMENT: "/seizure-management",
+  SEIZURE_MGMT_NOTE_SHEET: "/seizure-management/note-sheet",
+  SEIZURE_MGMT_NOTE_SHEET_CREATE: "/seizure-management/note-sheet/create",
+  SEIZURE_MGMT_NOTE_SHEET_EDIT: "/seizure-management/note-sheet/:id/edit",
+  SEIZURE_MGMT_NOTE_SHEET_DETAIL: "/seizure-management/note-sheet/:id",
   SEIZURE_MGMT_ASSESSMENT: "/seizure-management/assessment",
   SEIZURE_MGMT_DETENTION_REPORTING: "/seizure-management/detention-reporting",
   SEIZURE_MGMT_RECOVERY_MEMO: "/seizure-management/recovery-memo",
@@ -260,6 +264,12 @@ export function getSeizureMgmtRecoveryMemoDetailPath(id: string): string {
 }
 export function getSeizureMgmtSeizureReportDetailPath(id: string): string {
   return `${ROUTES.SEIZURE_MGMT_SEIZURE_REPORT}/${encodeURIComponent(id)}`
+}
+export function getSeizureMgmtNoteSheetDetailPath(id: string): string {
+  return `${ROUTES.SEIZURE_MGMT_NOTE_SHEET}/${encodeURIComponent(id)}`
+}
+export function getSeizureMgmtNoteSheetEditPath(id: string): string {
+  return `${ROUTES.SEIZURE_MGMT_NOTE_SHEET}/${encodeURIComponent(id)}/edit`
 }
 export function getActivityLogDetailPath(id: number | string): string {
   return `${ROUTES.LOGS}/${encodeURIComponent(String(id))}`
@@ -458,6 +468,12 @@ const ALL_NAV_ITEMS: (NavItem | NavGroup)[] = [
     overviewHref: ROUTES.SEIZURE_MANAGEMENT,
     children: [
       { label: "Dashboard", href: ROUTES.SEIZURE_MANAGEMENT },
+      {
+        label: "Note Sheet",
+        children: [
+          { label: "Note Sheets", href: ROUTES.SEIZURE_MGMT_NOTE_SHEET },
+        ],
+      },
       {
         label: "Detention",
         children: [
