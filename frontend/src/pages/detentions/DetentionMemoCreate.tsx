@@ -169,7 +169,6 @@ export default function DetentionMemoCreatePage() {
   const [placeOfDetention, setPlaceOfDetention] = useState("")
   const [detentionType, setDetentionType] = useState("")
   const [referenceNumber, setReferenceNumber] = useState("")
-  const [firNumber, setFirNumber] = useState("")
   const [directorate, setDirectorate] = useState("MCC D.I Khan AFU Import")
   const [reasonForDetention, setReasonForDetention] = useState("")
   const [locationOfDetention, setLocationOfDetention] = useState("")
@@ -348,7 +347,6 @@ export default function DetentionMemoCreatePage() {
     const payload: Record<string, unknown> = {
       caseNo: caseNo || `DM-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
       referenceNumber,
-      firNumber,
       dateTimeOccurrence,
       placeOfOccurrence,
       dateTimeDetention,
@@ -536,10 +534,6 @@ export default function DetentionMemoCreatePage() {
                     <Label>Reference Number</Label>
                     <Input value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="Reference No" />
                   </div>
-                  {/* <div className="grid gap-2">
-                    <Label>FIR Number</Label>
-                    <Input value={firNumber} onChange={(e) => setFirNumber(e.target.value)} placeholder="e.g. FIR-2024-001" />
-                  </div> */}
                   <div className="grid gap-2">
                     <Label>Date/Time of occurrence</Label>
                     <Input

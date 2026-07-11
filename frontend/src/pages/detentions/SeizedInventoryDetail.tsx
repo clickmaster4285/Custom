@@ -163,7 +163,6 @@ export default function SeizedInventoryDetailPage() {
             <h4 className="text-sm font-medium mb-2">Basic Information</h4>
             <div className="rounded-lg border p-4">
               <DetailRow label="Case No." value={row.caseNo} />
-              <DetailRow label="FIR Number" value={row.firNumber} />
               <DetailRow label="Reference Number" value={row.referenceNumber} />
               <DetailRow label="Date/Time of occurrence" value={row.dateTimeOccurrence} />
               <DetailRow label="Place of occurrence" value={row.placeOfOccurrence} />

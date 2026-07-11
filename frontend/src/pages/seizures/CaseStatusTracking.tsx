@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge"
 
 export default function CaseStatusTrackingPage() {
   const statusRows = [
-    { id: "CF-2024-0841", fir: "FIR-2024-0841", status: "In Court", updated: "2024-02-04" },
-    { id: "CF-2024-0840", fir: "FIR-2024-0840", status: "Under Investigation", updated: "2024-02-03" },
+    { id: "CF-2024-0841", status: "In Court", updated: "2024-02-04" },
+    { id: "CF-2024-0840", status: "Under Investigation", updated: "2024-02-03" },
   ]
 
   return (
@@ -64,8 +64,7 @@ export default function CaseStatusTrackingPage() {
                     <p className="text-sm font-semibold">{row.id}</p>
                     <Badge variant="outline">{row.status}</Badge>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">FIR Ref: {row.fir}</p>
-                  <p className="text-xs text-muted-foreground">Last Updated: {row.updated}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Last Updated: {row.updated}</p>
                   <Button variant="ghost" size="sm" className="mt-1 h-7 px-0 text-[#3b82f6]">Track</Button>
                 </div>
               ))}
@@ -77,7 +76,6 @@ export default function CaseStatusTrackingPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Case ID</TableHead>
-                      <TableHead>FIR Ref</TableHead>
                       <TableHead>Current Status</TableHead>
                       <TableHead>Last Updated</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -87,7 +85,6 @@ export default function CaseStatusTrackingPage() {
                     {statusRows.map((row) => (
                       <TableRow key={row.id}>
                         <TableCell className="font-medium">{row.id}</TableCell>
-                        <TableCell>{row.fir}</TableCell>
                         <TableCell><Badge variant="outline">{row.status}</Badge></TableCell>
                         <TableCell>{row.updated}</TableCell>
                         <TableCell className="text-right">

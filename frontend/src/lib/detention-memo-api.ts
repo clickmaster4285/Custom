@@ -137,7 +137,6 @@ export function memoApiRecordToWritePayload(record: DetentionMemoApiRecord): Rec
   return {
     caseNo: record.caseNo ?? "",
     referenceNumber: record.referenceNumber ?? "",
-    firNumber: record.firNumber ?? "",
     dateTimeOccurrence: record.dateTimeOccurrence ?? "",
     placeOfOccurrence: record.placeOfOccurrence ?? "",
     dateTimeDetention: record.dateTimeDetention ?? "",

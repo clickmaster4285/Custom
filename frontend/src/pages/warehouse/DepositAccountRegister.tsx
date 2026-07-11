@@ -124,7 +124,7 @@ export default function DepositAccountRegisterPage() {
         treasuryChallanNo: form.treasuryChallanNo.trim(),
         depositType: form.depositType,
         caseSeizureRef: form.caseSeizureRef.trim(),
-        firNo: form.firNo.trim(),
+        firNo: "",
         customsStation: form.customsStation,
         amount: form.amount.trim(),
         depositDate: form.depositDate,
@@ -239,7 +239,7 @@ export default function DepositAccountRegisterPage() {
         treasuryChallanNo: "",
         depositType: "Detention",
         caseSeizureRef: memo.caseNo || "",
-        firNo: memo.firNumber || "",
+        firNo: "",
         customsStation: memo.placeOfDetention || "",
         amount: "",
         depositDate: new Date().toISOString().slice(0, 10),
@@ -333,7 +333,7 @@ export default function DepositAccountRegisterPage() {
                               <div className="min-w-0">
                                 <p className="text-sm font-medium truncate">{memo.caseNo}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  FIR: {memo.firNumber || "—"} | Station: {memo.placeOfDetention || "—"} | Ref:{" "}
+                                  Station: {memo.placeOfDetention || "—"} | Ref:{" "}
                                   {memo.referenceNumber || "—"}
                                 </p>
                               </div>
@@ -387,7 +387,6 @@ export default function DepositAccountRegisterPage() {
                         <p className="truncate text-muted-foreground">Type: <span className="text-foreground">{row.depositType}</span></p>
                         <p className="truncate text-muted-foreground">Date: <span className="text-foreground">{row.depositDate || "—"}</span></p>
                         <p className="truncate text-muted-foreground">Case Ref: <span className="text-foreground">{row.caseSeizureRef || "—"}</span></p>
-                        <p className="truncate text-muted-foreground">FIR: <span className="text-foreground">{row.firNo || "—"}</span></p>
                         <p className="truncate text-muted-foreground">Station: <span className="text-foreground">{row.customsStation || "—"}</span></p>
                         <p className="truncate text-muted-foreground">Amount: <span className="text-foreground">{row.amount || "—"}</span></p>
                         <p className="col-span-2 truncate text-muted-foreground">Bank/Treasury: <span className="text-foreground">{row.bankTreasuryName || "—"}</span></p>
@@ -437,7 +436,6 @@ export default function DepositAccountRegisterPage() {
                           <TableHead>Treasury Challan No</TableHead>
                           <TableHead>Deposit Type</TableHead>
                           <TableHead>Case/Seizure Ref</TableHead>
-                          <TableHead>FIR No</TableHead>
                           <TableHead>Customs Station</TableHead>
                           <TableHead>Average Value</TableHead>
                           <TableHead>Deposit Date</TableHead>
@@ -452,7 +450,6 @@ export default function DepositAccountRegisterPage() {
                             <TableCell className="font-medium">{row.treasuryChallanNo || "—"}</TableCell>
                             <TableCell>{row.depositType}</TableCell>
                             <TableCell>{row.caseSeizureRef || "—"}</TableCell>
-                            <TableCell>{row.firNo || "—"}</TableCell>
                             <TableCell>{row.customsStation || "—"}</TableCell>
                             <TableCell>{row.amount || "—"}</TableCell>
                             <TableCell>{row.depositDate || "—"}</TableCell>
@@ -565,10 +562,6 @@ export default function DepositAccountRegisterPage() {
                 onChange={(e) => setForm((f) => ({ ...f, caseSeizureRef: e.target.value }))}
                 placeholder="e.g. case no from detention memo"
               />
-            </div>
-            <div className="grid gap-2">
-              <Label>FIR No</Label>
-              <Input value={form.firNo} onChange={(e) => setForm((f) => ({ ...f, firNo: e.target.value }))} placeholder="e.g. FIR-2024-0841" />
             </div>
             <div className="grid gap-2">
               <Label>Customs Station</Label>

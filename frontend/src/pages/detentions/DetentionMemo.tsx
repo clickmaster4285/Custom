@@ -130,8 +130,7 @@ export default function DetentionMemoPage() {
     return rows.filter(
       (r) =>
         r.caseNo.toLowerCase().includes(q) ||
-        (r.referenceNumber ?? "").toLowerCase().includes(q) ||
-        (r.firNumber ?? "").toLowerCase().includes(q)
+        (r.referenceNumber ?? "").toLowerCase().includes(q)
     )
   }, [rows, caseNumberSearch])
 
@@ -161,7 +160,7 @@ export default function DetentionMemoPage() {
         treasuryChallanNo: "",
         depositType: "Detention",
         caseSeizureRef: row.caseNo,
-        firNo: row.firNumber ?? "",
+        firNo: "",
         customsStation: row.placeOfDetention,
         amount: "",
         depositDate: new Date().toISOString().slice(0, 10),
@@ -325,10 +324,6 @@ export default function DetentionMemoPage() {
                           <p className="font-mono text-xs">{row.referenceNumber || "—"}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">FIR Number</p>
-                          <p className="font-mono text-xs">{row.firNumber || "—"}</p>
-                        </div>
-                        <div>
                           <p className="text-xs text-muted-foreground">Detention Date/Time</p>
                           <p>{row.dateTimeDetention || "—"}</p>
                         </div>
@@ -405,7 +400,6 @@ export default function DetentionMemoPage() {
                       <TableHead className="w-[80px] font-semibold">Sr.No</TableHead>
                       <TableHead className="font-semibold">Case Number</TableHead>
                       <TableHead className="font-semibold">Detention Memo No</TableHead>
-                      <TableHead className="font-semibold">FIR Number</TableHead>
                       <TableHead className="font-semibold">Detention Date/Time</TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
                       <TableHead className="font-semibold">Posting Date</TableHead>
@@ -418,7 +412,7 @@ export default function DetentionMemoPage() {
                   <TableBody>
                     {pageRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                           <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
                           No detention memos found
                         </TableCell>
@@ -434,7 +428,6 @@ export default function DetentionMemoPage() {
                             </TableCell>
                             <TableCell className="font-medium">{row.caseNo}</TableCell>
                             <TableCell className="font-mono text-xs">{row.referenceNumber || "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{row.firNumber || "—"}</TableCell>
                             <TableCell className="whitespace-nowrap text-sm">{row.dateTimeDetention || "—"}</TableCell>
                             <TableCell>
                               {row.verificationStatus === "Verified" ? (

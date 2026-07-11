@@ -424,7 +424,6 @@ export default function MemoDistributionPage() {
               {selectedMemo && (
                 <div className="rounded-md border p-3 text-sm space-y-2">
                   <p><span className="text-muted-foreground">Case:</span> {selectedMemo.caseNo || "—"}</p>
-                  <p><span className="text-muted-foreground">FIR:</span> {selectedMemo.firNumber || "—"}</p>
                   <p>
                     <span className="text-muted-foreground">Disposition:</span>{" "}
                     {selectedMemo.dispositionStatus || "—"}

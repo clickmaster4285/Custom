@@ -174,7 +174,7 @@ function buildReleaseSourceFromResolve(
     treasuryChallanNo: "",
     depositType: "Detention",
     caseSeizureRef: resolved.memo?.caseNo || "",
-    firNo: resolved.memo?.firNumber || "",
+    firNo: "",
     customsStation: resolved.memo?.placeOfDetention || "",
     amount: "",
     depositDate: "",
@@ -355,7 +355,6 @@ export default function ReleaseInventoryPage() {
         (r) =>
           r.treasuryChallanNo?.toLowerCase().includes(q) ||
           r.caseSeizureRef?.toLowerCase().includes(q) ||
-          r.firNo?.toLowerCase().includes(q) ||
           r.customsStation?.toLowerCase().includes(q) ||
           r.linkedMemoCaseNo?.toLowerCase().includes(q)
       )
@@ -800,7 +799,7 @@ export default function ReleaseInventoryPage() {
           unit: item.unit,
           description: item.description,
         })),
-        firNumber: releaseSourceDeposit?.firNo || "",
+        firNumber: "",
         treasuryChallanNo: releaseSourceDeposit?.treasuryChallanNo || "",
         customsStation: releaseSourceDeposit?.customsStation || "",
         amount: releaseSourceDeposit?.amount || "",
@@ -849,7 +848,6 @@ export default function ReleaseInventoryPage() {
           ) : null}
         </TableCell>
         <TableCell>{row.caseSeizureRef || "—"}</TableCell>
-        <TableCell className="font-mono text-sm">{row.firNo || "—"}</TableCell>
         <TableCell>{row.customsStation || "—"}</TableCell>
         <TableCell className="whitespace-nowrap">{row.depositDate || "—"}</TableCell>
         <TableCell>{days !== null ? `${days}d` : "—"}</TableCell>
@@ -1062,10 +1060,6 @@ export default function ReleaseInventoryPage() {
               <div>
                 <p className="text-xs text-muted-foreground">Case ref</p>
                 <p className="font-medium">{releaseSourceDeposit.caseSeizureRef || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">FIR</p>
-                <p className="font-mono">{releaseSourceDeposit.firNo || "—"}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Station</p>
@@ -1453,10 +1447,6 @@ export default function ReleaseInventoryPage() {
                     <div>
                       <p className="text-xs text-muted-foreground">Case ref</p>
                       <p className="font-medium">{releaseSourceDeposit.caseSeizureRef || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">FIR</p>
-                      <p className="font-mono">{releaseSourceDeposit.firNo || "—"}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Station</p>

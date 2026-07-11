@@ -813,7 +813,7 @@ def maybe_create_deposit_for_recovery(recovery: RecoveryMemo) -> DepositAccountE
             "detentionMemoId": str(memo.id),
             "depositType": "Detention",
             "caseSeizureRef": memo.case_no or "",
-            "firNo": memo.fir_number or "",
+            "firNo": "",
             "customsStation": memo.place_of_detention or "",
             "depositDate": timezone.now().date().isoformat(),
             "status": "Pending",

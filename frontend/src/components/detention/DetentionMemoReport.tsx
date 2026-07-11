@@ -389,9 +389,6 @@ export default function DetentionMemoReport({ row, qrPayload, qrNumber }: Detent
                             <span className="info-label">Reference Number:</span> {row.referenceNumber || "—"}
                         </div>
                         <div className="info-row">
-                            <span className="info-label">FIR Number:</span> {row.firNumber || "—"}
-                        </div>
-                        <div className="info-row">
                             <span className="info-label">Detention Type:</span> {row.detentionType || "—"}
                         </div>
                         <div className="info-row">

@@ -52,7 +52,6 @@ export function DetentionMemoReadOnlyView({ memo }: { memo: DetentionMemoApiReco
             <div className="grid grid-cols-1 gap-x-5 md:grid-cols-2">
               <DetailRow label="Case No." value={memo.caseNo} />
               <DetailRow label="Detention Memo No." value={memo.referenceNumber || "—"} />
-              <DetailRow label="FIR Number" value={memo.firNumber} />
               <DetailRow label="Date/Time of occurrence" value={memo.dateTimeOccurrence} />
               <DetailRow label="Place of occurrence" value={memo.placeOfOccurrence} />
               <DetailRow label="Date/Time of detention" value={memo.dateTimeDetention} />

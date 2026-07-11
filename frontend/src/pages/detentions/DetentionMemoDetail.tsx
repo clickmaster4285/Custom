@@ -513,7 +513,6 @@ export default function DetentionMemoDetailPage() {
                   <div className="grid grid-cols-1 gap-x-5 md:grid-cols-2">
                     <DetailRow label="Case No." value={row.caseNo} />
                     <DetailRow label="Detention Memo No." value={row.referenceNumber || "—"} />
-                    <DetailRow label="FIR Number" value={row.firNumber} />
                     <DetailRow label="Date/Time of occurrence" value={row.dateTimeOccurrence} />
                     <DetailRow label="Place of occurrence" value={row.placeOfOccurrence} />
                     <DetailRow label="Date/Time of detention" value={row.dateTimeDetention} />
