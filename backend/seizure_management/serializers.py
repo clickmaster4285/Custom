@@ -302,8 +302,12 @@ def recovery_memo_to_dict(obj: RecoveryMemo) -> dict:
         "approvalStatus": obj.approval_status,
         "approvedBy": obj.approved_by or "",
         "approvedAt": _iso(obj.approved_at),
+        "approvalRemarks": getattr(obj, "approval_remarks", None) or "",
         "rejectionReason": obj.rejection_reason or "",
+        "submittedAt": _iso(getattr(obj, "submitted_at", None)),
         "depositAccountId": str(obj.deposit_account_id) if obj.deposit_account_id else "",
+        "createdBy": getattr(obj, "created_by", None) or "",
+        "updatedBy": getattr(obj, "updated_by", None) or "",
         "createdAt": _iso(obj.created_at),
         "updatedAt": _iso(obj.updated_at),
     }
@@ -458,9 +462,10 @@ class RecoveryMemoWriteSerializer(serializers.Serializer):
 
 
 class RecoveryApprovalSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=["submit", "approve", "reject"])
+    action = serializers.ChoiceField(choices=["submit", "approve", "reject", "view"])
     approvedBy = serializers.CharField(required=False, allow_blank=True)
     rejectionReason = serializers.CharField(required=False, allow_blank=True)
+    approvalRemarks = serializers.CharField(required=False, allow_blank=True)
 
 
 class SeizureReportWriteSerializer(serializers.Serializer):
@@ -772,7 +777,7 @@ def save_assessment_uploads(request, obj: DetentionAssessment) -> list[Detention
     return created
 
 
-def apply_recovery(obj: RecoveryMemo, data: dict) -> RecoveryMemo:
+def apply_recovery(obj: RecoveryMemo, data: dict, username: str = "") -> RecoveryMemo:
     if "category" in data and data["category"]:
         obj.category = data["category"]
     if "recoveryDate" in data:
@@ -790,6 +795,11 @@ def apply_recovery(obj: RecoveryMemo, data: dict) -> RecoveryMemo:
     if "assessmentId" in data:
         aid = data.get("assessmentId")
         obj.assessment_id = aid
+    actor = (data.get("updatedBy") or data.get("createdBy") or username or "").strip()
+    if actor:
+        if not getattr(obj, "created_by", None):
+            obj.created_by = (data.get("createdBy") or actor).strip()
+        obj.updated_by = actor
     obj.save()
     return obj
 

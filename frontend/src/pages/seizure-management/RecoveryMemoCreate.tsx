@@ -293,8 +293,8 @@ export default function RecoveryMemoCreatePage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Save as draft or send for approval. Approved recovery memos feed the deposit register and
-              seizure report path.
+              Send for approval routes to Assistant Collector, Deputy Collector, Location Admin, or Super
+              Admin (same as note sheet). Status starts as Draft until submitted.
             </p>
           </CardContent>
         </Card>

@@ -211,8 +211,12 @@ export type RecoveryMemoRecord = {
   approvalStatus: ApprovalStatus
   approvedBy: string
   approvedAt: string
+  approvalRemarks?: string
   rejectionReason: string
+  submittedAt?: string
   depositAccountId: string
+  createdBy?: string
+  updatedBy?: string
   createdAt: string
   updatedAt: string
 }
@@ -445,9 +449,10 @@ export type NoteSheetNotificationItem = {
   noteSheetId: string
   noteSheetNo: string
   assessmentId?: string
+  recoveryMemoId?: string
   caseNo?: string
   type: string
-  hrefKind?: "note_sheet" | "assessment" | string
+  hrefKind?: "note_sheet" | "assessment" | "recovery" | string
 }
 
 export async function fetchNoteSheetNotifications(opts?: {
@@ -694,12 +699,12 @@ export async function deleteRecoveryMemo(id: string): Promise<void> {
 
 export async function recoveryMemoApproval(
   id: string,
-  action: "submit" | "approve" | "reject",
-  extra?: { approvedBy?: string; rejectionReason?: string }
+  action: "submit" | "approve" | "reject" | "view",
+  extra?: { approvedBy?: string; rejectionReason?: string; approvalRemarks?: string }
 ): Promise<RecoveryMemoRecord> {
   const res = await fetch(`${BASE}/recovery-memos/${encodeURIComponent(id)}/approval/`, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ action, ...extra }),
   })
   const body = await parseJson(res)

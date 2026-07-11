@@ -14,16 +14,21 @@ from .models import (
     NoteSheet,
     NoteSheetNotification,
     RecoveryMemo,
+    RecoveryNotification,
     SeizureReport,
 )
 from .notifications import (
     NOTE_SHEET_FORWARD_TO_LABEL,
+    RECOVERY_FORWARD_TO_LABEL,
     mark_assessment_notifications_resolved,
     mark_note_sheet_notifications_resolved,
+    mark_recovery_notifications_resolved,
     notify_assessment_submitted,
     notify_note_sheet_submitted,
+    notify_recovery_submitted,
     user_can_approve_assessment,
     user_can_approve_note_sheet,
+    user_can_approve_recovery,
 )
 from .serializers import (
     AssessmentApprovalSerializer,
@@ -69,6 +74,7 @@ def _notification_to_dict(n: NoteSheetNotification) -> dict:
         "noteSheetId": str(n.note_sheet_id),
         "noteSheetNo": (sheet.note_sheet_no or sheet.reference_number or "") if sheet else "",
         "assessmentId": "",
+        "recoveryMemoId": "",
         "type": "note_sheet_approval",
         "hrefKind": "note_sheet",
     }
@@ -86,9 +92,29 @@ def _assessment_notification_to_dict(n: AssessmentNotification) -> dict:
         "noteSheetId": "",
         "noteSheetNo": "",
         "assessmentId": str(n.assessment_id),
+        "recoveryMemoId": "",
         "caseNo": (memo.case_no if memo else "") or "",
         "type": "assessment_approval",
         "hrefKind": "assessment",
+    }
+
+
+def _recovery_notification_to_dict(n: RecoveryNotification) -> dict:
+    recovery = n.recovery_memo
+    memo = recovery.detention_memo if recovery else None
+    return {
+        "id": str(n.id),
+        "title": n.title,
+        "message": n.message,
+        "isRead": n.is_read,
+        "createdAt": n.created_at.isoformat() if n.created_at else "",
+        "noteSheetId": "",
+        "noteSheetNo": "",
+        "assessmentId": "",
+        "recoveryMemoId": str(n.recovery_memo_id),
+        "caseNo": (memo.case_no if memo else "") or "",
+        "type": "recovery_approval",
+        "hrefKind": "recovery",
     }
 
 
@@ -616,7 +642,7 @@ class RecoveryMemoCreateAPIView(APIView):
         obj = RecoveryMemo(detention_memo=memo)
         if data.get("assessmentId"):
             obj.assessment = get_object_or_404(DetentionAssessment, pk=data["assessmentId"])
-        apply_recovery(obj, data)
+        apply_recovery(obj, data, username=_username(request))
         if data.get("createDeposit"):
             maybe_create_deposit_for_recovery(obj)
             obj.refresh_from_db()
@@ -646,7 +672,7 @@ class RecoveryMemoUpdateAPIView(APIView):
         payload.setdefault("detentionMemoId", str(obj.detention_memo_id))
         ser = RecoveryMemoWriteSerializer(data=payload)
         ser.is_valid(raise_exception=True)
-        apply_recovery(obj, ser.validated_data)
+        apply_recovery(obj, ser.validated_data, username=_username(request))
         if ser.validated_data.get("createDeposit"):
             maybe_create_deposit_for_recovery(obj)
         obj.refresh_from_db()
@@ -673,28 +699,117 @@ class RecoveryMemoApprovalAPIView(APIView):
         ser = RecoveryApprovalSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         action = ser.validated_data["action"]
+        remarks = (
+            ser.validated_data.get("approvalRemarks")
+            or ser.validated_data.get("rejectionReason")
+            or ""
+        ).strip()
+        actor = (ser.validated_data.get("approvedBy") or _username(request) or "").strip()
+
+        if action == "view":
+            if obj.approval_status == RecoveryMemo.STATUS_PENDING and not obj.viewed_at:
+                obj.viewed_at = timezone.now()
+                obj.save(update_fields=["viewed_at", "updated_at"])
+            return Response(recovery_memo_to_dict(obj))
+
         if action == "submit":
             if obj.approval_status not in (RecoveryMemo.STATUS_DRAFT, RecoveryMemo.STATUS_REJECTED):
-                return Response({"detail": "Only draft/rejected recovery memos can be submitted."}, status=400)
+                return Response(
+                    {"detail": "Only draft/rejected recovery memos can be submitted."},
+                    status=400,
+                )
+            if not (obj.recovery_officer or "").strip():
+                return Response(
+                    {"detail": "Recovery officer is required before submit."},
+                    status=400,
+                )
             obj.approval_status = RecoveryMemo.STATUS_PENDING
+            obj.submitted_at = timezone.now()
             obj.rejection_reason = ""
-            obj.save(update_fields=["approval_status", "rejection_reason", "updated_at"])
+            obj.approval_remarks = ""
+            obj.save(
+                update_fields=[
+                    "approval_status",
+                    "submitted_at",
+                    "rejection_reason",
+                    "approval_remarks",
+                    "updated_at",
+                ]
+            )
+            notify_recovery_submitted(
+                obj,
+                submitted_by_user_id=getattr(request.user, "id", None),
+            )
+
         elif action == "approve":
             if obj.approval_status != RecoveryMemo.STATUS_PENDING:
-                return Response({"detail": "Only pending recovery memos can be approved."}, status=400)
+                return Response(
+                    {"detail": "Only pending recovery memos can be approved."},
+                    status=400,
+                )
+            if not user_can_approve_recovery(request.user, obj):
+                return Response(
+                    {
+                        "detail": (
+                            f"Only {RECOVERY_FORWARD_TO_LABEL} can approve this recovery memo."
+                        )
+                    },
+                    status=403,
+                )
             obj.approval_status = RecoveryMemo.STATUS_APPROVED
-            obj.approved_by = ser.validated_data.get("approvedBy") or _username(request)
+            obj.approved_by = actor
             obj.approved_at = timezone.now()
+            obj.approval_remarks = remarks
             obj.rejection_reason = ""
-            obj.save(update_fields=["approval_status", "approved_by", "approved_at", "rejection_reason", "updated_at"])
+            obj.save(
+                update_fields=[
+                    "approval_status",
+                    "approved_by",
+                    "approved_at",
+                    "approval_remarks",
+                    "rejection_reason",
+                    "updated_at",
+                ]
+            )
+            mark_recovery_notifications_resolved(obj)
+
         elif action == "reject":
             if obj.approval_status != RecoveryMemo.STATUS_PENDING:
-                return Response({"detail": "Only pending recovery memos can be rejected."}, status=400)
+                return Response(
+                    {"detail": "Only pending recovery memos can be rejected."},
+                    status=400,
+                )
+            if not user_can_approve_recovery(request.user, obj):
+                return Response(
+                    {
+                        "detail": (
+                            f"Only {RECOVERY_FORWARD_TO_LABEL} can reject this recovery memo."
+                        )
+                    },
+                    status=403,
+                )
+            if not remarks:
+                return Response({"detail": "Rejection reason is required."}, status=400)
             obj.approval_status = RecoveryMemo.STATUS_REJECTED
-            obj.approved_by = ser.validated_data.get("approvedBy") or _username(request)
+            obj.approved_by = actor
             obj.approved_at = timezone.now()
-            obj.rejection_reason = ser.validated_data.get("rejectionReason") or ""
-            obj.save(update_fields=["approval_status", "approved_by", "approved_at", "rejection_reason", "updated_at"])
+            obj.rejection_reason = remarks
+            obj.approval_remarks = remarks
+            obj.save(
+                update_fields=[
+                    "approval_status",
+                    "approved_by",
+                    "approved_at",
+                    "rejection_reason",
+                    "approval_remarks",
+                    "updated_at",
+                ]
+            )
+            mark_recovery_notifications_resolved(obj)
+
+        obj = RecoveryMemo.objects.select_related(
+            "detention_memo", "assessment", "deposit_account"
+        ).get(pk=obj.pk)
         return Response(recovery_memo_to_dict(obj))
 
 
@@ -822,7 +937,7 @@ class SeizureManagementOverviewAPIView(APIView):
 
 
 class NoteSheetNotificationListAPIView(APIView):
-    """List in-app notifications for the logged-in official (note sheets + assessments)."""
+    """List in-app notifications for the logged-in official (note sheets + assessments + recovery)."""
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -834,19 +949,26 @@ class NoteSheetNotificationListAPIView(APIView):
         as_qs = AssessmentNotification.objects.filter(recipient_user_id=uid).select_related(
             "assessment__detention_memo"
         )
+        rc_qs = RecoveryNotification.objects.filter(recipient_user_id=uid).select_related(
+            "recovery_memo__detention_memo"
+        )
         if unread_only:
             ns_qs = ns_qs.filter(is_read=False)
             as_qs = as_qs.filter(is_read=False)
+            rc_qs = rc_qs.filter(is_read=False)
 
-        combined = [_notification_to_dict(n) for n in ns_qs[:50]] + [
-            _assessment_notification_to_dict(n) for n in as_qs[:50]
-        ]
+        combined = (
+            [_notification_to_dict(n) for n in ns_qs[:50]]
+            + [_assessment_notification_to_dict(n) for n in as_qs[:50]]
+            + [_recovery_notification_to_dict(n) for n in rc_qs[:50]]
+        )
         combined.sort(key=lambda x: x.get("createdAt") or "", reverse=True)
         combined = combined[:50]
 
         unread_count = (
             NoteSheetNotification.objects.filter(recipient_user_id=uid, is_read=False).count()
             + AssessmentNotification.objects.filter(recipient_user_id=uid, is_read=False).count()
+            + RecoveryNotification.objects.filter(recipient_user_id=uid, is_read=False).count()
         )
         return Response(
             {
@@ -874,6 +996,10 @@ class NoteSheetNotificationMarkReadAPIView(APIView):
                 recipient_user_id=request.user.id,
                 is_read=False,
             ).update(is_read=True)
+            RecoveryNotification.objects.filter(
+                recipient_user_id=request.user.id,
+                is_read=False,
+            ).update(is_read=True)
             return Response({"detail": "All notifications marked as read."})
         if pk:
             ns = NoteSheetNotification.objects.filter(
@@ -884,13 +1010,21 @@ class NoteSheetNotificationMarkReadAPIView(APIView):
                     ns.is_read = True
                     ns.save(update_fields=["is_read"])
                 return Response(_notification_to_dict(ns))
-            an = get_object_or_404(
-                AssessmentNotification,
+            an = AssessmentNotification.objects.filter(
+                pk=pk, recipient_user_id=request.user.id
+            ).first()
+            if an:
+                if not an.is_read:
+                    an.is_read = True
+                    an.save(update_fields=["is_read"])
+                return Response(_assessment_notification_to_dict(an))
+            rn = get_object_or_404(
+                RecoveryNotification,
                 pk=pk,
                 recipient_user_id=request.user.id,
             )
-            if not an.is_read:
-                an.is_read = True
-                an.save(update_fields=["is_read"])
-            return Response(_assessment_notification_to_dict(an))
+            if not rn.is_read:
+                rn.is_read = True
+                rn.save(update_fields=["is_read"])
+            return Response(_recovery_notification_to_dict(rn))
         return Response({"detail": "Provide notification id or {\"all\": true}."}, status=400)

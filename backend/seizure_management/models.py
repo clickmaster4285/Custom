@@ -452,6 +452,9 @@ class RecoveryMemo(models.Model):
     approved_by = models.CharField(max_length=200, blank=True)
     approved_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True)
+    approval_remarks = models.TextField(blank=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    viewed_at = models.DateTimeField(null=True, blank=True)
 
     deposit_account = models.ForeignKey(
         "detentions.DepositAccountEntry",
@@ -461,6 +464,8 @@ class RecoveryMemo(models.Model):
         related_name="recovery_memos",
     )
 
+    created_by = models.CharField(max_length=150, blank=True)
+    updated_by = models.CharField(max_length=150, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -469,6 +474,31 @@ class RecoveryMemo(models.Model):
 
     def __str__(self):
         return f"Recovery {self.detention_memo_id} ({self.category})"
+
+
+class RecoveryNotification(models.Model):
+    """In-app notification for recovery memo approval requests (same roles as note sheet)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient_user_id = models.IntegerField(db_index=True)
+    recovery_memo = models.ForeignKey(
+        RecoveryMemo,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    title = models.CharField(max_length=255)
+    message = models.TextField(blank=True)
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["recipient_user_id", "is_read", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.title} → user {self.recipient_user_id}"
 
 
 class SeizureReport(models.Model):

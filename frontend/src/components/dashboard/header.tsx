@@ -15,7 +15,7 @@ import { clearLegacyVmsLocalStorage } from "@/lib/vms-list-api"
 import { getRoleDisplayLabel } from "@/lib/role-access"
 import { isGlobalAdmin } from "@/lib/location-access"
 import { locationLabel } from "@/lib/locations"
-import { ROUTES, getSeizureMgmtAssessmentDetailPath, getSeizureMgmtNoteSheetDetailPath } from "@/routes/config"
+import { ROUTES, getSeizureMgmtAssessmentDetailPath, getSeizureMgmtNoteSheetDetailPath, getSeizureMgmtRecoveryMemoDetailPath } from "@/routes/config"
 import {
   fetchNoteSheetNotifications,
   markAllNoteSheetNotificationsRead,
@@ -68,6 +68,10 @@ export function Header({ onMenuClick }: HeaderProps) {
     }
     setNotifOpen(false)
     loadNotifications()
+    if (n.hrefKind === "recovery" || n.recoveryMemoId) {
+      if (n.recoveryMemoId) navigate(getSeizureMgmtRecoveryMemoDetailPath(n.recoveryMemoId))
+      return
+    }
     if (n.hrefKind === "assessment" || n.assessmentId) {
       if (n.assessmentId) navigate(getSeizureMgmtAssessmentDetailPath(n.assessmentId))
       return

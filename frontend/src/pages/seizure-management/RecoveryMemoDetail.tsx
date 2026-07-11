@@ -14,16 +14,34 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ROUTES, getSeizureMgmtAssessmentDetailPath } from "@/routes/config"
+import {
+  ROUTES,
+  getSeizureMgmtAssessmentDetailPath,
+} from "@/routes/config"
 import {
   fetchRecoveryMemoById,
   recoveryMemoApproval,
   type RecoveryMemoRecord,
 } from "@/lib/seizure-management-api"
 import { fetchDetentionMemoById, type DetentionMemoApiRecord } from "@/lib/detention-memo-api"
-import { getStoredUser } from "@/lib/auth"
+import { getStoredUser, type AuthUser } from "@/lib/auth"
 import { toast } from "@/hooks/use-toast"
 import { DetentionMemoReadOnlyView } from "@/pages/seizure-management/DetentionMemoReadOnlyView"
+
+const APPROVER_ROLES = new Set([
+  "ADMIN",
+  "LOCATION_ADMIN",
+  "DEPUTY_COLLECTOR",
+  "ASSISTANT_COLLECTOR",
+])
+
+function canUserApproveRecovery(
+  row: RecoveryMemoRecord,
+  user: AuthUser | null
+): boolean {
+  if (row.approvalStatus !== "Pending Approval" || !user) return false
+  return APPROVER_ROLES.has((user.role || "").trim().toUpperCase())
+}
 
 function DetailRow({ label, value }: { label: string; value: string | undefined }) {
   return (
@@ -48,9 +66,11 @@ export default function RecoveryMemoDetailPage() {
   const [memo, setMemo] = useState<DetentionMemoApiRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState(false)
+  const [currentUser] = useState<AuthUser | null>(() => getStoredUser())
   const [approver, setApprover] = useState(
     () => getStoredUser()?.full_name || getStoredUser()?.username || ""
   )
+  const [approvalRemarks, setApprovalRemarks] = useState("")
   const [rejectionReason, setRejectionReason] = useState("")
 
   useEffect(() => {
@@ -63,6 +83,9 @@ export default function RecoveryMemoDetailPage() {
           setMemo(await fetchDetentionMemoById(recovery.detentionMemoId))
         } catch {
           setMemo(null)
+        }
+        if (recovery.approvalStatus === "Pending Approval") {
+          void recoveryMemoApproval(recovery.id, "view").catch(() => undefined)
         }
       })
       .catch(() => {
@@ -105,19 +128,24 @@ export default function RecoveryMemoDetailPage() {
     )
   }
 
+  const canSubmit = row.approvalStatus === "Draft" || row.approvalStatus === "Rejected"
+  const canApprove = canUserApproveRecovery(row, currentUser)
+  const isPending = row.approvalStatus === "Pending Approval"
+
   const runApproval = async (action: "submit" | "approve" | "reject") => {
+    if (action === "approve" && !approver.trim()) {
+      toast({ title: "Approving officer is required", variant: "destructive" })
+      return
+    }
     if (action === "reject" && !rejectionReason.trim()) {
-      toast({
-        title: "Rejection reason required",
-        description: "Enter a reason before rejecting.",
-        variant: "destructive",
-      })
+      toast({ title: "Rejection reason is required", variant: "destructive" })
       return
     }
     setActing(true)
     try {
       const updated = await recoveryMemoApproval(row.id, action, {
         approvedBy: approver,
+        approvalRemarks,
         rejectionReason,
       })
       setRow(updated)
@@ -138,9 +166,6 @@ export default function RecoveryMemoDetailPage() {
       setActing(false)
     }
   }
-
-  const canSubmit = row.approvalStatus === "Draft" || row.approvalStatus === "Rejected"
-  const canDecide = row.approvalStatus === "Pending Approval"
 
   return (
     <ModulePageLayout
@@ -164,6 +189,30 @@ export default function RecoveryMemoDetailPage() {
           </Link>
         </Button>
       </div>
+
+      {isPending && canApprove && (
+        <div className="mb-4 rounded-[10px] border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          Prepared by{" "}
+          <span className="font-medium">{row.recoveryOfficer || row.createdBy || "—"}</span>
+          {" · "}
+          Pending approval by Assistant Collector, Deputy Collector, Location Admin, or Super Admin.
+          You can approve or reject as{" "}
+          <span className="font-medium">
+            {currentUser?.full_name || currentUser?.username || "you"}
+          </span>
+          .
+        </div>
+      )}
+
+      {isPending && !canApprove && (
+        <div className="mb-4 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Prepared by{" "}
+          <span className="font-medium">{row.recoveryOfficer || row.createdBy || "—"}</span>
+          {" · "}
+          Waiting for approval from Assistant Collector, Deputy Collector, Location Admin, or Super
+          Admin.
+        </div>
+      )}
 
       <div className="grid gap-4 sm:gap-6">
         <Card className="border-0 shadow-sm">
@@ -235,55 +284,91 @@ export default function RecoveryMemoDetailPage() {
                     </div>
                   </div>
                 )}
-                {row.rejectionReason && (
+                {(row.approvalRemarks || row.rejectionReason) && (
                   <div className="md:col-span-2">
-                    <DetailRow label="Rejection Reason" value={row.rejectionReason} />
+                    <DetailRow
+                      label={row.approvalStatus === "Rejected" ? "Rejection Reason" : "Approval Remarks"}
+                      value={
+                        row.approvalStatus === "Rejected"
+                          ? row.rejectionReason
+                          : row.approvalRemarks || row.rejectionReason
+                      }
+                    />
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {canSubmit && (
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => void runApproval("submit")} disabled={acting}>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send for Approval
-                </Button>
-              </div>
+              <Card className="rounded-[10px]">
+                <CardContent className="p-6 flex flex-wrap gap-2">
+                  <Button disabled={acting} onClick={() => void runApproval("submit")}>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send for Approval
+                  </Button>
+                </CardContent>
+              </Card>
             )}
 
-            {canDecide && (
-              <Card>
+            {isPending && canApprove && (
+              <Card className="rounded-[10px]">
                 <CardHeader>
-                  <CardTitle className="text-base">Decision</CardTitle>
+                  <CardTitle className="text-base">Senior Officer Decision</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-2 max-w-md">
-                    <Label>Approver name</Label>
-                    <Input value={approver} onChange={(e) => setApprover(e.target.value)} />
+                  <div className="space-y-2 max-w-sm">
+                    <Label>Approving Officer (you) *</Label>
+                    <Input value={approver} onChange={(e) => setApprover(e.target.value)} className="bg-muted" readOnly />
+                    <p className="text-xs text-muted-foreground">
+                      Filled from your login — not the recovery officer above.
+                    </p>
                   </div>
-                  <div className="grid gap-2">
-                    <Label>Rejection reason (if rejecting)</Label>
+                  <div className="space-y-2">
+                    <Label>Approval Remarks</Label>
                     <Textarea
+                      rows={3}
+                      value={approvalRemarks}
+                      onChange={(e) => setApprovalRemarks(e.target.value)}
+                      placeholder="e.g. Approved for deposit register and seizure report."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Rejection Reason (if rejecting)</Label>
+                    <Textarea
+                      rows={3}
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
-                      rows={2}
+                      placeholder="e.g. Rejected because recovery details are incomplete."
                     />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => void runApproval("approve")} disabled={acting}>
+                    <Button disabled={acting} onClick={() => void runApproval("approve")}>
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Approve
                     </Button>
                     <Button
                       variant="destructive"
-                      onClick={() => void runApproval("reject")}
                       disabled={acting}
+                      onClick={() => void runApproval("reject")}
                     >
                       <XCircle className="h-4 w-4 mr-2" />
                       Reject
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {isPending && !canApprove && (
+              <Card className="rounded-[10px]">
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground">
+                    Waiting for approval from{" "}
+                    <span className="font-medium text-foreground">
+                      Assistant Collector, Deputy Collector, Location Admin, or Super Admin
+                    </span>
+                    . Only those officials can approve or reject this recovery memo.
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -297,7 +382,7 @@ export default function RecoveryMemoDetailPage() {
                   <div>
                     <dt className="text-muted-foreground text-sm">Created By</dt>
                     <dd className="font-medium text-sm whitespace-pre-wrap">
-                      {row.recoveryOfficer?.trim() || "—"}
+                      {row.createdBy?.trim() || row.recoveryOfficer?.trim() || "—"}
                     </dd>
                   </div>
                   <div>
@@ -308,7 +393,9 @@ export default function RecoveryMemoDetailPage() {
                   </div>
                   <div>
                     <dt className="text-muted-foreground text-sm">Updated By</dt>
-                    <dd className="font-medium text-sm whitespace-pre-wrap">—</dd>
+                    <dd className="font-medium text-sm whitespace-pre-wrap">
+                      {row.updatedBy?.trim() || "—"}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-muted-foreground text-sm">Updated On</dt>

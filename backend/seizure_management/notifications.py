@@ -1,10 +1,17 @@
-"""Note sheet & assessment approval roles and in-app notifications."""
+"""Note sheet, assessment & recovery memo approval roles and in-app notifications."""
 
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
 
-from .models import AssessmentNotification, DetentionAssessment, NoteSheet, NoteSheetNotification
+from .models import (
+    AssessmentNotification,
+    DetentionAssessment,
+    NoteSheet,
+    NoteSheetNotification,
+    RecoveryMemo,
+    RecoveryNotification,
+)
 
 User = get_user_model()
 
@@ -18,14 +25,16 @@ NOTE_SHEET_APPROVER_ROLES = frozenset(
     }
 )
 
-# Same approver set for assessments (note sheet flow unchanged).
+# Same approver set for assessments and recovery memos (note sheet flow unchanged).
 ASSESSMENT_APPROVER_ROLES = NOTE_SHEET_APPROVER_ROLES
+RECOVERY_APPROVER_ROLES = NOTE_SHEET_APPROVER_ROLES
 
 NOTE_SHEET_FORWARD_TO_LABEL = (
     "Assistant Collector, Deputy Collector, Location Admin, Super Admin"
 )
 
 ASSESSMENT_FORWARD_TO_LABEL = NOTE_SHEET_FORWARD_TO_LABEL
+RECOVERY_FORWARD_TO_LABEL = NOTE_SHEET_FORWARD_TO_LABEL
 
 LOCATION_SCOPED_APPROVER_ROLES = frozenset(
     {
@@ -74,6 +83,18 @@ def assessment_submitter_location(obj: DetentionAssessment) -> str:
     return (loc or "").strip().upper() if loc else ""
 
 
+def recovery_submitter_location(obj: RecoveryMemo) -> str:
+    username = (obj.created_by or obj.recovery_officer or "").strip()
+    if not username:
+        return ""
+    loc = (
+        User.objects.filter(username__iexact=username, is_deleted=False)
+        .values_list("location", flat=True)
+        .first()
+    )
+    return (loc or "").strip().upper() if loc else ""
+
+
 def user_can_approve_note_sheet(user, obj: NoteSheet | None = None) -> bool:
     """True if user is Super Admin / Location Admin / Deputy or Assistant Collector."""
     if not user or not getattr(user, "is_authenticated", False):
@@ -110,6 +131,23 @@ def user_can_approve_assessment(user, obj: DetentionAssessment | None = None) ->
     return user_loc == submitter_loc
 
 
+def user_can_approve_recovery(user, obj: RecoveryMemo | None = None) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    role = _normalize_role(getattr(user, "role", None))
+    if role not in RECOVERY_APPROVER_ROLES:
+        return False
+    if role == "ADMIN":
+        return True
+    if obj is None:
+        return True
+    submitter_loc = recovery_submitter_location(obj)
+    user_loc = (getattr(user, "location", None) or "").strip().upper()
+    if not submitter_loc:
+        return True
+    return user_loc == submitter_loc
+
+
 def recipients_for_note_sheet_approval(obj: NoteSheet, exclude_user_id: int | None = None):
     """Active users who should be notified about a submitted note sheet."""
     submitter_loc = note_sheet_submitter_location(obj)
@@ -139,6 +177,28 @@ def recipients_for_assessment_approval(obj: DetentionAssessment, exclude_user_id
         is_deleted=False,
         is_active=True,
         role__in=list(ASSESSMENT_APPROVER_ROLES),
+    )
+    if exclude_user_id:
+        qs = qs.exclude(pk=exclude_user_id)
+
+    recipients = []
+    for u in qs:
+        role = _normalize_role(u.role)
+        if role == "ADMIN":
+            recipients.append(u)
+            continue
+        if role in LOCATION_SCOPED_APPROVER_ROLES:
+            if not submitter_loc or (u.location or "").strip().upper() == submitter_loc:
+                recipients.append(u)
+    return recipients
+
+
+def recipients_for_recovery_approval(obj: RecoveryMemo, exclude_user_id: int | None = None):
+    submitter_loc = recovery_submitter_location(obj)
+    qs = User.objects.filter(
+        is_deleted=False,
+        is_active=True,
+        role__in=list(RECOVERY_APPROVER_ROLES),
     )
     if exclude_user_id:
         qs = qs.exclude(pk=exclude_user_id)
@@ -214,3 +274,31 @@ def notify_assessment_submitted(obj: DetentionAssessment, submitted_by_user_id: 
 
 def mark_assessment_notifications_resolved(obj: DetentionAssessment) -> None:
     AssessmentNotification.objects.filter(assessment=obj, is_read=False).update(is_read=True)
+
+
+def notify_recovery_submitted(obj: RecoveryMemo, submitted_by_user_id: int | None = None) -> int:
+    memo = obj.detention_memo
+    case_no = (memo.case_no if memo else "") or str(obj.pk)
+    officer = (obj.recovery_officer or obj.created_by or "an officer").strip()
+    title = f"Recovery memo pending approval: {case_no}"
+    message = (
+        f"{officer} submitted recovery memo for case {case_no} for approval. "
+        f"Category: {obj.category}."
+    )
+
+    RecoveryNotification.objects.filter(recovery_memo=obj, is_read=False).delete()
+
+    created = 0
+    for user in recipients_for_recovery_approval(obj, exclude_user_id=submitted_by_user_id):
+        RecoveryNotification.objects.create(
+            recipient_user_id=user.id,
+            recovery_memo=obj,
+            title=title,
+            message=message,
+        )
+        created += 1
+    return created
+
+
+def mark_recovery_notifications_resolved(obj: RecoveryMemo) -> None:
+    RecoveryNotification.objects.filter(recovery_memo=obj, is_read=False).update(is_read=True)
