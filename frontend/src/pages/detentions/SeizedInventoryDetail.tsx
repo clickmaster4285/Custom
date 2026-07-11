@@ -172,7 +172,7 @@ export default function SeizedInventoryDetailPage() {
               <DetailRow label="Detention Type" value={row.detentionType} />
               <DetailRow label="Directorate" value={row.directorate} />
               <DetailRow label="Reason for detention" value={row.reasonForDetention} />
-              <DetailRow label="Where deposited" value={row.whereDeposited} />
+              <DetailRow label="Goods detained at" value={row.whereDeposited} />
               <DetailRow label="Settlement Status" value={row.settlementStatus} />
             </div>
           </div>

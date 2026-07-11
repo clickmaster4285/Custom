@@ -547,11 +547,44 @@ export default function DetentionMemoDetailPage() {
             <Card>
               <CardHeader><CardTitle className="text-base">Memo Details</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 gap-x-5 md:grid-cols-2">
-                <DetailRow label="Where deposited" value={row.whereDeposited} />
+                <DetailRow label="Goods detained at" value={row.whereDeposited} />
                 <DetailRow label="Settlement Status" value={row.settlementStatus} />
-                <DetailRow label="Posting Date" value={row.createdAt} />
-                <DetailRow label="Updation Date" value={row.updatedAt ?? row.createdAt} />
-                <DetailRow label="Created By" value={row.createdBy || "ASO Portal"} />
+                <DetailRow label="Verification Status" value={row.verificationStatus} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Audit Log</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-x-5 md:grid-cols-2">
+                  <DetailRow label="Created By" value={row.createdBy || "—"} />
+                  <DetailRow label="Created On" value={row.createdAt} />
+                  <DetailRow label="Updated By" value={row.updatedBy || "—"} />
+                  <DetailRow label="Updated On" value={row.updatedAt ?? row.createdAt} />
+                </div>
+                {(row.auditLog?.length ?? 0) > 0 ? (
+                  <ol className="relative border-l border-muted-foreground/30 ml-2 space-y-4">
+                    {row.auditLog!.map((entry) => (
+                      <li key={entry.id} className="ml-4">
+                        <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border bg-primary border-primary" />
+                        <p className="text-sm font-medium">
+                          {entry.actionLabel || entry.action}
+                          {entry.performedBy ? ` · ${entry.performedBy}` : ""}
+                        </p>
+                        {entry.message ? (
+                          <p className="text-xs text-muted-foreground whitespace-pre-wrap">{entry.message}</p>
+                        ) : null}
+                        <p className="text-xs text-muted-foreground">
+                          {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "—"}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No audit events recorded yet.</p>
+                )}
               </CardContent>
             </Card>
 

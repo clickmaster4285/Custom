@@ -2,7 +2,13 @@ from typing import Optional
 
 from rest_framework import serializers
 
-from .models import DepositAccountEntry, DetentionMemo, DetentionMemoGoodsImage, DetentionMemoGoodsLine
+from .models import (
+    DepositAccountEntry,
+    DetentionMemo,
+    DetentionMemoAuditLog,
+    DetentionMemoGoodsImage,
+    DetentionMemoGoodsLine,
+)
 
 
 def _absolute_media_url(request, file_field) -> str:
@@ -86,6 +92,7 @@ class DetentionMemoWriteSerializer(serializers.Serializer):
     memoQrCodePayload = serializers.CharField(required=False, allow_blank=True)
 
     createdBy = serializers.CharField(required=False, allow_blank=True)
+    updatedBy = serializers.CharField(required=False, allow_blank=True)
 
     # Optional: browser origin (e.g. http://localhost:5173) so memo QR points at the SPA, not the API host.
     clientOrigin = serializers.CharField(required=False, allow_blank=True)
@@ -159,6 +166,22 @@ def apply_validated_to_memo(memo: DetentionMemo, data: dict) -> None:
     memo.memo_qr_code_payload = data.get("memoQrCodePayload") or ""
 
     memo.created_by = data.get("createdBy") or memo.created_by or ""
+    if "updatedBy" in data and data.get("updatedBy"):
+        memo.updated_by = data.get("updatedBy") or ""
+
+
+def append_memo_audit(
+    memo: DetentionMemo,
+    action: str,
+    performed_by: str = "",
+    message: str = "",
+) -> DetentionMemoAuditLog:
+    return DetentionMemoAuditLog.objects.create(
+        memo=memo,
+        action=action,
+        performed_by=(performed_by or "")[:150],
+        message=(message or "")[:500],
+    )
 
 
 def replace_goods_lines(memo: DetentionMemo, goods_items: Optional[list]) -> None:
@@ -289,9 +312,21 @@ def memo_to_frontend_dict(memo: DetentionMemo, request=None) -> dict:
         "memoQrCodeNumber": memo.memo_qr_code_number,
         "memoQrCodePayload": memo.memo_qr_code_payload,
         "createdBy": memo.created_by,
+        "updatedBy": getattr(memo, "updated_by", "") or "",
         "createdAt": created_str,
         "updatedAt": updated_str,
         "mediaAttachments": media_attachments,
+        "auditLog": [
+            {
+                "id": str(e.id),
+                "action": e.action,
+                "actionLabel": e.get_action_display(),
+                "performedBy": e.performed_by or "",
+                "message": e.message or "",
+                "createdAt": e.created_at.isoformat() if e.created_at else "",
+            }
+            for e in list(memo.audit_logs.all()[:50])
+        ],
     }
 
 

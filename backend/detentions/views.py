@@ -18,28 +18,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 
-from .models import DepositAccountEntry, DetentionMemo, DetentionMemoAttachment, DetentionMemoGoodsImage, DetentionMemoGoodsLine
-
-from .serializers import (
-
-    DepositAccountWriteSerializer,
-
-    DetentionMemoWriteSerializer,
-
-    apply_partial_to_deposit_entry,
-
-    apply_validated_to_memo,
-
-    create_deposit_account_entry,
-
-    deposit_entry_to_frontend_dict,
-
-    memo_to_frontend_dict,
-
-    replace_goods_lines,
-
+from .models import (
+    DepositAccountEntry,
+    DetentionMemo,
+    DetentionMemoAttachment,
+    DetentionMemoAuditLog,
+    DetentionMemoGoodsImage,
+    DetentionMemoGoodsLine,
 )
-
+from .serializers import (
+    DepositAccountWriteSerializer,
+    DetentionMemoWriteSerializer,
+    apply_partial_to_deposit_entry,
+    apply_validated_to_memo,
+    append_memo_audit,
+    create_deposit_account_entry,
+    deposit_entry_to_frontend_dict,
+    memo_to_frontend_dict,
+    replace_goods_lines,
+)
 from .image_utils import compress_image
 
 logger = logging.getLogger(__name__)
@@ -190,7 +187,7 @@ def get_memo_queryset():
     return (
 
         DetentionMemo.objects.prefetch_related(
-            "goods_lines__images", "attachments").all()
+            "goods_lines__images", "attachments", "audit_logs").all()
 
     )
 
@@ -233,6 +230,19 @@ class DetentionMemoCreateAPIView(APIView):
             memo = DetentionMemo()
 
             apply_validated_to_memo(memo, validated)
+            actor = (
+                (validated.get("createdBy") or "").strip()
+                or (
+                    getattr(request.user, "full_name", None)
+                    or getattr(request.user, "username", "")
+                    if getattr(request.user, "is_authenticated", False)
+                    else ""
+                )
+                or ""
+            )
+            if actor and not memo.created_by:
+                memo.created_by = actor
+            memo.updated_by = actor
 
             memo.save()
 
@@ -241,6 +251,13 @@ class DetentionMemoCreateAPIView(APIView):
             _save_memo_uploaded_media(request, memo)
 
             _save_goods_images(request, memo, validated.get("goodsItems"))
+
+            append_memo_audit(
+                memo,
+                DetentionMemoAuditLog.ACTION_CREATED,
+                performed_by=memo.created_by or actor,
+                message=f"Detention memo created ({memo.case_no or memo.pk}).",
+            )
 
             memo.refresh_from_db()
 
@@ -275,6 +292,7 @@ class DetentionMemoCreateAPIView(APIView):
         except Exception:
             pass
 
+        memo = get_memo_queryset().get(pk=memo.pk)
         return Response(memo_to_frontend_dict(memo, request), status=status.HTTP_201_CREATED)
 
 
@@ -312,6 +330,20 @@ class DetentionMemoUpdateAPIView(APIView):
         with transaction.atomic():
 
             apply_validated_to_memo(memo, validated)
+            actor = (
+                (validated.get("updatedBy") or validated.get("createdBy") or "").strip()
+                or (
+                    (
+                        getattr(request.user, "full_name", None)
+                        or getattr(request.user, "username", "")
+                    )
+                    if getattr(request.user, "is_authenticated", False)
+                    else ""
+                )
+                or ""
+            )
+            if actor:
+                memo.updated_by = actor
 
             memo.save()
 
@@ -321,8 +353,16 @@ class DetentionMemoUpdateAPIView(APIView):
 
             _save_goods_images(request, memo, validated.get("goodsItems"))
 
+            append_memo_audit(
+                memo,
+                DetentionMemoAuditLog.ACTION_UPDATED,
+                performed_by=actor or memo.updated_by or memo.created_by,
+                message=f"Detention memo updated ({memo.case_no or memo.pk}).",
+            )
+
             memo.refresh_from_db()
 
+        memo = get_memo_queryset().get(pk=memo.pk)
         return Response(memo_to_frontend_dict(memo, request))
 
 

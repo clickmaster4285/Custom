@@ -1,38 +1,32 @@
 import os
-import re
 import uuid
 
 from django.db import models
 
 
-def _sanitize_filename(filename: str) -> str:
-    base = os.path.basename(filename)
-    return re.sub(r"[^\w.\-]", "_", base)[:180]
-
-
 def detention_owner_photo_path(instance: "DetentionMemo", filename: str) -> str:
     sid = instance.pk or "new"
-    ext = os.path.splitext(filename)[1].lower()
-    return f"detention_memos/{sid}/owner_photo{ext or '.jpg'}"
+    ext = os.path.splitext(filename)[1].lower() or ".jpg"
+    return f"dm/{sid}/owner{ext}"
 
 
 def detention_driver_photo_path(instance: "DetentionMemo", filename: str) -> str:
     sid = instance.pk or "new"
-    ext = os.path.splitext(filename)[1].lower()
-    return f"detention_memos/{sid}/driver_photo{ext or '.jpg'}"
+    ext = os.path.splitext(filename)[1].lower() or ".jpg"
+    return f"dm/{sid}/driver{ext}"
 
 
 def detention_attachment_path(instance, filename: str) -> str:
-    safe = _sanitize_filename(filename)
-    return f"detention_memos/{instance.memo_id}/{instance.kind}s/{uuid.uuid4().hex}_{safe}"
+    ext = os.path.splitext(filename)[1].lower() or ""
+    kind = "doc" if getattr(instance, "kind", "") == "document" else "vid"
+    return f"dm/{instance.memo_id}/{kind}/{uuid.uuid4().hex}{ext}"
 
 
 def detention_goods_image_path(instance: "DetentionMemoGoodsImage", filename: str) -> str:
     goods_line = instance.goods_line
     memo_id = goods_line.memo_id
-    goods_id = goods_line.pk or "new"
-    ext = os.path.splitext(filename)[1].lower()
-    return f"detention_memos/{memo_id}/goods/{goods_id}/{uuid.uuid4().hex}{ext or '.jpg'}"
+    ext = os.path.splitext(filename)[1].lower() or ".jpg"
+    return f"dm/{memo_id}/g/{uuid.uuid4().hex}{ext}"
 
 
 class DetentionMemo(models.Model):
@@ -79,7 +73,7 @@ class DetentionMemo(models.Model):
     # Legacy/base64 fallback (prefer owner_photo_upload for large binaries)
     owner_picture = models.TextField(blank=True)
     owner_photo_upload = models.FileField(
-        upload_to=detention_owner_photo_path, blank=True, null=True,
+        upload_to=detention_owner_photo_path, blank=True, null=True, max_length=500,
     )
 
     driver_name = models.CharField(max_length=200, blank=True)
@@ -87,7 +81,7 @@ class DetentionMemo(models.Model):
     driver_contact = models.CharField(max_length=50, blank=True)
     driver_picture = models.TextField(blank=True)
     driver_photo_upload = models.FileField(
-        upload_to=detention_driver_photo_path, blank=True, null=True,
+        upload_to=detention_driver_photo_path, blank=True, null=True, max_length=500,
     )
 
     seizing_officer_notes = models.TextField(blank=True)
@@ -98,6 +92,7 @@ class DetentionMemo(models.Model):
     memo_qr_code_payload = models.TextField(blank=True)
 
     created_by = models.CharField(max_length=150, blank=True)
+    updated_by = models.CharField(max_length=150, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -107,6 +102,36 @@ class DetentionMemo(models.Model):
 
     def __str__(self):
         return self.case_no or str(self.pk)
+
+
+class DetentionMemoAuditLog(models.Model):
+    """Audit trail entries for a detention memo."""
+
+    ACTION_CREATED = "created"
+    ACTION_UPDATED = "updated"
+    ACTION_MEDIA_ADDED = "media_added"
+    ACTION_CHOICES = [
+        (ACTION_CREATED, "Created"),
+        (ACTION_UPDATED, "Updated"),
+        (ACTION_MEDIA_ADDED, "Media added"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    memo = models.ForeignKey(
+        DetentionMemo,
+        on_delete=models.CASCADE,
+        related_name="audit_logs",
+    )
+    action = models.CharField(max_length=40, choices=ACTION_CHOICES, db_index=True)
+    performed_by = models.CharField(max_length=150, blank=True)
+    message = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.memo_id} {self.action} by {self.performed_by}"
 
 
 class DetentionMemoGoodsLine(models.Model):
@@ -144,7 +169,7 @@ class DetentionMemoGoodsImage(models.Model):
         on_delete=models.CASCADE,
         related_name="images",
     )
-    image = models.FileField(upload_to=detention_goods_image_path)
+    image = models.FileField(upload_to=detention_goods_image_path, max_length=500)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -168,7 +193,7 @@ class DetentionMemoAttachment(models.Model):
         related_name="attachments",
     )
     kind = models.CharField(max_length=20, choices=KIND_CHOICES)
-    file = models.FileField(upload_to=detention_attachment_path)
+    file = models.FileField(upload_to=detention_attachment_path, max_length=500)
     original_filename = models.CharField(max_length=255, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
