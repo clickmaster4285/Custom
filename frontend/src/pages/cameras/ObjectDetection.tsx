@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import {
   Scan,
@@ -37,7 +36,6 @@ import {
   fetchSites,
   type DetectionEventsQuery,
 } from "@/lib/cameras-api"
-import { getPersonJourneyPath } from "@/routes/config"
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const
 const DEFAULT_PAGE_SIZE = 25
@@ -417,9 +415,6 @@ export default function ObjectDetectionPage() {
                     <TableHead>Camera</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Label</TableHead>
-                    <TableHead className="w-[90px]">Person ID</TableHead>
-                    <TableHead className="w-[130px]">Person QR</TableHead>
-                    <TableHead className="w-[90px]">Event</TableHead>
                     <TableHead className="w-[140px]">Confidence</TableHead>
                     <TableHead>Alert</TableHead>
                     <TableHead className="w-[140px]">Snapshot</TableHead>
@@ -428,13 +423,13 @@ export default function ObjectDetectionPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                         Loading detection records…
                       </TableCell>
                     </TableRow>
                   ) : events.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                         <Camera className="h-8 w-8 mx-auto mb-2 opacity-40" />
                         {hasActiveFilters
                           ? "No detections match your filters. Try broader search terms or clear filters."
@@ -463,34 +458,6 @@ export default function ObjectDetectionPage() {
                         </TableCell>
                         <TableCell className="max-w-[180px] truncate" title={row.label}>
                           {row.label}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {row.global_track_id != null
-                            ? `P${row.global_track_id}`
-                            : row.local_track_id != null
-                              ? `T${row.local_track_id}`
-                              : "—"}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs max-w-[130px] truncate" title={row.person_qr}>
-                          {row.person_qr ? (
-                            <Link
-                              to={getPersonJourneyPath(row.person_qr)}
-                              className="text-primary hover:underline underline-offset-2"
-                            >
-                              {row.person_qr}
-                            </Link>
-                          ) : (
-                            "—"
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {row.track_event ? (
-                            <Badge variant="secondary" className="font-normal capitalize">
-                              {row.track_event}
-                            </Badge>
-                          ) : (
-                            "—"
-                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">

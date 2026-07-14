@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('detentions', '0004_repair_missing_columns'),
+        ('detentions', '0002_alter_detentionmemo_options_depositaccountentry_and_more'),
     ]
 
     operations = [

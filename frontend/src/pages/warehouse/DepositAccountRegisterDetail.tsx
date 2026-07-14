@@ -139,6 +139,7 @@ export default function DepositAccountRegisterDetailPage() {
                 <DetailRow label="Treasury challan no." value={row.treasuryChallanNo} />
                 <DetailRow label="Deposit type" value={row.depositType} />
                 <DetailRow label="Case / seizure ref" value={row.caseSeizureRef} />
+                <DetailRow label="FIR no." value={row.firNo} />
                 <DetailRow label="Customs station" value={row.customsStation} />
               </CardContent>
             </Card>

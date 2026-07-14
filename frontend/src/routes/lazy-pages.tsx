@@ -170,7 +170,7 @@ export const PAGES = {
     }))
   ),
   ObjectDetection: lazy(() => import("@/pages/cameras/ObjectDetection").then((m) => ({ default: m.default }))),
-  PersonJourney: lazy(() => import("@/pages/cameras/PersonJourney").then((m) => ({ default: m.default }))),
+  // PersonJourney: lazy(() => import("@/pages/cameras/PersonJourney").then((m) => ({ default: m.default }))),
   AnprSettings: lazy(() => import("@/pages/cameras/AnprSettings").then((m) => ({ default: m.default }))),
   AnomalyDetection: lazy(() => import("@/pages/cameras/AnomalyDetection").then((m) => ({ default: m.default }))),
   Reports: lazy(() => import("@/pages/reports/Reports").then((m) => ({ default: m.default }))),

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { BookOpen, Eye, Package, Plus, Search, Trash2 } from "lucide-react"
+import { BookOpen, Eye, Package, Plus, Trash2 } from "lucide-react"
 import { ModulePageLayout } from "@/components/dashboard/module-page-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -46,7 +46,6 @@ import {
   deleteDepositAccountEntry,
   type DepositAccountRow,
 } from "@/lib/deposit-account-api"
-import { fetchDetentionMemos, type DetentionMemoApiRecord } from "@/lib/detention-memo-api"
 import { toast } from "@/components/ui/use-toast"
 import { promoteDepositToSeizedAndInventory } from "@/lib/wms-stock-storage"
 
@@ -75,12 +74,8 @@ const emptyForm = () => ({
 
 export default function DepositAccountRegisterPage() {
   const [rows, setRows] = useState<DepositAccountRow[]>([])
-  const [detentionRows, setDetentionRows] = useState<DetentionMemoApiRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [memoSearchCaseNo, setMemoSearchCaseNo] = useState("")
-  const [memoSearchApplied, setMemoSearchApplied] = useState("")
-  const [addingMemoId, setAddingMemoId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -92,9 +87,8 @@ export default function DepositAccountRegisterPage() {
     setLoading(true)
     setLoadError(null)
     try {
-      const [list, memos] = await Promise.all([fetchDepositAccounts(), fetchDetentionMemos()])
+      const list = await fetchDepositAccounts()
       setRows(list)
-      setDetentionRows(memos)
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load deposits."
       setLoadError(msg)
@@ -124,7 +118,7 @@ export default function DepositAccountRegisterPage() {
         treasuryChallanNo: form.treasuryChallanNo.trim(),
         depositType: form.depositType,
         caseSeizureRef: form.caseSeizureRef.trim(),
-        firNo: "",
+        firNo: form.firNo.trim(),
         customsStation: form.customsStation,
         amount: form.amount.trim(),
         depositDate: form.depositDate,
@@ -214,57 +208,6 @@ export default function DepositAccountRegisterPage() {
     }
   }
 
-  const searchedMemos = memoSearchApplied.trim()
-    ? detentionRows.filter((memo) => memo.caseNo.trim().toLowerCase() === memoSearchApplied.trim().toLowerCase())
-    : []
-
-  const onSearchMemoByCase = () => {
-    setMemoSearchApplied(memoSearchCaseNo.trim())
-  }
-
-  const hasLinkedDeposit = (memoId: string) => rows.some((r) => (r.detentionMemoId ?? "").trim() === memoId)
-
-  const addMemoToDeposit = async (memo: DetentionMemoApiRecord) => {
-    if (hasLinkedDeposit(memo.id)) {
-      toast({
-        title: "Already added",
-        description: "This detention memo is already linked in Deposit Account Register.",
-      })
-      return
-    }
-    setAddingMemoId(memo.id)
-    try {
-      await createDepositAccountEntry({
-        detentionMemoId: memo.id,
-        treasuryChallanNo: "",
-        depositType: "Detention",
-        caseSeizureRef: memo.caseNo || "",
-        firNo: "",
-        customsStation: memo.placeOfDetention || "",
-        amount: "",
-        depositDate: new Date().toISOString().slice(0, 10),
-        bankTreasuryName: "",
-        status: "Pending",
-        remarks:
-          `Detention deposit linked to memo ${memo.caseNo}` +
-          (memo.referenceNumber ? ` (ref ${memo.referenceNumber})` : ""),
-      })
-      toast({
-        title: "Added",
-        description: `Case ${memo.caseNo} was added to Deposit Account Register.`,
-      })
-      await reload()
-    } catch (e) {
-      toast({
-        title: "Add failed",
-        description: e instanceof Error ? e.message : "Could not add this memo to deposit register.",
-        variant: "destructive",
-      })
-    } finally {
-      setAddingMemoId(null)
-    }
-  }
-
   return (
     <ModulePageLayout
       title="Deposit Account Register"
@@ -289,76 +232,6 @@ export default function DepositAccountRegisterPage() {
             </Button>
           </CardHeader>
           <CardContent className="w-full min-w-0 space-y-3">
-            <div className="rounded-lg border bg-muted/20 p-3 sm:p-4">
-              <div className="grid gap-3">
-                <div>
-                  <p className="text-sm font-semibold">Add From Detention Memo (by Case Number)</p>
-                  <p className="text-xs text-muted-foreground">
-                    Enter the exact case number to find matching memo and add it in Deposit Account Register.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    value={memoSearchCaseNo}
-                    onChange={(e) => setMemoSearchCaseNo(e.target.value)}
-                    placeholder="e.g. DM-2026-557719"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault()
-                        onSearchMemoByCase()
-                      }
-                    }}
-                  />
-                  <Button type="button" onClick={onSearchMemoByCase} className="gap-2 sm:w-auto">
-                    <Search className="h-4 w-4" />
-                    Search Case
-                  </Button>
-                </div>
-
-                {memoSearchApplied && (
-                  <div className="rounded-md border bg-background p-2 sm:p-3">
-                    {searchedMemos.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        No detention memo found for exact case number: <strong>{memoSearchApplied}</strong>
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {searchedMemos.map((memo) => {
-                          const alreadyLinked = hasLinkedDeposit(memo.id)
-                          return (
-                            <div
-                              key={memo.id}
-                              className="flex flex-col gap-2 rounded-md border p-2 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium truncate">{memo.caseNo}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Station: {memo.placeOfDetention || "—"} | Ref:{" "}
-                                  {memo.referenceNumber || "—"}
-                                </p>
-                              </div>
-                              <Button
-                                type="button"
-                                size="sm"
-                                disabled={alreadyLinked || addingMemoId === memo.id}
-                                onClick={() => void addMemoToDeposit(memo)}
-                              >
-                                {alreadyLinked
-                                  ? "Already Added"
-                                  : addingMemoId === memo.id
-                                    ? "Adding…"
-                                    : "Add in Deposit Account"}
-                              </Button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
             {loadError && (
               <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {loadError}
@@ -387,6 +260,7 @@ export default function DepositAccountRegisterPage() {
                         <p className="truncate text-muted-foreground">Type: <span className="text-foreground">{row.depositType}</span></p>
                         <p className="truncate text-muted-foreground">Date: <span className="text-foreground">{row.depositDate || "—"}</span></p>
                         <p className="truncate text-muted-foreground">Case Ref: <span className="text-foreground">{row.caseSeizureRef || "—"}</span></p>
+                        <p className="truncate text-muted-foreground">FIR: <span className="text-foreground">{row.firNo || "—"}</span></p>
                         <p className="truncate text-muted-foreground">Station: <span className="text-foreground">{row.customsStation || "—"}</span></p>
                         <p className="truncate text-muted-foreground">Amount: <span className="text-foreground">{row.amount || "—"}</span></p>
                         <p className="col-span-2 truncate text-muted-foreground">Bank/Treasury: <span className="text-foreground">{row.bankTreasuryName || "—"}</span></p>
@@ -436,6 +310,7 @@ export default function DepositAccountRegisterPage() {
                           <TableHead>Treasury Challan No</TableHead>
                           <TableHead>Deposit Type</TableHead>
                           <TableHead>Case/Seizure Ref</TableHead>
+                          <TableHead>FIR No</TableHead>
                           <TableHead>Customs Station</TableHead>
                           <TableHead>Average Value</TableHead>
                           <TableHead>Deposit Date</TableHead>
@@ -450,6 +325,7 @@ export default function DepositAccountRegisterPage() {
                             <TableCell className="font-medium">{row.treasuryChallanNo || "—"}</TableCell>
                             <TableCell>{row.depositType}</TableCell>
                             <TableCell>{row.caseSeizureRef || "—"}</TableCell>
+                            <TableCell>{row.firNo || "—"}</TableCell>
                             <TableCell>{row.customsStation || "—"}</TableCell>
                             <TableCell>{row.amount || "—"}</TableCell>
                             <TableCell>{row.depositDate || "—"}</TableCell>
@@ -562,6 +438,10 @@ export default function DepositAccountRegisterPage() {
                 onChange={(e) => setForm((f) => ({ ...f, caseSeizureRef: e.target.value }))}
                 placeholder="e.g. case no from detention memo"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>FIR No</Label>
+              <Input value={form.firNo} onChange={(e) => setForm((f) => ({ ...f, firNo: e.target.value }))} placeholder="e.g. FIR-2024-0841" />
             </div>
             <div className="grid gap-2">
               <Label>Customs Station</Label>

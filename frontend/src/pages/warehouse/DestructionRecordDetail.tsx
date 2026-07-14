@@ -50,7 +50,7 @@ export default function DestructionRecordDetailPage() {
       <ModulePageLayout
         title="Destruction record not found"
         description="Missing record id."
-        breadcrumbs={[{ label: "WMS" }, { label: "Destruction", href: ROUTES.DESTRUCTION }]}
+        breadcrumbs={[{ label: "WMS" }, { label: "Warehouse" }, { label: "Destruction", href: ROUTES.DESTRUCTION }]}
       >
         <Button asChild variant="outline">
           <Link to={ROUTES.DESTRUCTION}>Back to destruction</Link>
@@ -66,6 +66,7 @@ export default function DestructionRecordDetailPage() {
         description="Loading…"
         breadcrumbs={[
           { label: "WMS" },
+          { label: "Warehouse" },
           { label: "Destruction", href: ROUTES.DESTRUCTION },
           { label: "Report" },
         ]}
@@ -86,6 +87,7 @@ export default function DestructionRecordDetailPage() {
         description="This session could not be loaded."
         breadcrumbs={[
           { label: "WMS" },
+          { label: "Warehouse" },
           { label: "Destruction", href: ROUTES.DESTRUCTION },
           { label: "Report" },
         ]}
@@ -108,6 +110,7 @@ export default function DestructionRecordDetailPage() {
       description="Detailed destruction report with items, recordings, inventory deductions, and fire/smoke audit log."
       breadcrumbs={[
         { label: "WMS" },
+        { label: "Warehouse" },
         { label: "Destruction", href: ROUTES.DESTRUCTION },
         { label: caseLabel },
       ]}

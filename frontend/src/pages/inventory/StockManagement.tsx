@@ -36,7 +36,6 @@ import {
   loadStockRows,
   type WmsStockRow,
 } from "@/lib/wms-stock-storage"
-import { apiStockToWmsRow, fetchWarehouseStock } from "@/lib/wms-flow-api"
 
 const STORAGE_KEY = STOCK_STORAGE_KEY
 
@@ -50,7 +49,11 @@ type StockRow = WmsStockRow & {
   custodianOfficerName: string
 }
 
-const defaultRows: StockRow[] = []
+const defaultRows: StockRow[] = [
+  { id: "1", qrCodeNumber: "QR-STK-2024-001", seizureCaseRef: "SZ-2024-001", pctCode: "8471", descriptionOfGoods: "Laptops, notebooks & parts", customsStation: "Kohat", godownWarehouse: "Bonded Godown A", quantity: "450", unitOfMeasure: "PCS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector M. Khan", status: "In Custody" },
+  { id: "2", qrCodeNumber: "QR-STK-2024-002", seizureCaseRef: "SZ-2024-002", pctCode: "6109", descriptionOfGoods: "T-shirts, knitted, cotton", customsStation: "Customs Peshawar", godownWarehouse: "Transit Shed B", quantity: "85", unitOfMeasure: "PCS", condition: "Detained", custody: "Transit Shed", custodianOfficerName: "ASI Ahmed Raza", status: "In Custody" },
+  { id: "3", qrCodeNumber: "QR-STK-2024-003", seizureCaseRef: "SZ-2024-003", pctCode: "3004", descriptionOfGoods: "Medicaments, mixed", customsStation: "Nowshera", godownWarehouse: "Bonded Godown C", quantity: "12", unitOfMeasure: "KGS", condition: "Seized", custody: "Customs Godown", custodianOfficerName: "Inspector S. Ali", status: "In Custody" },
+]
 
 function normalizeStockRow(row: WmsStockRow): StockRow {
   return {
@@ -64,17 +67,14 @@ function normalizeStockRow(row: WmsStockRow): StockRow {
 function loadRows(): StockRow[] {
   const stored = loadStockRows()
   if (stored.length > 0) return stored.map(normalizeStockRow)
-  return []
-}
-
-async function loadRowsFromApi(): Promise<StockRow[]> {
   try {
-    const apiRows = await fetchWarehouseStock()
-    if (apiRows.length > 0) return apiRows.map((r) => normalizeStockRow(apiStockToWmsRow(r)))
-  } catch {
-    // fallback
-  }
-  return loadRows()
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed.map((row: WmsStockRow) => normalizeStockRow(row))
+    }
+  } catch {}
+  return defaultRows
 }
 
 function saveRows(rows: StockRow[]) {
@@ -102,9 +102,7 @@ export default function StockManagementPage() {
   })
 
   useEffect(() => {
-    const refresh = () => {
-      void loadRowsFromApi().then(setRows)
-    }
+    const refresh = () => setRows(loadRows())
     refresh()
     window.addEventListener(WMS_STOCK_UPDATED_EVENT, refresh)
     window.addEventListener("storage", refresh)

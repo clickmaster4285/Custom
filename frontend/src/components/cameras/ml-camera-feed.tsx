@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Maximize2, Minimize2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,14 +17,12 @@ type DetectionBox = {
   confidence: number
   bbox: [number, number, number, number]
   alert?: boolean
-  track_id?: number | null
-  person_qr?: string | null
 }
 
 type MlCameraFeedProps = {
   camera: CameraRecord
   pollMl?: boolean
-  /** When true, show model bounding boxes (ML annotated stream or canvas overlay). */
+  /** Overlays are baked into the ML live stream; kept for call-site compatibility. */
   showOverlay?: boolean
   pollIntervalMs?: number
   className?: string
@@ -62,76 +60,9 @@ function StreamBrandMarks() {
   )
 }
 
-function boxColor(det: DetectionBox): string {
-  if (det.alert) return "#ef4444"
-  const label = (det.label || "").toLowerCase()
-  if (label === "unknown") return "#f97316"
-  return "#22c55e"
-}
-
-function formatBoxLabel(det: DetectionBox): string {
-  const parts = [det.label, `${Math.round(det.confidence * 100)}%`]
-  if (det.track_id != null) parts.push(`T${det.track_id}`)
-  if (det.person_qr) parts.push(det.person_qr)
-  return parts.join(" ")
-}
-
-function drawDetectionOverlay(
-  canvas: HTMLCanvasElement,
-  container: HTMLElement,
-  detections: DetectionBox[],
-  frameWidth: number,
-  frameHeight: number
-) {
-  const ctx = canvas.getContext("2d")
-  if (!ctx) return
-
-  const cw = container.clientWidth
-  const ch = container.clientHeight
-  if (cw <= 0 || ch <= 0) return
-
-  canvas.width = cw
-  canvas.height = ch
-  ctx.clearRect(0, 0, cw, ch)
-
-  if (!detections.length || frameWidth <= 0 || frameHeight <= 0) return
-
-  const scale = Math.min(cw / frameWidth, ch / frameHeight)
-  const dispW = frameWidth * scale
-  const dispH = frameHeight * scale
-  const offsetX = (cw - dispW) / 2
-  const offsetY = (ch - dispH) / 2
-  const sx = dispW / frameWidth
-  const sy = dispH / frameHeight
-
-  for (const det of detections) {
-    const [x1, y1, x2, y2] = det.bbox
-    const left = offsetX + x1 * sx
-    const top = offsetY + y1 * sy
-    const width = (x2 - x1) * sx
-    const height = (y2 - y1) * sy
-    const color = boxColor(det)
-
-    ctx.strokeStyle = color
-    ctx.lineWidth = 2
-    ctx.strokeRect(left, top, width, height)
-
-    const label = formatBoxLabel(det)
-    ctx.font = "12px system-ui, sans-serif"
-    const textW = ctx.measureText(label).width
-    const textH = 14
-    const textY = Math.max(textH + 2, top - 2)
-    ctx.fillStyle = "rgba(0,0,0,0.7)"
-    ctx.fillRect(left, textY - textH, textW + 6, textH + 4)
-    ctx.fillStyle = color
-    ctx.fillText(label, left + 3, textY)
-  }
-}
-
 export function MlCameraFeed({
   camera,
   pollMl = false,
-  showOverlay = true,
   pollIntervalMs = 2000,
   className = "",
   showBrandLogo = true,
@@ -144,26 +75,14 @@ export function MlCameraFeed({
   const [streamError, setStreamError] = useState<string | null>(null)
   const [streamRetry, setStreamRetry] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [overlayBoxes, setOverlayBoxes] = useState<DetectionBox[]>([])
-  const [frameSize, setFrameSize] = useState({ width: 0, height: 0 })
-
-  const containerRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
   const mlLiveSrc = getMlLiveMjpegUrl(camera)
-  const rawMjpegSrc = camera.is_rtsp ? getRawMjpegUrl(camera) : null
-  const useMlAnnotatedStream = showOverlay && !!mlLiveSrc
-  const useCanvasOverlay = showOverlay && !useMlAnnotatedStream && !!rawMjpegSrc
-  const streamSrc = useMlAnnotatedStream
-    ? mlLiveSrc
-    : rawMjpegSrc || mlLiveSrc
+  const rawMjpegSrc = !mlLiveSrc && camera.is_rtsp ? getRawMjpegUrl(camera) : null
+  const streamSrc = mlLiveSrc || rawMjpegSrc
 
   const exitFullscreen = useCallback(() => setIsFullscreen(false), [])
 
-  const shouldPoll = pollMl || useCanvasOverlay
-
   useEffect(() => {
-    if (!shouldPoll || !streamSrc) return
+    if (!pollMl || !mlLiveSrc) return
     let cancelled = false
 
     const run = async () => {
@@ -177,16 +96,8 @@ export function MlCameraFeed({
           confidence: d.confidence,
           bbox: d.bbox,
           alert: d.alert,
-          track_id: d.track_id,
-          person_qr: d.person_qr,
         }))
         setMlError(null)
-        if (useCanvasOverlay) {
-          setOverlayBoxes(next)
-          const fw = result.display_width || result.frame_width || 0
-          const fh = result.display_height || result.frame_height || 0
-          if (fw > 0 && fh > 0) setFrameSize({ width: fw, height: fh })
-        }
         onDetections?.(next)
       } catch (err) {
         if (!cancelled) {
@@ -203,37 +114,7 @@ export function MlCameraFeed({
       cancelled = true
       window.clearInterval(id)
     }
-  }, [
-    camera.id,
-    streamSrc,
-    shouldPoll,
-    useCanvasOverlay,
-    pollIntervalMs,
-    onDetections,
-    onMlError,
-    onScanStart,
-  ])
-
-  const paintOverlay = useCallback(() => {
-    if (!useCanvasOverlay) return
-    const canvas = canvasRef.current
-    const container = containerRef.current
-    if (!canvas || !container) return
-    drawDetectionOverlay(canvas, container, overlayBoxes, frameSize.width, frameSize.height)
-  }, [useCanvasOverlay, overlayBoxes, frameSize])
-
-  useEffect(() => {
-    paintOverlay()
-  }, [paintOverlay])
-
-  useEffect(() => {
-    if (!useCanvasOverlay) return
-    const container = containerRef.current
-    if (!container) return
-    const ro = new ResizeObserver(() => paintOverlay())
-    ro.observe(container)
-    return () => ro.disconnect()
-  }, [useCanvasOverlay, paintOverlay])
+  }, [camera.id, mlLiveSrc, pollMl, pollIntervalMs, onDetections, onMlError, onScanStart])
 
   useEffect(() => {
     if (!isFullscreen) return
@@ -257,7 +138,6 @@ export function MlCameraFeed({
       )}
     >
       <div
-        ref={containerRef}
         className={cn(
           "relative aspect-video w-full overflow-hidden bg-black",
           isFullscreen && "flex-1 aspect-auto min-h-0"
@@ -269,10 +149,7 @@ export function MlCameraFeed({
             src={streamSrc}
             alt={camera.name}
             className="h-full w-full object-contain"
-            onLoad={() => {
-              setStreamError(null)
-              paintOverlay()
-            }}
+            onLoad={() => setStreamError(null)}
             onError={() => {
               if (mlLiveSrc && streamRetry < 8) {
                 window.setTimeout(() => setStreamRetry((n) => n + 1), 3000)
@@ -291,20 +168,11 @@ export function MlCameraFeed({
           </div>
         )}
 
-        {useCanvasOverlay && (
-          <canvas
-            ref={canvasRef}
-            className="pointer-events-none absolute inset-0 z-[5] h-full w-full"
-            aria-hidden
-          />
-        )}
-
         <div className="absolute top-2 left-2 z-10 flex max-w-[70%] flex-wrap gap-1">
           <Badge variant="secondary" className="text-xs">
             {camera.name}
           </Badge>
-          {useMlAnnotatedStream && <Badge className="bg-[#3b82f6] text-xs">ML live</Badge>}
-          {useCanvasOverlay && <Badge className="bg-[#3b82f6] text-xs">ML overlay</Badge>}
+          {mlLiveSrc && <Badge className="bg-[#3b82f6] text-xs">ML live</Badge>}
           <Badge className="bg-[#3b82f6]/80 text-xs">{camera.purpose_label}</Badge>
         </div>
 

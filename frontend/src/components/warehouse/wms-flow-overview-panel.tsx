@@ -1,235 +1,289 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { Activity, Flame, Package, QrCode, Truck } from "lucide-react"
+import { Package, Warehouse } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { fetchWmsOverview, type WmsOverview } from "@/lib/wms-flow-api"
-import { getDestructionDetailPath } from "@/routes/config"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  fetchWarehouseStock,
+  fetchWmsOverview,
+  type WmsOverview,
+  type WmsStockApiRow,
+} from "@/lib/wms-flow-api"
+import { ROUTES } from "@/routes/config"
 
 type WmsFlowOverviewPanelProps = {
-  detentionMemoId: string
+  detentionMemoId?: string
   caseNo?: string
+  title?: string
+  description?: string
 }
 
-function eventLabel(type: string): string {
-  const map: Record<string, string> = {
-    memo_created: "Memo created",
-    deposited: "Deposited",
-    seized: "Seized → inventory",
-    released: "Released",
-    destructed: "Destructed",
-    stock_updated: "Stock updated",
+function formatWhen(value?: string) {
+  if (!value) return "—"
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
+}
+
+function overviewFromStock(
+  stock: WmsStockApiRow[],
+  detentionMemoId?: string,
+  caseNo?: string
+): WmsOverview {
+  const inCustody = stock.filter((s) => (s.status || "").toLowerCase() === "in custody")
+  const released = stock.filter((s) => (s.status || "").toLowerCase().includes("release"))
+  const destructed = stock.filter((s) => (s.status || "").toLowerCase().includes("destruct"))
+  const qty = (rows: WmsStockApiRow[]) =>
+    String(rows.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0))
+
+  return {
+    found: stock.length > 0,
+    memo: {
+      id: detentionMemoId || "",
+      caseNo: caseNo || stock[0]?.case_ref || "",
+    },
+    summary: {
+      totalGoodsLines: stock.length,
+      totalGoodsQuantity: qty(stock),
+      deposited: false,
+      depositCount: 0,
+      seized: stock.length > 0,
+      seizureCount: stock.length > 0 ? 1 : 0,
+      released: released.length > 0,
+      releaseCount: released.length,
+      inInventoryCount: inCustody.length,
+      inInventoryQuantity: qty(inCustody),
+      releasedQuantity: qty(released),
+      destructedCount: destructed.length,
+      destructedQuantity: qty(destructed),
+      destructionSessionCount: 0,
+    },
+    stockItems: stock.map((s) => ({
+      id: s.id,
+      qrCode: s.qr_code,
+      caseRef: s.case_ref,
+      description: s.description,
+      quantity: String(s.quantity),
+      unit: s.unit || "PCS",
+      status: s.status,
+      godownWarehouse: s.godown_warehouse,
+    })),
+    timeline: [],
   }
-  return map[type] || type
 }
 
-export function WmsFlowOverviewPanel({ detentionMemoId, caseNo }: WmsFlowOverviewPanelProps) {
-  const [overview, setOverview] = useState<WmsOverview | null>(null)
-  const [loading, setLoading] = useState(true)
+export function WmsFlowOverviewPanel({
+  detentionMemoId,
+  caseNo,
+  title = "Warehouse flow",
+  description = "Deposit, seizure, inventory, release, and destruction status for this detention.",
+}: WmsFlowOverviewPanelProps) {
+  const [data, setData] = useState<WmsOverview | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!detentionMemoId && !caseNo) {
+      setData({ found: false })
+      return
+    }
+
     let cancelled = false
-    setLoading(true)
+    setData(null)
     setError(null)
-    fetchWmsOverview({ detentionMemoId, caseNo })
-      .then((data) => {
-        if (!cancelled) setOverview(data)
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Could not load WMS flow.")
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+
+    ;(async () => {
+      try {
+        const overview = await fetchWmsOverview({
+          detentionMemoId: detentionMemoId || undefined,
+          caseNo: caseNo || undefined,
+        })
+        if (!cancelled) setData(overview)
+      } catch {
+        try {
+          const stock = await fetchWarehouseStock({
+            detentionMemoId: detentionMemoId || undefined,
+            caseRef: caseNo || undefined,
+          })
+          if (!cancelled) setData(overviewFromStock(stock, detentionMemoId, caseNo))
+        } catch (err) {
+          if (!cancelled) {
+            setData({ found: false })
+            setError(err instanceof Error ? err.message : "Could not load warehouse flow")
+          }
+        }
+      }
+    })()
+
     return () => {
       cancelled = true
     }
   }, [detentionMemoId, caseNo])
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">Loading warehouse lifecycle…</p>
-        </CardContent>
-      </Card>
-    )
-  }
+  if (!detentionMemoId && !caseNo) return null
 
-  if (error || !overview?.found) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">{error || "No lifecycle data yet."}</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const s = overview.summary!
+  const summary = data?.summary
+  const stockItems = data?.stockItems || []
+  const releases = data?.releases || []
+  const deposits = data?.deposits || []
+  const seizures = data?.seizures || []
+  const timeline = data?.timeline || []
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Activity className="h-4 w-4" />
-          Warehouse lifecycle (QR tracked)
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Warehouse className="h-4 w-4 text-muted-foreground" />
+          {title}
         </CardTitle>
-        <CardDescription>
-          Detention → deposit → seize → inventory → release / destruction — full audit trail.
-        </CardDescription>
+        <CardDescription>{description}</CardDescription>
+        {summary && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Badge variant="secondary">{summary.totalGoodsLines} goods line(s)</Badge>
+            {summary.deposited && <Badge variant="outline">{summary.depositCount} deposit(s)</Badge>}
+            {summary.seized && <Badge variant="outline">Seized</Badge>}
+            <Badge variant="outline">{summary.inInventoryCount} in custody</Badge>
+            {summary.released && <Badge variant="outline">{summary.releaseCount} release(s)</Badge>}
+            {summary.destructedCount > 0 && (
+              <Badge variant="destructive">{summary.destructedCount} destroyed</Badge>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-lg border p-3">
-            <p className="text-xs text-muted-foreground">Goods lines</p>
-            <p className="text-xl font-bold">{s.totalGoodsLines}</p>
-            <p className="text-xs text-muted-foreground">Qty: {s.totalGoodsQuantity}</p>
-          </div>
-          <div className="rounded-lg border p-3">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Package className="h-3 w-3" /> In inventory
-            </p>
-            <p className="text-xl font-bold">{s.inInventoryCount}</p>
-            <p className="text-xs text-muted-foreground">Qty: {s.inInventoryQuantity}</p>
-          </div>
-          <div className="rounded-lg border p-3">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Truck className="h-3 w-3" /> Released
-            </p>
-            <p className="text-xl font-bold">{s.releaseCount}</p>
-            <p className="text-xs text-muted-foreground">Qty: {s.releasedQuantity}</p>
-          </div>
-          <div className="rounded-lg border p-3">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Flame className="h-3 w-3" /> Destructed
-            </p>
-            <p className="text-xl font-bold">{s.destructedCount}</p>
-            <p className="text-xs text-muted-foreground">Qty: {s.destructedQuantity}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Badge variant={s.deposited ? "default" : "secondary"}>Deposited: {s.depositCount}</Badge>
-          <Badge variant={s.seized ? "default" : "secondary"}>Seized: {s.seizureCount}</Badge>
-          <Badge variant={s.released ? "default" : "secondary"}>Released: {s.releaseCount}</Badge>
-          <Badge variant={s.destructionSessionCount > 0 ? "destructive" : "secondary"}>
-            Destruction sessions: {s.destructionSessionCount}
-          </Badge>
-        </div>
-
-        {(overview.stockItems?.length ?? 0) > 0 && (
-          <div>
-            <p className="text-sm font-semibold mb-2 flex items-center gap-1">
-              <QrCode className="h-4 w-4" /> Inventory by QR
-            </p>
-            <div className="rounded-md border divide-y max-h-48 overflow-y-auto">
-              {overview.stockItems!.map((item) => (
-                <div key={item.id} className="p-2 text-xs flex justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-mono truncate">{item.qrCode || "—"}</p>
-                    <p className="truncate text-muted-foreground">{item.description}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p>{item.quantity} {item.unit}</p>
-                    <Badge variant="outline" className="text-[10px]">{item.status}</Badge>
-                  </div>
+        {data === null ? (
+          <p className="text-sm text-muted-foreground py-2">Loading warehouse flow…</p>
+        ) : error ? (
+          <p className="text-sm text-destructive py-2">{error}</p>
+        ) : !data.found && stockItems.length === 0 && deposits.length === 0 && seizures.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">
+            No warehouse activity recorded for this detention yet.{" "}
+            <Link to={ROUTES.DEPOSIT_ACCOUNT_REGISTER} className="underline underline-offset-2">
+              Open deposit register
+            </Link>
+            {" · "}
+            <Link to={ROUTES.RELEASE_INVENTORY} className="underline underline-offset-2">
+              Release inventory
+            </Link>
+          </p>
+        ) : (
+          <>
+            {summary && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="rounded-md border p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">In custody qty</p>
+                  <p className="text-sm font-semibold">{summary.inInventoryQuantity || "0"}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(overview.destructions?.length ?? 0) > 0 && (
-          <div>
-            <p className="text-sm font-semibold mb-2">Destruction records & video</p>
-            <div className="space-y-2">
-              {overview.destructions!.map((d) => (
-                <div key={d.id} className="rounded-md border p-2 text-xs">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-medium">{d.caseNo || d.id.slice(0, 8)}</span>
-                    <Badge variant="outline">{d.outcome || d.status}</Badge>
-                  </div>
-                  <p className="text-muted-foreground mt-1">
-                    {d.completedAt ? new Date(d.completedAt).toLocaleString() : "—"}
-                    {d.locationCode ? ` • ${d.locationCode}` : ""}
-                    {d.performedBy ? ` • ${d.performedBy}` : ""}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
-                      <Link to={getDestructionDetailPath(d.id)}>View report & videos</Link>
-                    </Button>
-                    {d.videoUrl && (
-                      <a href={d.videoUrl} target="_blank" rel="noreferrer" className="text-[#3b82f6] underline text-xs">
-                        Primary video
-                      </a>
-                    )}
-                  </div>
+                <div className="rounded-md border p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Released qty</p>
+                  <p className="text-sm font-semibold">{summary.releasedQuantity || "0"}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(overview.releases?.length ?? 0) > 0 && (
-          <div>
-            <p className="text-sm font-semibold mb-2">Release records</p>
-            <div className="rounded-md border divide-y max-h-48 overflow-y-auto">
-              {overview.releases!.map((r) => (
-                <div key={r.id} className="p-2 text-xs">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-mono">{r.qrCode || "—"}</span>
-                    <span className="text-muted-foreground">{new Date(r.releasedAt).toLocaleString()}</span>
-                  </div>
-                  <p>
-                    {r.quantityReleased} {r.unit} — on behalf of {r.releasedOnBehalfOf}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Deputy: {r.deputyName} • Collector: {r.collectorName}
-                  </p>
-                  {r.releaseDescription && <p className="mt-1">{r.releaseDescription}</p>}
+                <div className="rounded-md border p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Destroyed qty</p>
+                  <p className="text-sm font-semibold">{summary.destructedQuantity || "0"}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(overview.timeline?.length ?? 0) > 0 && (
-          <div>
-            <p className="text-sm font-semibold mb-2">Timeline</p>
-            <div className="rounded-md border divide-y max-h-56 overflow-y-auto">
-              {overview.timeline!.map((ev) => (
-                <div key={ev.id} className="p-2 text-xs">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-medium">{eventLabel(ev.event_type)}</span>
-                    <span className="text-muted-foreground">{new Date(ev.created_at).toLocaleString()}</span>
-                  </div>
-                  {ev.qr_code && <p className="font-mono text-muted-foreground">QR: {ev.qr_code}</p>}
-                  {ev.description && <p>{ev.description}</p>}
-                  {ev.quantity != null && (
-                    <p className="text-muted-foreground">
-                      Qty: {ev.quantity} {ev.unit || ""}
-                    </p>
-                  )}
-                  {ev.metadata && typeof ev.metadata === "object" && (
-                    <>
-                      {"releasedOnBehalfOf" in ev.metadata && ev.metadata.releasedOnBehalfOf ? (
-                        <p className="text-muted-foreground">On behalf of: {String(ev.metadata.releasedOnBehalfOf)}</p>
-                      ) : null}
-                      {"deputyName" in ev.metadata && ev.metadata.deputyName ? (
-                        <p className="text-muted-foreground">Deputy: {String(ev.metadata.deputyName)}</p>
-                      ) : null}
-                      {"collectorName" in ev.metadata && ev.metadata.collectorName ? (
-                        <p className="text-muted-foreground">Collector: {String(ev.metadata.collectorName)}</p>
-                      ) : null}
-                    </>
-                  )}
+                <div className="rounded-md border p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total lines</p>
+                  <p className="text-sm font-semibold">{summary.totalGoodsLines}</p>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
+
+            {stockItems.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                  <Package className="h-3.5 w-3.5" />
+                  Stock lines
+                </p>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>QR</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>Warehouse</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {stockItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="text-xs font-mono">{item.qrCode || "—"}</TableCell>
+                          <TableCell className="text-xs max-w-[220px] truncate">
+                            {item.description || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {item.quantity} {item.unit}
+                          </TableCell>
+                          <TableCell className="text-xs">{item.godownWarehouse || "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            <Badge variant="outline">{item.status || "—"}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            {(deposits.length > 0 || seizures.length > 0 || releases.length > 0) && (
+              <div className="grid gap-3 sm:grid-cols-3">
+                {deposits.length > 0 && (
+                  <div className="rounded-md border p-3 space-y-1">
+                    <p className="text-xs font-medium">Deposits</p>
+                    {deposits.slice(0, 4).map((d) => (
+                      <p key={d.id} className="text-xs text-muted-foreground truncate">
+                        {d.caseSeizureRef || d.id.slice(0, 8)} · {d.status}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {seizures.length > 0 && (
+                  <div className="rounded-md border p-3 space-y-1">
+                    <p className="text-xs font-medium">Seizures</p>
+                    {seizures.slice(0, 4).map((s) => (
+                      <p key={s.id} className="text-xs text-muted-foreground truncate">
+                        {s.caseNo} · {formatWhen(s.seizedAt)}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {releases.length > 0 && (
+                  <div className="rounded-md border p-3 space-y-1">
+                    <p className="text-xs font-medium">Releases</p>
+                    {releases.slice(0, 4).map((r) => (
+                      <p key={r.id} className="text-xs text-muted-foreground truncate">
+                        {r.qrCode || "—"} · {formatWhen(r.releasedAt)}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {timeline.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Lifecycle timeline</p>
+                <ul className="space-y-2">
+                  {timeline.slice(0, 8).map((ev) => (
+                    <li key={ev.id} className="text-xs border-l-2 border-border pl-3">
+                      <span className="font-medium">{ev.event_type}</span>
+                      {ev.description ? ` — ${ev.description}` : ""}
+                      <span className="block text-muted-foreground">{formatWhen(ev.created_at)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

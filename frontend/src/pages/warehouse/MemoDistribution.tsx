@@ -371,7 +371,7 @@ export default function MemoDistributionPage() {
     <ModulePageLayout
       title="Destruction"
       description="Select a detention and goods lines, choose one or more cameras, record evidence, and process destruction. Inventory is reduced for selected items. Smoke/fire detections alert super admin and warehouse staff at that location."
-      breadcrumbs={[{ label: "WMS" }, { label: "Destruction" }]}
+      breadcrumbs={[{ label: "WMS" }, { label: "Warehouse" }, { label: "Destruction" }]}
     >
       {activeAlerts.length > 0 && (
         <div className="mb-4 space-y-2">
@@ -424,6 +424,7 @@ export default function MemoDistributionPage() {
               {selectedMemo && (
                 <div className="rounded-md border p-3 text-sm space-y-2">
                   <p><span className="text-muted-foreground">Case:</span> {selectedMemo.caseNo || "—"}</p>
+                  <p><span className="text-muted-foreground">FIR:</span> {selectedMemo.firNumber || "—"}</p>
                   <p>
                     <span className="text-muted-foreground">Disposition:</span>{" "}
                     {selectedMemo.dispositionStatus || "—"}

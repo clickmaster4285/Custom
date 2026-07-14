@@ -81,7 +81,6 @@ export function DashboardLiveCameraGrid() {
                 key={cam.id}
                 camera={cam}
                 pollMl={showOverlays}
-                showOverlay={showOverlays}
                 pollIntervalMs={800}
                 showBrandLogo
                 showFullscreenButton
