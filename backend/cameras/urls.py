@@ -21,5 +21,7 @@ urlpatterns = [
     path("cameras/preview/mjpeg/", CameraPreviewMjpegView.as_view(), name="camera-preview-mjpeg"),
     path("cameras/persons/", PersonIdentityListView.as_view(), name="person-identity-list"),
     path("cameras/persons/<str:qr_code>/journey/", PersonJourneyView.as_view(), name="person-journey"),
+    path("person-journey/ingest/", PersonJourneyView.as_view(), name="person-journey-ingest"),
+    path("person-journey/", PersonJourneyView.as_view(), name="person-journey-root"),
     path("", include(router.urls)),
 ]
