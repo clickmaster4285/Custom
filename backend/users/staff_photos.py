@@ -46,6 +46,17 @@ def _unique_staff_path(original_name: str) -> str:
 
 
 def _save_uploaded_file(uploaded_file) -> str:
+    try:
+        from detentions.image_utils import compress_image
+
+        uploaded_file = compress_image(
+            uploaded_file,
+            max_width=1600,
+            max_height=1600,
+            quality=82,
+        )
+    except Exception as exc:
+        logger.warning("Staff photo compression skipped: %s", exc)
     path = _unique_staff_path(getattr(uploaded_file, "name", "photo.jpg"))
     saved = default_storage.save(path, uploaded_file)
     return _normalize_path(saved)

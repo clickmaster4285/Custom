@@ -1,4 +1,5 @@
 import type { UploadValue } from "@/components/hr/add-staff/step2-documents-upload"
+import { compressImageForUpload } from "@/lib/compress-image"
 import { staffMediaPathFromUrl } from "@/lib/staff-api"
 import { preloadHumanFaceModel, validateHumanFaceFile } from "@/lib/human-face-validation"
 
@@ -103,15 +104,23 @@ export async function ingestStaffPhotoFiles({
     staged.map(async (item) => {
       if (!item.file) return
       const result = await validateHumanFaceFile(item.file, { mode: "staff" })
-      setPhotos((prev) => {
-        const idx = prev.findIndex((p) => p.previewUrl === item.previewUrl)
-        if (idx === -1) return prev
-        if (!result.ok) {
+      if (!result.ok) {
+        setPhotos((prev) => {
+          const idx = prev.findIndex((p) => p.previewUrl === item.previewUrl)
+          if (idx === -1) return prev
           revokeBlobUrl(item.previewUrl)
           onValidationError(result.message)
           return prev.filter((_, i) => i !== idx)
-        }
-        return prev.map((p, i) => (i === idx ? { ...p, validating: false } : p))
+        })
+        return
+      }
+      const compressed = await compressImageForUpload(item.file)
+      setPhotos((prev) => {
+        const idx = prev.findIndex((p) => p.previewUrl === item.previewUrl)
+        if (idx === -1) return prev
+        return prev.map((p, i) =>
+          i === idx ? { ...p, file: compressed, validating: false } : p
+        )
       })
     })
   )

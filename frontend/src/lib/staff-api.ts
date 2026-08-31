@@ -3,6 +3,7 @@ import {
   getDispositionStaffById,
   isDispositionStaffId,
 } from "@/lib/disposition-staff";
+import { compressImageForUpload } from "@/lib/compress-image";
 
 /** Staff record as returned by the backend (list/detail). */
 export type StaffRecord = {
@@ -98,6 +99,9 @@ function useStaffRestApi(): boolean {
 }
 
 async function parseApiError(res: Response): Promise<string> {
+  if (res.status === 413) {
+    return "Photos are too large for the server upload limit. Try fewer or smaller images, or ask an admin to raise nginx client_max_body_size.";
+  }
   try {
     const j: unknown = await res.json();
     if (typeof j === "string") return j;
@@ -772,9 +776,22 @@ function buildStaffMultipartFormData(
   return fd;
 }
 
+async function compressStaffPayloadFiles(payload: CreateStaffPayload): Promise<CreateStaffPayload> {
+  const next = { ...payload }
+  if (Array.isArray(next.staff_photos)) {
+    next.staff_photos = await Promise.all(
+      next.staff_photos.map((file) => (file instanceof File ? compressImageForUpload(file) : file))
+    )
+  }
+  if (next.profile_image instanceof File) {
+    next.profile_image = await compressImageForUpload(next.profile_image)
+  }
+  return next
+}
+
 export async function createStaff(payload: CreateStaffPayload): Promise<StaffRecord> {
   if (useStaffRestApi()) {
-    const fd = buildStaffMultipartFormData(payload);
+    const fd = buildStaffMultipartFormData(await compressStaffPayloadFiles(payload));
     const res = await fetch(STAFF_ENDPOINT, {
       method: "POST",
       headers: getAuthHeadersFormData(),
@@ -828,7 +845,10 @@ export async function updateStaff(
     const hasPhotoKeep = Array.isArray(payload.staff_photos_keep) && payload.staff_photos_keep.length > 0;
     const hasNewPhotos = Array.isArray(payload.staff_photos) && payload.staff_photos.some((f) => f instanceof File);
     if (hasFile || hasPhotoKeep || hasNewPhotos) {
-      const fd = buildStaffMultipartFormData(payload as CreateStaffPayload, { omitReadonly: true });
+      const fd = buildStaffMultipartFormData(
+        await compressStaffPayloadFiles(payload as CreateStaffPayload),
+        { omitReadonly: true },
+      );
       const res = await fetch(`${STAFF_ENDPOINT}${id}/`, {
         method: "PATCH",
         headers: getAuthHeadersFormData(),
