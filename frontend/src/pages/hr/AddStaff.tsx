@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
-import { createStaff, type CreateStaffPayload } from "@/lib/staff-api"
+import { createStaff, mergeStaffIntoDirectory, type CreateStaffPayload, type StaffRecord } from "@/lib/staff-api"
 import { ROUTES } from "@/routes/config"
 import { StaffStepIndicator } from "@/components/hr/add-staff/staff-step-indicator"
 import { AddStaffStep1PersonalInfo } from "@/components/hr/add-staff/step1-personal-info"
@@ -10,6 +10,7 @@ import { AddStaffStep3LoginAccess } from "@/components/hr/add-staff/step3-login-
 import { Input } from "@/components/ui/input"
 import {
   ingestStaffPhotoFiles,
+  setPrimaryStaffPhoto,
   primaryStaffPhotoFile,
   newStaffPhotoFiles,
   existingStaffPhotoPaths,
@@ -292,6 +293,12 @@ export default function AddStaffPage() {
     e.target.value = ""
   }
 
+  const handleMainPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = Array.from(e.target.files ?? []).find((f) => f.type.startsWith("image/"))
+    if (file) await setPrimaryStaffPhoto(file, setStaffPhotos)
+    e.target.value = ""
+  }
+
   const handleRemovePhotoAt = (index: number) => {
     setStaffPhotos((prev) => {
       const item = prev[index]
@@ -377,13 +384,17 @@ export default function AddStaffPage() {
         payload.username = payload.login_username
       }
 
-      await createStaff(payload as CreateStaffPayload)
+      const created = await createStaff(payload as CreateStaffPayload)
       try {
         localStorage.removeItem(ADD_STAFF_DRAFT_KEY)
       } catch {
         // ignore
       }
-      void queryClient.invalidateQueries({ queryKey: ["staff"] })
+      queryClient.setQueryData(["staff", created.id], created)
+      queryClient.setQueryData(["staff", "directory"], (old: StaffRecord[] | undefined) =>
+        mergeStaffIntoDirectory(old, created),
+      )
+      await queryClient.invalidateQueries({ queryKey: ["staff"] })
       navigate(ROUTES.EMPLOYEES)
       return
     } catch (err) {
@@ -424,6 +435,13 @@ export default function AddStaffPage() {
                               className="hidden"
                               onChange={handleImageUpload}
                             />
+                            <Input
+                              id="main_profile_image"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleMainPhotoUpload}
+                            />
         {submitError && (
           <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md text-sm mb-6">
             {submitError}
@@ -443,6 +461,7 @@ export default function AddStaffPage() {
               onCaptureFromCamera={handleImageCapture}
               onCloseCamera={() => setCameraOpen(false)}
               onUploadPhotoClick={() => document.getElementById("profile_image")?.click()}
+              onSetMainPhotoClick={() => document.getElementById("main_profile_image")?.click()}
               onRemovePhoto={handleRemovePhotoAt}
               onCancel={() => navigate(ROUTES.EMPLOYEES)}
               onReset={resetAll}

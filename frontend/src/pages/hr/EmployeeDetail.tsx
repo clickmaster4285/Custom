@@ -5,8 +5,11 @@ import {
   fetchStaffById,
   downloadStaffDocument,
   deleteStaff,
+  updateStaff,
   isDispositionStaffId,
+  mergeStaffIntoDirectory,
   resolveStaffPhotoGallery,
+  staffMediaPathFromUrl,
   type StaffRecord,
 } from "@/lib/staff-api"
 import { API_BASE_URL } from "@/lib/api"
@@ -37,6 +40,7 @@ import {
   BarChart3,
   Pencil,
   Trash2,
+  Camera,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -219,6 +223,7 @@ export default function EmployeeDetailPage() {
   const { toast } = useToast()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [changingPhoto, setChangingPhoto] = useState(false)
   const staffId = id ? parseInt(id, 10) : NaN
 
   const { data: staff, isLoading, isError } = useQuery({
@@ -226,6 +231,36 @@ export default function EmployeeDetailPage() {
     queryFn: () => fetchStaffById(staffId),
     enabled: Number.isInteger(staffId),
   })
+
+  const handleChangeMainPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = Array.from(e.target.files ?? []).find((f) => f.type.startsWith("image/"))
+    e.target.value = ""
+    if (!file || !Number.isInteger(staffId) || !staff) return
+    setChangingPhoto(true)
+    try {
+      const keep = (staff.staff_photos ?? []).filter(Boolean).slice(0, 4)
+      const profilePath = staffMediaPathFromUrl(staff.profile_image || "")
+      const keepPaths = keep.length ? keep : profilePath ? [profilePath] : []
+      const updated = await updateStaff(staffId, {
+        staff_photos: [file],
+        staff_photos_keep: keepPaths,
+      })
+      queryClient.setQueryData(["staff", staffId], updated)
+      queryClient.setQueryData(["staff", "directory"], (old: StaffRecord[] | undefined) =>
+        mergeStaffIntoDirectory(old, updated),
+      )
+      toast({ title: "Profile image updated" })
+      await queryClient.invalidateQueries({ queryKey: ["staff"] })
+    } catch (err) {
+      toast({
+        title: "Could not update photo",
+        description: err instanceof Error ? err.message : "Upload failed",
+        variant: "destructive",
+      })
+    } finally {
+      setChangingPhoto(false)
+    }
+  }
 
   if (isLoading || !id) {
     return (
@@ -288,12 +323,36 @@ export default function EmployeeDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-3 min-w-0">
-            <StaffAvatar
-              profileImage={s.profile_image}
-              fullName={s.full_name}
-              className="h-40 w-40 shrink-0"
-              fallbackClassName="text-2xl bg-muted"
-            />
+            <div className="relative shrink-0">
+              <StaffAvatar
+                profileImage={s.staff_photo_urls?.[0] || s.profile_image}
+                fullName={s.full_name}
+                className="h-40 w-40"
+                fallbackClassName="text-2xl bg-muted"
+              />
+              {!isJsonOverlay && (
+                <>
+                  <input
+                    id="change-main-profile-image"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleChangeMainPhoto}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="absolute bottom-2 left-1/2 -translate-x-1/2 h-8 px-2 text-xs shadow"
+                    disabled={changingPhoto}
+                    onClick={() => document.getElementById("change-main-profile-image")?.click()}
+                  >
+                    <Camera className="h-3.5 w-3.5 mr-1" />
+                    {changingPhoto ? "Saving…" : s.profile_image ? "Change image" : "Set image"}
+                  </Button>
+                </>
+              )}
+            </div>
             <div className="min-w-0 text-center sm:text-left">
               <h1 className="text-[22px] font-bold tracking-tight text-foreground truncate">
                 {val(s.full_name)}

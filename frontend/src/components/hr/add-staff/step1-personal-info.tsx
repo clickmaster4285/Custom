@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import type { UploadValue } from "@/components/hr/add-staff/step2-documents-upload"
 import { CameraCapture } from "@/components/camera-capture"
+import { StaffAvatar } from "@/components/hr/staff-avatar"
 import { useFormik } from "formik"
 import * as Yup from "yup"
 import {
@@ -382,6 +383,7 @@ export function AddStaffStep1PersonalInfo({
   onCaptureFromCamera,
   onCloseCamera,
   onUploadPhotoClick,
+  onSetMainPhotoClick,
   onRemovePhoto,
   onCancel,
   onReset,
@@ -403,6 +405,7 @@ export function AddStaffStep1PersonalInfo({
   onCaptureFromCamera?: (file: File) => void
   onCloseCamera?: () => void
   onUploadPhotoClick: () => void
+  onSetMainPhotoClick: () => void
   onRemovePhoto: (index: number) => void
   onCancel: () => void
   onReset: () => void
@@ -471,14 +474,14 @@ export function AddStaffStep1PersonalInfo({
         { value: form.transferred_to, label: form.transferred_to } : null,
     },
     validationSchema: Yup.object({
-      personal_number: Yup.string().trim().required("Personal number is required"),
-      full_name: Yup.string().trim().required("Employee name is required"),
-      gender: Yup.string().trim().required("Gender is required"),
-      cnic: Yup.string().trim().required("CNIC is required"),
-      phone: Yup.string().trim().required("Mobile number is required"),
-      department: Yup.string().trim().required("Department is required"),
-      designation: Yup.string().trim().required("Designation is required"),
-      role: Yup.string().trim().required("Role is required"),
+      personal_number: Yup.string().trim(),
+      full_name: Yup.string().trim(),
+      gender: Yup.string().trim(),
+      cnic: Yup.string().trim(),
+      phone: Yup.string().trim(),
+      department: Yup.string().trim(),
+      designation: Yup.string().trim(),
+      role: Yup.string().trim(),
       date_of_birth: Yup.string().trim(),
       joining_date: Yup.string().trim(),
       address: Yup.string().trim(),
@@ -486,7 +489,7 @@ export function AddStaffStep1PersonalInfo({
       emergency_contact_relationship: Yup.string().trim(),
       emergency_contact_phone: Yup.string().trim(),
       emergency_contact_address: Yup.string().trim(),
-      qualification: Yup.array().min(1, "At least one qualification is required"),
+      qualification: Yup.array(),
       current_posting: Yup.object().nullable(),
       transferred_from: Yup.object().nullable(),
       transferred_to: Yup.object().nullable(),
@@ -495,15 +498,7 @@ export function AddStaffStep1PersonalInfo({
   })
 
   const handleSubmit = () => {
-    const keys = Object.keys(formik.initialValues) as (keyof typeof formik.initialValues)[]
-    const touched = keys.reduce((acc, k) => {
-      acc[k] = true
-      return acc
-    }, {} as Record<string, boolean>)
-    formik.setTouched(touched, true)
-    formik.validateForm().then((errs) => {
-      if (Object.keys(errs).length === 0 && onSaveAndContinue) onSaveAndContinue()
-    })
+    onSaveAndContinue?.()
   }
 
   // Handle qualification change
@@ -543,7 +538,7 @@ export function AddStaffStep1PersonalInfo({
   )
 
   // Helper function to render label with asterisk for required fields
-  const RequiredLabel = ({ children, required = true }: { children: React.ReactNode; required?: boolean }) => (
+  const RequiredLabel = ({ children, required = false }: { children: React.ReactNode; required?: boolean }) => (
     <Label className="text-base text-foreground">
       {children}
       {required && <span className="text-destructive ml-1">*</span>}
@@ -692,8 +687,27 @@ export function AddStaffStep1PersonalInfo({
 
         {/* Photograph Upload */}
         <div className="space-y-2">
-          <Label className="text-base font-medium text-foreground">Photograph Upload</Label>
+          <Label className="text-base font-medium text-foreground">Profile image (optional)</Label>
           <div className="flex flex-col sm:flex-row gap-4 items-start">
+            <div className="flex flex-col items-center gap-3 shrink-0">
+              <StaffAvatar
+                profileImage={filled[0]?.previewUrl}
+                fullName={form.full_name}
+                className="h-40 w-40"
+                fallbackClassName="text-2xl bg-muted"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onSetMainPhotoClick}
+              >
+                {filled[0] ? "Change image" : "Set profile image"}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center max-w-[10rem]">
+                This is the main photo shown on the employee list and details.
+              </p>
+            </div>
             {/* Capture/Upload Box */}
             <div
               className={cn(
@@ -716,10 +730,10 @@ export function AddStaffStep1PersonalInfo({
                     <Camera className="h-6 w-6 text-primary" />
                   </div>
                   <p className="text-sm font-medium text-muted-foreground text-center">
-                    Upload a Staff Photograph
+                    Upload a profile photograph
                   </p>
                   <p className="text-xs text-muted-foreground text-center">
-                    Image size: Max 2MB, Format JPG/PNG. Up to 5 images for recognition.
+                    Optional. JPG/PNG, up to 5 images. You can save without a photo.
                   </p>
                   <div className="flex flex-col gap-2 w-full">
                     <Button
@@ -746,16 +760,18 @@ export function AddStaffStep1PersonalInfo({
 
             {/* Captured Images Grid */}
             <div className="flex flex-col gap-3 min-w-0 flex-1">
-              <p className="text-sm font-medium text-muted-foreground">Captured images</p>
+              <p className="text-sm font-medium text-muted-foreground">Additional photos</p>
               <div className="overflow-x-auto overflow-y-hidden pb-2">
                 <div className="grid grid-cols-5 gap-3 min-w-[calc(12rem*5+0.75rem*4)] w-max">
-                  {filled.map((img, idx) => (
-                    <div key={idx} className="relative h-[14.5rem] w-48 shrink-0">
+                  {filled.slice(1).map((img, idx) => {
+                    const photoIndex = idx + 1
+                    return (
+                    <div key={photoIndex} className="relative h-[14.5rem] w-48 shrink-0">
                       {img.previewUrl ? (
                         <>
                           <img
                             src={img.previewUrl}
-                            alt={`Staff ${idx + 1}`}
+                            alt={`Staff ${photoIndex + 1}`}
                             className="h-full w-full rounded-md border border-border object-contain bg-muted"
                             decoding="async"
                           />
@@ -767,7 +783,7 @@ export function AddStaffStep1PersonalInfo({
                           )}
                           <button
                             type="button"
-                            onClick={() => onRemovePhoto(idx)}
+                            onClick={() => onRemovePhoto(photoIndex)}
                             className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow"
                             aria-label="Remove photo"
                           >
@@ -776,11 +792,12 @@ export function AddStaffStep1PersonalInfo({
                         </>
                       ) : (
                         <div className="h-full w-full rounded-md border-2 border-dashed border-muted-foreground/40 bg-white flex items-center justify-center">
-                          <span className="text-sm text-muted-foreground">{idx + 1}</span>
+                          <span className="text-sm text-muted-foreground">{photoIndex + 1}</span>
                         </div>
                       )}
                     </div>
-                  ))}
+                    )
+                  })}
                   
                   {Array.from({ length: emptySlots }).map((_, i) => {
                     const slotNumber = filled.length + i + 1

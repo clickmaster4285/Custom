@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
+import uuid
 from .models import (
     User,
     Staff,
@@ -221,15 +222,26 @@ _STAFF_FACE_PRIVATE_FIELDS = (
 def staff_photo_urls_for(staff, request) -> list[str]:
     from django.conf import settings
 
-    from .staff_photos import staff_photo_paths
+    from .staff_photos import existing_staff_photo_paths
 
     urls: list[str] = []
-    for path in staff_photo_paths(staff):
+    for path in existing_staff_photo_paths(staff):
+        media_path = settings.MEDIA_URL + path
         if request is not None:
-            urls.append(request.build_absolute_uri(settings.MEDIA_URL + path))
+            urls.append(request.build_absolute_uri(media_path))
         else:
-            urls.append(settings.MEDIA_URL + path)
+            urls.append(media_path)
     return urls
+
+
+def apply_staff_photo_representation(data: dict, instance, request) -> dict:
+    urls = staff_photo_urls_for(instance, request)
+    data["staff_photo_urls"] = urls
+    if urls:
+        data["profile_image"] = urls[0]
+    else:
+        data["profile_image"] = None
+    return data
 
 
 # -----------------------------
@@ -266,7 +278,7 @@ class StaffSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data["staff_photo_urls"] = staff_photo_urls_for(instance, self.context.get("request"))
+        data = apply_staff_photo_representation(data, instance, self.context.get("request"))
         for key in _STAFF_FACE_PRIVATE_FIELDS:
             data.pop(key, None)
         return data
@@ -319,19 +331,19 @@ class StaffCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at"]
         extra_kwargs = {
             "user": {"read_only": True},
-            "full_name": {"required": False},
-            "cnic": {"required": False},
-            "address": {"required": False},
-            "emergency_contact": {"required": False},
+            "full_name": {"required": False, "allow_blank": True},
+            "cnic": {"required": False, "allow_blank": True},
+            "address": {"required": False, "allow_blank": True, "allow_null": True},
+            "emergency_contact": {"required": False, "allow_blank": True, "allow_null": True},
             "joining_date": {"required": False},
-            "department": {"required": False},
-            "designation": {"required": False},
+            "department": {"required": False, "allow_blank": True},
+            "designation": {"required": False, "allow_blank": True},
         }
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["national_id"] = getattr(instance, "national_id", None) or instance.cnic
-        data["staff_photo_urls"] = staff_photo_urls_for(instance, self.context.get("request"))
+        data = apply_staff_photo_representation(data, instance, self.context.get("request"))
         for key in ("first_name", "last_name", "street_address", "emergency_contact_phone", "emergency_contact_name", "date_of_joining"):
             data.pop(key, None)
         for key in _STAFF_FACE_PRIVATE_FIELDS:
@@ -345,24 +357,16 @@ class StaffCreateSerializer(serializers.ModelSerializer):
         if not full_name:
             first = (initial.get("first_name") or data.get("first_name") or "").strip()
             last = (initial.get("last_name") or data.get("last_name") or "").strip()
-            full_name = f"{first} {last}".strip() or initial.get("full_name")
-        if not full_name:
-            raise serializers.ValidationError(
-                {"first_name": "Either full_name or first_name and last_name are required."}
-            )
-        data["full_name"] = full_name[:150]
+            full_name = f"{first} {last}".strip() or initial.get("full_name") or ""
+        data["full_name"] = str(full_name)[:150]
         data["first_name"] = (initial.get("first_name") or data.get("first_name") or "").strip()[:80] or None
         data["last_name"] = (initial.get("last_name") or data.get("last_name") or "").strip()[:80] or None
 
         address = data.get("address") or initial.get("street_address")
         if not address:
             parts = [initial.get("city"), initial.get("state"), initial.get("country"), initial.get("postal_code")]
-            address = ", ".join(str(p).strip() for p in parts if p) or initial.get("address")
-        if not address:
-            raise serializers.ValidationError(
-                {"street_address": "Either address or street_address (or city/state/country) is required."}
-            )
-        data["address"] = address
+            address = ", ".join(str(p).strip() for p in parts if p) or initial.get("address") or ""
+        data["address"] = address or None
 
         ec = (
             data.get("emergency_contact")
@@ -370,20 +374,21 @@ class StaffCreateSerializer(serializers.ModelSerializer):
             or initial.get("emergency_contact_name") or data.get("emergency_contact_name")
             or initial.get("emergency_contact")
         )
-        if not ec:
-            raise serializers.ValidationError(
-                {"emergency_contact_phone": "Either emergency_contact or emergency_contact_phone/emergency_contact_name is required."}
-            )
-        data["emergency_contact"] = str(ec)[:100]
+        data["emergency_contact"] = str(ec)[:100] if ec else None
 
         national_id_val = initial.get("national_id") or data.get("national_id") or data.get("cnic")
-        if not national_id_val:
-            raise serializers.ValidationError({"national_id": "National ID / CNIC is required."})
-        cnic_clean = "".join(c for c in str(national_id_val) if c.isdigit())[:15]
-        data["cnic"] = cnic_clean or str(national_id_val)[:15]
-        if Staff.objects.filter(cnic=data["cnic"]).exists():
-            raise serializers.ValidationError({"national_id": "Staff with this National ID already exists."})
-        data["national_id"] = str(national_id_val)[:30]
+        if national_id_val:
+            cnic_clean = "".join(c for c in str(national_id_val) if c.isdigit())[:15]
+            data["cnic"] = cnic_clean or str(national_id_val)[:15]
+            data["national_id"] = str(national_id_val)[:30]
+            if Staff.objects.filter(cnic=data["cnic"]).exists():
+                raise serializers.ValidationError({"national_id": "Staff with this National ID already exists."})
+        else:
+            placeholder = uuid.uuid4().hex[:15]
+            while Staff.objects.filter(cnic=placeholder).exists():
+                placeholder = uuid.uuid4().hex[:15]
+            data["cnic"] = placeholder
+            data["national_id"] = None
 
         doj = initial.get("date_of_joining") or data.get("date_of_joining")
         if doj:
@@ -392,9 +397,9 @@ class StaffCreateSerializer(serializers.ModelSerializer):
             data["joining_date"] = timezone.now().date()
 
         if not data.get("department"):
-            raise serializers.ValidationError({"department": "Department is required."})
+            data["department"] = ""
         if not data.get("designation"):
-            raise serializers.ValidationError({"designation": "Designation is required."})
+            data["designation"] = ""
 
         data.setdefault("record_source", Staff.RECORD_SOURCE_DATABASE)
 
@@ -424,7 +429,7 @@ class StaffUpdateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data["staff_photo_urls"] = staff_photo_urls_for(instance, self.context.get("request"))
+        data = apply_staff_photo_representation(data, instance, self.context.get("request"))
         for key in _STAFF_FACE_PRIVATE_FIELDS:
             data.pop(key, None)
         return data
@@ -479,6 +484,10 @@ class StaffListSerializer(serializers.ModelSerializer):
 
     def get_staff_photo_urls(self, obj):
         return staff_photo_urls_for(obj, self.context.get("request"))
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        return apply_staff_photo_representation(data, instance, self.context.get("request"))
 
     def get_face_enrolled(self, obj):
         embeddings = getattr(obj, "face_embeddings", None)

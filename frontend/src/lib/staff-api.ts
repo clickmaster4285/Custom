@@ -121,11 +121,22 @@ async function parseApiError(res: Response): Promise<string> {
   }
 }
 
+function isLegacyMlPhotoUrl(path: string): boolean {
+  const n = path.replace(/\\/g, "/").toLowerCase();
+  return (
+    n.includes("/dataset/") ||
+    n.includes("/recognition/") ||
+    n.startsWith("dataset/") ||
+    n.startsWith("recognition/")
+  );
+}
+
 /** True when profile_image is a user-uploaded or API path (not a placeholder URL). */
 export function hasStaffProfileImage(profileImage: string | null | undefined): boolean {
   const p = (profileImage ?? "").trim();
   if (!p) return false;
   if (p.includes("pravatar.cc")) return false;
+  if (isLegacyMlPhotoUrl(p)) return false;
   return true;
 }
 
@@ -135,8 +146,7 @@ export function resolveStaffProfileImageUrl(
 ): string | undefined {
   if (!hasStaffProfileImage(profileImage)) return undefined;
   const p = profileImage!.trim();
-  if (p.startsWith("data:")) return p;
-  if (p.startsWith("http")) return p;
+  if (p.startsWith("data:") || p.startsWith("blob:") || p.startsWith("http")) return p;
   return `${API_BASE_URL}${p.startsWith("/") ? "" : "/"}${p}`;
 }
 
@@ -146,7 +156,9 @@ export function resolveStaffPhotoGallery(staff: {
   staff_photos?: string[] | null;
   profile_image?: string | null;
 }): string[] {
-  const fromUrls = (staff.staff_photo_urls ?? []).filter(Boolean) as string[];
+  const fromUrls = (staff.staff_photo_urls ?? []).filter(
+    (p): p is string => Boolean(p) && !isLegacyMlPhotoUrl(p)
+  );
   if (fromUrls.length) return fromUrls;
   const fromPaths = (staff.staff_photos ?? [])
     .map((p) => resolveStaffProfileImageUrl(p))
@@ -209,6 +221,19 @@ export function normalizeApiStaff(row: Record<string, unknown>): StaffRecord {
     father_name: (row.father_name as string) ?? base.father_name ?? null,
     personal_number: (row.personal_number as string) ?? base.personal_number ?? null,
   };
+}
+
+/** Patch a staff row into the employees directory cache so photos show without a full reload. */
+export function mergeStaffIntoDirectory(
+  directory: StaffRecord[] | undefined,
+  staff: StaffRecord,
+): StaffRecord[] {
+  if (!Array.isArray(directory)) return [staff];
+  const idx = directory.findIndex((row) => row.id === staff.id);
+  if (idx === -1) return [staff, ...directory];
+  const next = directory.slice();
+  next[idx] = { ...directory[idx], ...staff };
+  return next;
 }
 
 // Local-only storage key (used when backend is not connected).

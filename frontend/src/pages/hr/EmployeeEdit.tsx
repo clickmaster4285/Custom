@@ -7,6 +7,7 @@ import {
   isDispositionStaffId,
   resolveStaffMediaUrl,
   resolveStaffPhotoGallery,
+  mergeStaffIntoDirectory,
   updateStaff,
   type CreateStaffPayload,
   type StaffRecord,
@@ -19,6 +20,7 @@ import { AddStaffStep3LoginAccess } from "@/components/hr/add-staff/step3-login-
 import { Input } from "@/components/ui/input"
 import {
   ingestStaffPhotoFiles,
+  setPrimaryStaffPhoto,
   primaryStaffPhotoFile,
   newStaffPhotoFiles,
   existingStaffPhotoPaths,
@@ -183,6 +185,12 @@ export default function EmployeeEditPage() {
     e.target.value = ""
   }
 
+  const handleMainPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = Array.from(e.target.files ?? []).find((f) => f.type.startsWith("image/"))
+    if (file) await setPrimaryStaffPhoto(file, setStaffPhotos)
+    e.target.value = ""
+  }
+
   const handleRemovePhotoAt = (index: number) => {
     setStaffPhotos((prev) => {
       const item = prev[index]
@@ -241,10 +249,13 @@ export default function EmployeeEditPage() {
         additional_document: additionalDocument.file ?? undefined,
       }
 
-      await updateStaff(staffId, payload)
+      const updated = await updateStaff(staffId, payload)
+      queryClient.setQueryData(["staff", staffId], updated)
+      queryClient.setQueryData(["staff", "directory"], (old: StaffRecord[] | undefined) =>
+        mergeStaffIntoDirectory(old, updated),
+      )
       toast({ title: "Employee updated", description: "Changes have been saved." })
-      void queryClient.invalidateQueries({ queryKey: ["staff", staffId] })
-      void queryClient.invalidateQueries({ queryKey: ["staff"] })
+      await queryClient.invalidateQueries({ queryKey: ["staff"] })
       navigate(`/employees/${staffId}`)
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Failed to update employee")
@@ -326,6 +337,13 @@ export default function EmployeeEditPage() {
           className="hidden"
           onChange={handleImageUpload}
         />
+        <Input
+          id="main_profile_image"
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleMainPhotoUpload}
+        />
         {submitError && (
           <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md text-sm mb-6">
             {submitError}
@@ -345,6 +363,7 @@ export default function EmployeeEditPage() {
               onCaptureFromCamera={handleImageCapture}
               onCloseCamera={() => setCameraOpen(false)}
               onUploadPhotoClick={() => document.getElementById("profile_image")?.click()}
+              onSetMainPhotoClick={() => document.getElementById("main_profile_image")?.click()}
               onRemovePhoto={handleRemovePhotoAt}
               onCancel={() => navigate(`/employees/${s.id}`)}
               onReset={resetFromStaff}

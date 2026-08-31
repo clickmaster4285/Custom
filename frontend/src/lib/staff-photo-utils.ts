@@ -1,7 +1,6 @@
 import type { UploadValue } from "@/components/hr/add-staff/step2-documents-upload"
 import { compressImageForUpload } from "@/lib/compress-image"
 import { staffMediaPathFromUrl } from "@/lib/staff-api"
-import { preloadHumanFaceModel, validateHumanFaceFile } from "@/lib/human-face-validation"
 
 /** First newly uploaded file — used as profile_image on save. */
 export function primaryStaffPhotoFile(photos: UploadValue[]): File | undefined {
@@ -11,6 +10,19 @@ export function primaryStaffPhotoFile(photos: UploadValue[]): File | undefined {
 
 export function newStaffPhotoFiles(photos: UploadValue[]): File[] {
   return photos.map((p) => p.file).filter((f): f is File => f instanceof File)
+}
+
+/** Replace the first photo (main profile image), keeping extra photos. */
+export async function setPrimaryStaffPhoto(
+  file: File,
+  setPhotos: (update: (prev: UploadValue[]) => UploadValue[]) => void
+): Promise<void> {
+  const compressed = await compressImageForUpload(file)
+  const previewUrl = URL.createObjectURL(compressed)
+  setPhotos((prev) => {
+    if (prev[0]?.previewUrl?.startsWith("blob:")) revokeBlobUrl(prev[0].previewUrl)
+    return [{ file: compressed, previewUrl, validating: false }, ...prev.slice(1)].slice(0, 5)
+  })
 }
 
 /** Server-stored photo paths to retain on update (existing previews only). */
@@ -78,19 +90,17 @@ type StaffPhotoUploadOptions = {
   currentCount: number
   max?: number
   setPhotos: (update: (prev: UploadValue[]) => UploadValue[]) => void
-  onValidationError: (message: string) => void
+  onValidationError?: (message: string) => void
 }
 
 /**
- * Add staff photos with instant preview, then validate faces in the background.
- * Invalid photos are removed after the check completes.
+ * Add staff photos with instant preview. Face check is optional — any image can be kept.
  */
 export async function ingestStaffPhotoFiles({
   files,
   currentCount,
   max = 5,
   setPhotos,
-  onValidationError,
 }: StaffPhotoUploadOptions): Promise<void> {
   const remaining = Math.max(0, max - currentCount)
   const batch = files.slice(0, remaining)
@@ -98,22 +108,10 @@ export async function ingestStaffPhotoFiles({
 
   const staged = createStaffPhotoPreviews(batch)
   setPhotos((prev) => mergeStaffPhotos(prev, staged))
-  preloadHumanFaceModel()
 
   await Promise.all(
     staged.map(async (item) => {
       if (!item.file) return
-      const result = await validateHumanFaceFile(item.file, { mode: "staff" })
-      if (!result.ok) {
-        setPhotos((prev) => {
-          const idx = prev.findIndex((p) => p.previewUrl === item.previewUrl)
-          if (idx === -1) return prev
-          revokeBlobUrl(item.previewUrl)
-          onValidationError(result.message)
-          return prev.filter((_, i) => i !== idx)
-        })
-        return
-      }
       const compressed = await compressImageForUpload(item.file)
       setPhotos((prev) => {
         const idx = prev.findIndex((p) => p.previewUrl === item.previewUrl)

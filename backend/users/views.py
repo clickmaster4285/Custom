@@ -223,18 +223,46 @@ class StaffViewSet(viewsets.ModelViewSet):
             data.pop("staff_photos", None)
         except TypeError:
             pass
+        has_multi = False
+        if hasattr(request, "FILES"):
+            has_multi = bool(
+                request.FILES.getlist("staff_photo_files") or request.FILES.getlist("staff_photos")
+            )
+        if has_multi:
+            try:
+                data.pop("profile_image", None)
+            except (TypeError, KeyError):
+                pass
+            try:
+                request.FILES.pop("profile_image", None)
+            except (TypeError, KeyError, AttributeError):
+                pass
+
+    def _serialized_staff(self, instance):
+        instance.refresh_from_db()
+        return StaffSerializer(instance, context=self.get_serializer_context()).data
 
     def create(self, request, *args, **kwargs):
         self._strip_multipart_photo_fields(request)
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        data = self._serialized_staff(serializer.instance)
+        headers = self.get_success_headers(data)
+        return Response(data, status=status.HTTP_201_CREATED, headers=headers)
 
     def update(self, request, *args, **kwargs):
         self._strip_multipart_photo_fields(request)
-        return super().update(request, *args, **kwargs)
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(self._serialized_staff(serializer.instance))
 
     def partial_update(self, request, *args, **kwargs):
-        self._strip_multipart_photo_fields(request)
-        return super().partial_update(request, *args, **kwargs)
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         """Create staff member without user account"""

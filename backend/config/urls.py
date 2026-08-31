@@ -7,7 +7,9 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
+
+from users.legacy_media import staff_legacy_media
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -19,6 +21,10 @@ urlpatterns = [
     path("api/", include("cameras.urls")),
     path("api/", include("warehouse.urls")),
     path("api/", include("ml.urls")),
+    re_path(
+        r"^media/(?P<leftover>(?:dataset|recognition)/.+)$",
+        staff_legacy_media,
+    ),
 ]
 
 # Serve uploaded media files in development (e.g. /media/staff_docs/CRM.docx)

@@ -18,6 +18,7 @@ import {
   fetchEmployeesDirectory,
   deleteStaff,
   isDispositionStaffId,
+  resolveStaffProfileImageUrl,
   type StaffRecord,
 } from "@/lib/staff-api"
 import { StaffAvatar } from "@/components/hr/staff-avatar"
@@ -239,6 +240,7 @@ export default function EmployeesPage() {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-12 text-center">S.No.</TableHead>
+                    <TableHead className="w-[88px]">Photo</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Personal No.</TableHead>
                     <TableHead>Employee Name</TableHead>
@@ -256,7 +258,7 @@ export default function EmployeesPage() {
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={14} className="text-center text-muted-foreground py-8">
                         No staff found. Click "Add Staff" to create a new record.
                       </TableCell>
                     </TableRow>
@@ -265,6 +267,9 @@ export default function EmployeesPage() {
                       const isDisposition = row.record_source === "disposition"
                       const isJsonOverlay = isDispositionStaffId(row.id)
                       const rowNumber = (page - 1) * pageSize + index + 1
+                      const mainPhoto =
+                        row.staff_photo_urls?.[0] ||
+                        resolveStaffProfileImageUrl(row.profile_image)
                       return (
                       <TableRow 
                         key={row.id} 
@@ -274,6 +279,23 @@ export default function EmployeesPage() {
                         <TableCell className="text-center font-medium">
                           {isDisposition ? row.personal_number : rowNumber}
                         </TableCell>
+                        <TableCell className="py-2">
+                          {mainPhoto ? (
+                            <img
+                              key={mainPhoto}
+                              src={mainPhoto}
+                              alt={row.full_name || "Employee"}
+                              className="h-16 w-14 rounded-md border border-border object-cover bg-muted"
+                            />
+                          ) : (
+                            <StaffAvatar
+                              profileImage={null}
+                              fullName={row.full_name}
+                              className="h-16 w-14 rounded-md"
+                              fallbackClassName="text-sm rounded-md"
+                            />
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={isDisposition ? "secondary" : "default"} className="text-[10px] whitespace-nowrap">
                             {isDisposition ? "Disposition" : "Database"}
@@ -281,15 +303,7 @@ export default function EmployeesPage() {
                         </TableCell>
                         <TableCell>{row.personal_number || row.user || row.employee_id || "—"}</TableCell>
                         <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                             <StaffAvatar
-                                profileImage={row.profile_image}
-                                fullName={row.full_name}
-                                className="h-6 w-6"
-                                fallbackClassName="text-[10px]"
-                              />
-                              <span className="truncate max-w-[150px]">{row.full_name || row.user}</span>
-                          </div>
+                          <span className="truncate max-w-[180px] block">{row.full_name || row.user}</span>
                         </TableCell>
                         <TableCell className="max-w-[140px] truncate">{row.father_name || "—"}</TableCell>
                         <TableCell className="max-w-[150px] truncate">{row.designation || "—"}</TableCell>
