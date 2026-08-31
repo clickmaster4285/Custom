@@ -1,6 +1,5 @@
 import { API_BASE_URL, getAuthHeaders, getAuthHeadersFormData, getStoredToken } from "@/lib/api";
 import {
-  getDispositionStaff,
   getDispositionStaffById,
   isDispositionStaffId,
 } from "@/lib/disposition-staff";
@@ -513,14 +512,13 @@ export async function fetchStaff(): Promise<StaffRecord[]> {
   return storedItems.map(localToStaffRecord);
 }
 
-/** Database/local staff plus Peshawar disposition list (677 records). `fetchStaff` is unchanged. */
+/** Staff directory from the API (includes seeded disposition employees). `fetchStaff` is unchanged. */
 export async function fetchEmployeesDirectory(): Promise<StaffRecord[]> {
   const apiStaff = await fetchStaff();
-  const marked = apiStaff.map((s) => ({
+  return apiStaff.map((s) => ({
     ...s,
     record_source: s.record_source ?? ("database" as const),
   }));
-  return [...marked, ...getDispositionStaff()];
 }
 
 export { isDispositionStaffId } from "@/lib/disposition-staff";

@@ -250,6 +250,7 @@ export default function EmployeeDetailPage() {
 
   const s = staff as StaffRecord
   const isDisposition = s.record_source === "disposition" || isDispositionStaffId(s.id)
+  const isJsonOverlay = isDispositionStaffId(s.id)
   const created = s.created_at ? new Date(s.created_at).toLocaleString() : "—"
 
   return (
@@ -311,8 +312,8 @@ export default function EmployeeDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {isDisposition && <Badge variant="secondary">Disposition list</Badge>}
-          {!isDisposition && s.user != null && <Badge variant="default">Linked account</Badge>}
-          {!isDisposition && (
+          {!isJsonOverlay && s.user != null && <Badge variant="default">Linked account</Badge>}
+          {!isJsonOverlay && (
             <Button variant="outline" size="sm" asChild>
               <Link to={`/employees/${s.id}/edit`}>
                 <Pencil className="h-4 w-4 mr-2" />
@@ -320,7 +321,7 @@ export default function EmployeeDetailPage() {
               </Link>
             </Button>
           )}
-          {!isDisposition && (
+          {!isJsonOverlay && (
             <Button
               variant="outline"
               size="sm"
@@ -482,7 +483,7 @@ export default function EmployeeDetailPage() {
           />
         </DetailSection>
 
-        {!isDisposition && (
+        {!isJsonOverlay && (
         <DetailSection title="Documents / compliance" icon={FileText}>
           <div className="space-y-6">
             <DocumentPreviewItem staffId={s.id} field="resume_file" label="Resume / CV" filePath={s.resume_file} />

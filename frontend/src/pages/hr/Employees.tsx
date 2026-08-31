@@ -263,6 +263,7 @@ export default function EmployeesPage() {
                   ) : (
                     pagedStaff.map((row, index) => {
                       const isDisposition = row.record_source === "disposition"
+                      const isJsonOverlay = isDispositionStaffId(row.id)
                       const rowNumber = (page - 1) * pageSize + index + 1
                       return (
                       <TableRow 
@@ -311,7 +312,7 @@ export default function EmployeesPage() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {!isDisposition && (
+                            {!isJsonOverlay && (
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
@@ -324,7 +325,7 @@ export default function EmployeesPage() {
                                 <Edit className="h-4 w-4" />
                               </Button>
                             )}
-                            {!isDisposition && (
+                            {!isJsonOverlay && (
                               <Button 
                                 variant="ghost" 
                                 size="icon" 

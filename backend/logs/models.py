@@ -16,6 +16,7 @@ class UserActivityLog(models.Model):
     os = models.CharField(max_length=50, null=True, blank=True)
     browser = models.CharField(max_length=50, null=True, blank=True)
     action = models.CharField(max_length=255)
+    source = models.CharField(max_length=20, default="web", blank=True)
     time = models.DateTimeField(auto_now_add=True)
 
     @property
