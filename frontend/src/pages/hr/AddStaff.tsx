@@ -10,7 +10,7 @@ import { AddStaffStep3LoginAccess } from "@/components/hr/add-staff/step3-login-
 import { Input } from "@/components/ui/input"
 import {
   ingestStaffPhotoFiles,
-  setPrimaryStaffPhoto,
+  promoteStaffPhoto,
   primaryStaffPhotoFile,
   newStaffPhotoFiles,
   existingStaffPhotoPaths,
@@ -293,12 +293,6 @@ export default function AddStaffPage() {
     e.target.value = ""
   }
 
-  const handleMainPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = Array.from(e.target.files ?? []).find((f) => f.type.startsWith("image/"))
-    if (file) await setPrimaryStaffPhoto(file, setStaffPhotos)
-    e.target.value = ""
-  }
-
   const handleRemovePhotoAt = (index: number) => {
     setStaffPhotos((prev) => {
       const item = prev[index]
@@ -435,13 +429,6 @@ export default function AddStaffPage() {
                               className="hidden"
                               onChange={handleImageUpload}
                             />
-                            <Input
-                              id="main_profile_image"
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={handleMainPhotoUpload}
-                            />
         {submitError && (
           <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md text-sm mb-6">
             {submitError}
@@ -461,8 +448,8 @@ export default function AddStaffPage() {
               onCaptureFromCamera={handleImageCapture}
               onCloseCamera={() => setCameraOpen(false)}
               onUploadPhotoClick={() => document.getElementById("profile_image")?.click()}
-              onSetMainPhotoClick={() => document.getElementById("main_profile_image")?.click()}
               onRemovePhoto={handleRemovePhotoAt}
+              onSetAsProfileImage={(index) => promoteStaffPhoto(index, setStaffPhotos)}
               onCancel={() => navigate(ROUTES.EMPLOYEES)}
               onReset={resetAll}
               onSaveAndContinue={nextStep}

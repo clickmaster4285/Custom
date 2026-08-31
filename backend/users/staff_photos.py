@@ -127,7 +127,7 @@ def apply_staff_photo_uploads(staff: Staff, request) -> bool:
     if keep_paths or new_paths:
         merged: list[str] = []
         seen: set[str] = set()
-        for path in [*new_paths, *keep_paths]:
+        for path in [*keep_paths, *new_paths]:
             norm = _normalize_path(path)
             if not norm or norm in seen or _is_legacy_ml_path(norm):
                 continue

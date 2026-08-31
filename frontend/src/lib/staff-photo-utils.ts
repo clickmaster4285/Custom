@@ -2,26 +2,26 @@ import type { UploadValue } from "@/components/hr/add-staff/step2-documents-uplo
 import { compressImageForUpload } from "@/lib/compress-image"
 import { staffMediaPathFromUrl } from "@/lib/staff-api"
 
-/** First newly uploaded file — used as profile_image on save. */
+/** First photo file when the main image is a new upload. */
 export function primaryStaffPhotoFile(photos: UploadValue[]): File | undefined {
-  const match = photos.find((p) => p.file instanceof File)
-  return match?.file ?? undefined
+  if (photos[0]?.file instanceof File) return photos[0].file
+  return undefined
 }
 
 export function newStaffPhotoFiles(photos: UploadValue[]): File[] {
   return photos.map((p) => p.file).filter((f): f is File => f instanceof File)
 }
 
-/** Replace the first photo (main profile image), keeping extra photos. */
-export async function setPrimaryStaffPhoto(
-  file: File,
+/** Move an existing extra photo to the front so it becomes the profile image. */
+export function promoteStaffPhoto(
+  index: number,
   setPhotos: (update: (prev: UploadValue[]) => UploadValue[]) => void
-): Promise<void> {
-  const compressed = await compressImageForUpload(file)
-  const previewUrl = URL.createObjectURL(compressed)
+): void {
   setPhotos((prev) => {
-    if (prev[0]?.previewUrl?.startsWith("blob:")) revokeBlobUrl(prev[0].previewUrl)
-    return [{ file: compressed, previewUrl, validating: false }, ...prev.slice(1)].slice(0, 5)
+    if (index <= 0 || index >= prev.length) return prev
+    const next = prev.slice()
+    const [picked] = next.splice(index, 1)
+    return [picked, ...next]
   })
 }
 

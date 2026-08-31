@@ -40,3 +40,26 @@ export function StaffAvatar({
     </Avatar>
   )
 }
+
+/** Hover/focus action to promote an existing photo to the circular profile image. */
+export function SetAsProfileImageButton({
+  disabled,
+  onClick,
+}: {
+  disabled?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+      className="absolute inset-x-1.5 bottom-1.5 z-10 rounded-md bg-black/75 px-2 py-1.5 text-[11px] font-medium leading-tight text-white opacity-0 shadow transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 disabled:opacity-50 max-md:opacity-100"
+    >
+      Set as profile image
+    </button>
+  )
+}

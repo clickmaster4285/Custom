@@ -16,7 +16,7 @@ import { API_BASE_URL } from "@/lib/api"
 import { ROUTES } from "@/routes/config"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { StaffAvatar } from "@/components/hr/staff-avatar"
+import { StaffAvatar, SetAsProfileImageButton } from "@/components/hr/staff-avatar"
 import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
@@ -40,7 +40,6 @@ import {
   BarChart3,
   Pencil,
   Trash2,
-  Camera,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -232,19 +231,22 @@ export default function EmployeeDetailPage() {
     enabled: Number.isInteger(staffId),
   })
 
-  const handleChangeMainPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = Array.from(e.target.files ?? []).find((f) => f.type.startsWith("image/"))
-    e.target.value = ""
-    if (!file || !Number.isInteger(staffId) || !staff) return
+  const handleSetAsProfileImage = async (url: string) => {
+    if (!Number.isInteger(staffId) || !staff) return
+    const selected = staffMediaPathFromUrl(url)
+    if (!selected) return
+    const gallery = resolveStaffPhotoGallery(staff)
+    const currentPaths = (
+      staff.staff_photos?.length
+        ? staff.staff_photos.map((p) => staffMediaPathFromUrl(p) || String(p).trim())
+        : gallery.map((item) => staffMediaPathFromUrl(item))
+    ).filter(Boolean)
+    const keepPaths = [selected, ...currentPaths.filter((p) => p !== selected)]
+    const currentMain = staffMediaPathFromUrl(staff.staff_photo_urls?.[0] || staff.profile_image || "")
+    if (keepPaths[0] === currentMain) return
     setChangingPhoto(true)
     try {
-      const keep = (staff.staff_photos ?? []).filter(Boolean).slice(0, 4)
-      const profilePath = staffMediaPathFromUrl(staff.profile_image || "")
-      const keepPaths = keep.length ? keep : profilePath ? [profilePath] : []
-      const updated = await updateStaff(staffId, {
-        staff_photos: [file],
-        staff_photos_keep: keepPaths,
-      })
+      const updated = await updateStaff(staffId, { staff_photos_keep: keepPaths })
       queryClient.setQueryData(["staff", staffId], updated)
       queryClient.setQueryData(["staff", "directory"], (old: StaffRecord[] | undefined) =>
         mergeStaffIntoDirectory(old, updated),
@@ -330,28 +332,6 @@ export default function EmployeeDetailPage() {
                 className="h-40 w-40"
                 fallbackClassName="text-2xl bg-muted"
               />
-              {!isJsonOverlay && (
-                <>
-                  <input
-                    id="change-main-profile-image"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleChangeMainPhoto}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    className="absolute bottom-2 left-1/2 -translate-x-1/2 h-8 px-2 text-xs shadow"
-                    disabled={changingPhoto}
-                    onClick={() => document.getElementById("change-main-profile-image")?.click()}
-                  >
-                    <Camera className="h-3.5 w-3.5 mr-1" />
-                    {changingPhoto ? "Saving…" : s.profile_image ? "Change image" : "Set image"}
-                  </Button>
-                </>
-              )}
             </div>
             <div className="min-w-0 text-center sm:text-left">
               <h1 className="text-[22px] font-bold tracking-tight text-foreground truncate">
@@ -399,13 +379,26 @@ export default function EmployeeDetailPage() {
           <p className="text-sm font-medium text-muted-foreground mb-3">Recognition photos</p>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {resolveStaffPhotoGallery(s).map((url, idx) => (
-              <img
-                key={`${url}-${idx}`}
-                src={url}
-                alt={`${s.full_name ?? "Staff"} photo ${idx + 1}`}
-                className="h-40 w-32 shrink-0 rounded-md border border-border object-contain bg-muted"
-                decoding="async"
-              />
+              <div key={`${url}-${idx}`} className="group relative h-40 w-32 shrink-0">
+                <img
+                  src={url}
+                  alt={`${s.full_name ?? "Staff"} photo ${idx + 1}`}
+                  className="h-full w-full rounded-md border border-border object-contain bg-muted"
+                  decoding="async"
+                />
+                {idx === 0 ? (
+                  <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                    Profile
+                  </span>
+                ) : (
+                  !isJsonOverlay && (
+                    <SetAsProfileImageButton
+                      disabled={changingPhoto}
+                      onClick={() => void handleSetAsProfileImage(url)}
+                    />
+                  )
+                )}
+              </div>
             ))}
           </div>
         </div>

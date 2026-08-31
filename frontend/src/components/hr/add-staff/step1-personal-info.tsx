@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import type { UploadValue } from "@/components/hr/add-staff/step2-documents-upload"
 import { CameraCapture } from "@/components/camera-capture"
-import { StaffAvatar } from "@/components/hr/staff-avatar"
+import { StaffAvatar, SetAsProfileImageButton } from "@/components/hr/staff-avatar"
 import { useFormik } from "formik"
 import * as Yup from "yup"
 import {
@@ -383,8 +383,8 @@ export function AddStaffStep1PersonalInfo({
   onCaptureFromCamera,
   onCloseCamera,
   onUploadPhotoClick,
-  onSetMainPhotoClick,
   onRemovePhoto,
+  onSetAsProfileImage,
   onCancel,
   onReset,
   onSaveAndContinue,
@@ -405,8 +405,8 @@ export function AddStaffStep1PersonalInfo({
   onCaptureFromCamera?: (file: File) => void
   onCloseCamera?: () => void
   onUploadPhotoClick: () => void
-  onSetMainPhotoClick: () => void
   onRemovePhoto: (index: number) => void
+  onSetAsProfileImage: (index: number) => void
   onCancel: () => void
   onReset: () => void
   onSaveAndContinue: () => void
@@ -696,16 +696,8 @@ export function AddStaffStep1PersonalInfo({
                 className="h-40 w-40"
                 fallbackClassName="text-2xl bg-muted"
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onSetMainPhotoClick}
-              >
-                {filled[0] ? "Change image" : "Set profile image"}
-              </Button>
               <p className="text-xs text-muted-foreground text-center max-w-[10rem]">
-                This is the main photo shown on the employee list and details.
+                Main photo on the employee list and details. Hover an additional photo to use it here.
               </p>
             </div>
             {/* Capture/Upload Box */}
@@ -766,7 +758,7 @@ export function AddStaffStep1PersonalInfo({
                   {filled.slice(1).map((img, idx) => {
                     const photoIndex = idx + 1
                     return (
-                    <div key={photoIndex} className="relative h-[14.5rem] w-48 shrink-0">
+                    <div key={photoIndex} className="group relative h-[14.5rem] w-48 shrink-0">
                       {img.previewUrl ? (
                         <>
                           <img
@@ -781,10 +773,11 @@ export function AddStaffStep1PersonalInfo({
                               <span className="sr-only">Checking face…</span>
                             </div>
                           )}
+                          <SetAsProfileImageButton onClick={() => onSetAsProfileImage(photoIndex)} />
                           <button
                             type="button"
                             onClick={() => onRemovePhoto(photoIndex)}
-                            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow"
+                            className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow"
                             aria-label="Remove photo"
                           >
                             <X className="h-3 w-3" />
